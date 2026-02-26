@@ -1,0 +1,21 @@
+[package]
+name = "fin-services"
+version = "0.1.0"
+edition = "2024"
+
+[dependencies]
+anyhow.workspace = true
+async-trait.workspace = true
+chrono.workspace = true
+rust_decimal.workspace = true
+rust_decimal_macros.workspace = true
+ta.workspace=true
+tokio.workspace = true
+tracing.workspace = true
+
+agentic-core.workspace = true
+storage-core.workspace = true
+fin-analysis.workspace=true
+fin-domain.workspace = true
+fin-storage.workspace = true
+fin-providers.workspace = true

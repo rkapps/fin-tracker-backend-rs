@@ -1,0 +1,39 @@
+[workspace]
+resolver = "2"
+members = ["crates/*", "bins/*"]
+
+[workspace.dependencies]
+anyhow = "1.0.100"
+async-trait = "0.1"
+axum = { version = "0.8.8", features = ["macros"] }
+bson = { version = "3.1", features = ["serde", "chrono-0_4", "serde_with-3"] }
+chrono = { version = "0.4", features = ["serde"] }
+mongodb = { version = "3.5.1", features = ["bson-3"] }
+serde_with = { version = "3.0", features = ["macros"] }
+serde = { version = "1", features = ["derive"] }
+serde_json = "1.0.148"
+
+reqwest = { version = "0.12.28", features = ["json", "stream", "multipart"]}
+rust_decimal = { version = "1.35", features = ["serde"] }
+rust_decimal_macros = "1.40.0"
+
+ta = "0.5"
+tokio = { version = "1", features = ["full"] }
+tower-http = {version = "0.6.8", features = ["cors"]}
+tracing = {version = "0.1.40"}
+tracing-subscriber = { version= "0.3.18", features = ["env-filter"] }
+
+
+# Point to the relative path on your machine
+storage-core = { path = "../libs/storage-core-rs" }
+agentic-core = { path = "../libs/agentic-core-rs" }
+
+# Local app crates
+fin-analysis = { path = "crates/fin-analysis" }
+fin-domain = { path = "crates/fin-domain" }
+fin-http = { path = "crates/fin-http"}
+fin-services = { path = "crates/fin-services" }
+fin-storage = { path = "crates/fin-storage"}
+fin-providers = { path = "crates/fin-providers"}
+
+
