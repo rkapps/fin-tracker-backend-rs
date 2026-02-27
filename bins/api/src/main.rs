@@ -43,17 +43,17 @@ async fn main() -> Result<()> {
         .with_target("fin_tracker_api", Level::DEBUG)
         // .with_target("fin_services", Level::INFO)
         // .with_target("fin_storage", Level::INFO)
-        .with_target("fin_analysis", Level::INFO)
+        // .with_target("fin_analysis", Level::INFO)s
         .with_target("fin_providers", Level::INFO)
         ;
     tracing_subscriber::registry()
         .with(
             fmt::layer().event_format(
                 fmt::format()
-                    .with_file(false)
-                    .with_line_number(true)
+                    // .with_file(false)
+                    // .with_line_number(true)
                     .compact()
-                    .pretty(),
+                    // .pretty(),
             ),
         ) // Compact format
         .with(filter)

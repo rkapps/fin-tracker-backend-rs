@@ -4,7 +4,7 @@ use anyhow::Result;
 use async_trait::async_trait;
 use chrono::{DateTime, Utc};
 use fin_domain::ticker::{
-    Ticker, TickerControl, TickerEmbedding, TickerHistory, TickerIndicator, TickerSentiment,
+    IndicatorWindow, Ticker, TickerControl, TickerEmbedding, TickerHistory, TickerIndicator, TickerSentiment
 };
 use rust_decimal::Decimal;
 // use std::collections::HashMap;
@@ -30,6 +30,7 @@ pub trait StorageService: Send + Sync + Debug{
     async fn get_ticker_history_latest(&self, symbol: &str ) -> Result<Vec<TickerHistory>>;
     async fn get_ticker_indicators_latest(&self, symbol: &str) -> Result<Vec<TickerIndicator>>;
     async fn get_ticker_indicators_last_two(&self, symbol: &str) -> Result<Vec<TickerIndicator>>;
+    async fn get_ticker_indicators_window(&self, symbol: &str) -> Result<IndicatorWindow>;
 
 
     async fn get_ticker_industry_embeddings(&self) -> Result<Vec<(Ticker, Vec<f32>)>>;

@@ -2,7 +2,7 @@ use anyhow::Result;
 use async_trait::async_trait;
 use chrono::{DateTime, Utc};
 use fin_domain::ticker::{
-    Ticker, TickerControl, TickerEmbedding, TickerHistory, TickerIndicator, TickerSentiment,
+    IndicatorSnapshot, IndicatorWindow, Ticker, TickerControl, TickerEmbedding, TickerHistory, TickerIndicator, TickerSentiment
 };
 use fin_domain::utils::data_utils::{market_cap_label_range, market_cap_range};
 use rust_decimal::Decimal;
@@ -249,6 +249,15 @@ impl StorageService for MongoStorageService {
             }
         }
     }
+
+    async fn get_ticker_indicators_window(&self, symbol: &str) -> Result<IndicatorWindow> {
+        let mut indicators = self.get_ticker_indicators_last_two(symbol).await?;
+        let curr = IndicatorSnapshot::from(indicators.remove(0));
+        let prev = IndicatorSnapshot::from(indicators.remove(1));
+        let window = IndicatorWindow::new(curr, prev);
+        Ok(window)
+    }
+
 
     async fn get_ticker_sentiments(&self, symbol: &str) -> Result<Vec<TickerSentiment>> {
         let score = dec!(0);

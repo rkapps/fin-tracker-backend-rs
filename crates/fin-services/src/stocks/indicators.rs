@@ -22,7 +22,7 @@ pub struct IndicatorCalculator {}
 
 impl IndicatorCalculator {
     // calculate technical indicators while looping through the history once.
-    pub fn calculate_all_in_one_pass(
+    pub(crate) fn calculate_all_in_one_pass(
         history: &[TickerHistory],
         sma_periods: Vec<usize>,
         ema_periods: Vec<usize>,

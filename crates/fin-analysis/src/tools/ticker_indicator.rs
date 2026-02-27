@@ -78,7 +78,7 @@ impl Tool for TickerIndicatorTool {
         debug!("Indicators: {:#?}", latest_indicators);
         Ok(json!({
             "symbol": params.symbol,
-            // "indicators": latest_indicators[0]
+            "indicators": latest_indicators[0]
         }))
     }
 }

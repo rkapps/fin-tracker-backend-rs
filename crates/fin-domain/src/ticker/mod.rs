@@ -4,6 +4,9 @@ mod history;
 mod indicator;
 mod sentiment;
 mod ticker;
+mod indicator_snapshot;
+mod indicator_window;
+
 
 use chrono::DateTime;
 use chrono::Utc;
@@ -16,6 +19,9 @@ pub use history::TickerHistory;
 pub use indicator::TickerIndicator;
 pub use indicator::indicator_type;
 pub use sentiment::TickerSentiment;
+pub use indicator_snapshot::IndicatorSnapshot;
+pub use indicator_window::IndicatorWindow;
+
 
 use serde::Serialize;
 pub use ticker::AssetType;

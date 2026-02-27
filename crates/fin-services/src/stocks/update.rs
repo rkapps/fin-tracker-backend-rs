@@ -18,7 +18,7 @@ use anyhow::Result;
 
 impl StocksService {
     // sync_ticker return true if not updated in 24 hours
-    pub fn should_sync_ticker(&self, tc: &TickerControl) -> bool {
+    pub(crate) fn should_sync_ticker(&self, tc: &TickerControl) -> bool {
         if let Some(last_sync) = tc.last_sync_at {
             return Utc::now() - last_sync > Duration::hours(24);
         }
@@ -26,7 +26,7 @@ impl StocksService {
     }
 
     // sync_history return true if not updated in 24 hours
-    pub fn should_sync_history(&self, tc: &TickerControl) -> bool {
+    pub(crate) fn should_sync_history(&self, tc: &TickerControl) -> bool {
         if let Some(last_sync) = tc.last_history_sync_at {
             return Utc::now() - last_sync > Duration::hours(24);
         }
@@ -34,7 +34,7 @@ impl StocksService {
     }
 
     // sync_sentiments return true if not updated in 24 hours
-    pub fn should_sync_sentiments(&self, tc: &TickerControl) -> bool {
+    pub(crate) fn should_sync_sentiments(&self, tc: &TickerControl) -> bool {
         if let Some(last_sync) = tc.last_sentiment_sync_at {
             return Utc::now() - last_sync > Duration::hours(24);
         }
@@ -42,7 +42,7 @@ impl StocksService {
     }
 
     // sync_embeddings return true if not updated in 24 hours
-    pub fn should_sync_embeddings(&self, tc: &TickerControl) -> bool {
+    pub(crate) fn should_sync_embeddings(&self, tc: &TickerControl) -> bool {
         if let Some(last_sync) = tc.last_embedding_sync_at {
             return Utc::now() - last_sync > Duration::hours(24);
         }
@@ -50,14 +50,14 @@ impl StocksService {
     }
 
     // sync_indicators return true if not updated in 24 hours
-    pub fn should_sync_indicators(&self, tc: &TickerControl) -> bool {
+    pub(crate) fn should_sync_indicators(&self, tc: &TickerControl) -> bool {
         if let Some(last_sync) = tc.last_indicator_sync_at {
             return Utc::now() - last_sync > Duration::hours(24);
         }
         true
     }
 
-    pub async fn update_and_save_single_ticker(
+    pub(crate) async fn update_and_save_single_ticker(
         &self,
         tc: &mut TickerControl,
         ticker: &mut Ticker,
@@ -183,7 +183,7 @@ impl StocksService {
         Ok(())
     }
 
-    pub async fn update_single_ticker(
+    pub(crate) async fn update_single_ticker(
         &self,
         _tc: &mut TickerControl,
         ticker: &mut Ticker,
@@ -204,7 +204,7 @@ impl StocksService {
         Ok(())
     }
 
-    pub async fn update_single_ticker_price_history(
+    pub(crate) async fn update_single_ticker_price_history(
         &self,
         _tc: &mut TickerControl,
         ticker: &mut Ticker,
@@ -223,7 +223,7 @@ impl StocksService {
         Ok(())
     }
 
-    pub async fn update_single_ticker_performance(
+    pub(crate) async fn update_single_ticker_performance(
         &self,
         _tc: &mut TickerControl,
         ticker: &mut Ticker,
@@ -262,7 +262,7 @@ impl StocksService {
         Ok(())
     }
 
-    pub async fn update_single_ticker_history(
+    pub(crate) async fn update_single_ticker_history(
         &self,
         tc: &mut TickerControl,
         ticker: &mut Ticker,
@@ -325,7 +325,7 @@ impl StocksService {
         Ok(new_histories)
     }
 
-    pub async fn update_single_stock_indicators(
+    pub(crate) async fn update_single_stock_indicators(
         &self,
         tc: &mut TickerControl,
         _ticker: &mut Ticker,
@@ -371,7 +371,7 @@ impl StocksService {
         Ok(new_indicators)
     }
 
-    pub async fn update_single_ticker_sentiments(
+    pub(crate) async fn update_single_ticker_sentiments(
         &self,
         tc: &mut TickerControl,
         ticker: &mut Ticker,
@@ -415,7 +415,7 @@ impl StocksService {
         Ok(new_sentiments)
     }
 
-    pub async fn update_single_ticker_sentiment_embeddings(
+    pub(crate) async fn update_single_ticker_sentiment_embeddings(
         &self,
         tc: &mut TickerControl,
         ticker: &mut Ticker,
@@ -497,7 +497,7 @@ impl StocksService {
         Ok(new_embeddings)
     }
 
-    pub async fn update_single_ticker_embedding(&self, ticker: &mut Ticker) -> Result<()> {
+    pub(crate) async fn update_single_ticker_embedding(&self, ticker: &mut Ticker) -> Result<()> {
         // adding the industry twice to increase the weight.
 
         let market_cap_label = market_cap_label(ticker.market_cap);
@@ -532,101 +532,36 @@ impl StocksService {
         Ok(())
     }
 
-    pub async fn update_single_ticker_signals(&self, ticker: &mut Ticker) -> Result<()> {
-        let indicators = self
+
+    pub(crate) async fn update_single_ticker_signals(&self, ticker: &mut Ticker) -> Result<()> {
+        let window = self
             .storage_service
-            .get_ticker_indicators_last_two(&ticker.symbol)
+            .get_ticker_indicators_window(&ticker.symbol)
             .await?;
 
-        if indicators.len() < 2 {
-            return Ok(());
-        }
-
-        let prev = &indicators[0];
-        let curr = &indicators[1];
+        let price = Decimal::try_from(ticker.pr_last)?;
 
         let mut signals = Vec::new();
+        signals.extend(self.calculate_sma_stack(&window));
+        signals.extend(self.calculate_sma_50(price, &window).unwrap_or_default());
+        signals.extend(self.calculate_sma_crossover(&window));
+        signals.extend(self.calculate_macd_crossover(&window));
+        signals.extend(self.calculate_macd_histogram(&window));
+        signals.extend(self.calculate_momentum(price, &window));
+        signals.extend(self.calculate_trend_exhaustion(price, &window));
+        signals.extend(self.calculate_volatility(&window));
+        signals.extend(self.calculate_mean_reversion(price, &window));
 
-        // Trend
-        let sma_50 = curr.values.get("sma_50");
-        let sma_200 = curr.values.get("sma_200");
-        let prev_sma_50 = prev.values.get("sma_50");
-        let prev_sma_200 = prev.values.get("sma_200");
-
-        if let (Some(s50), Some(s200), Some(ps50), Some(ps200)) =
-            (sma_50, sma_200, prev_sma_50, prev_sma_200)
-        {
-            if s50 > s200 && ps50 <= ps200 {
-                signals.push("Golden Cross".to_string());
-            }
-            if s50 < s200 && ps50 >= ps200 {
-                signals.push("Death Cross".to_string());
-            }
-            if s50 > s200 {
-                signals.push("Above SMA50".to_string());
-            }
-            if s50 < s200 {
-                signals.push("Below SMA50".to_string());
-            }
-        }
-
-        // MACD crossover
-        let macd = curr.values.get("macd");
-        let signal = curr.values.get("macd_signal");
-        let prev_macd = prev.values.get("macd");
-        let prev_signal = prev.values.get("macd_signal");
-
-        if let (Some(m), Some(s), Some(pm), Some(ps)) = (macd, signal, prev_macd, prev_signal) {
-            if m > s && pm <= ps {
-                signals.push("MACD Bullish Crossover".to_string());
-            }
-            if m < s && pm >= ps {
-                signals.push("MACD Bearish Crossover".to_string());
-            }
-        }
-
-        // RSI
-        if let Some(rsi) = curr.values.get("rsi_14") {
-            if rsi < &Decimal::from(30) {
-                signals.push("RSI Oversold".to_string());
-            }
-            if rsi > &Decimal::from(70) {
-                signals.push("RSI Overbought".to_string());
-            }
-        }
-
-        // Bollinger Bands
-        let price = Decimal::try_from(ticker.pr_last)?;
-        if let (Some(upper), Some(lower)) =
-            (curr.values.get("bb_upper"), curr.values.get("bb_lower"))
-        {
-            if &price > upper {
-                signals.push("BB Breakout Upper".to_string());
-            }
-            if &price < lower {
-                signals.push("BB Breakout Lower".to_string());
-            }
-            let width = upper - lower;
-            // BB squeeze — bands narrower than threshold
-            if width < Decimal::from(10) {
-                signals.push("BB Squeeze".to_string());
-            }
-        }
-
-        // Stochastic
-        let k = curr.values.get("stochastic_k_14");
-        let d = curr.values.get("stochastic_d");
-        let prev_k = prev.values.get("stochastic_k_14");
-        let prev_d = prev.values.get("stochastic_d");
-
-        if let (Some(k), Some(d), Some(pk), Some(pd)) = (k, d, prev_k, prev_d) {
-            if k > d && pk <= pd {
-                signals.push("Stochastic Bullish".to_string());
-            }
-            if k < d && pk >= pd {
-                signals.push("Stochastic Bearish".to_string());
-            }
-        }
+        signals.extend(
+            self.calculate_bollinger_bands(price, &window)
+                .unwrap_or_default(),
+        );
+        signals.extend(self.calculate_stochastic(&window));
+        signals.extend(self.calculate_rsi(&window).unwrap_or_default());
+        signals.extend(
+            self.calculate_confluence(price, &window)
+                .unwrap_or_default(),
+        );
 
         // Beta signals
         if let Some(beta) = ticker.beta {
@@ -654,4 +589,5 @@ impl StocksService {
         ticker.signals = signals;
         Ok(())
     }
+
 }

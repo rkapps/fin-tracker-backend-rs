@@ -9,7 +9,7 @@ pub mod eod;
 pub mod load;
 pub mod update;
 pub mod indicators;
-
+pub mod signals;
 
 pub struct StocksService {
     pub storage_service: Arc<dyn StorageService>,

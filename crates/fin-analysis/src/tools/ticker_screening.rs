@@ -76,13 +76,23 @@ impl Tool for TickerScreeningTool {
                     "items": {
                         "type": "string",
                         "enum": [
-                            "Golden Cross", "Death Cross", "Above SMA50", "Below SMA50",
+                            "SMA Stack Bullish", "SMA Stack Bearish", 
+                            "Bullish Pullback", "Bearish Rally",
+                            "Above SMA50", "Below SMA50",
+                            "Golden Cross", "Death Cross", 
                             "MACD Bullish Crossover", "MACD Bearish Crossover",
-                            "RSI Oversold", "RSI Overbought",
+                            "MACD Histogram Expanding", "MACD Histogram Weakening",
                             "BB Breakout Upper", "BB Breakout Lower", "BB Squeeze",
                             "Stochastic Bullish", "Stochastic Bearish",
+                            "RSI Oversold", "RSI Recovering from Oversold", "RSI Multi-period Oversold",
+                            "RSI Overbought", "RSI Recovering from Overbought", "RSI Multi-period Overbought",
+                            "Oversold Confluence", "Oversold Reversal Setup",
+                            "Overbought Confluence", "Overbought Reversal Setup",
+                            "Mean Reversion Candidate",
+                            "Momentum Breakout", "Bullish Trend Exhaustion", "Bearish Trend Exhaustion",
+                            "Volatility Expanding", "Volatility Contracting",
                             "Analyst Strong Buy", "Analyst Buy", "Analyst Hold",
-                            "Analyst Sell", "Analyst Strong Sell",
+                            "Analyst Sell", "Analyst Strong Sell", 
                             "Low Beta", "Market Beta", "High Beta", "Very High Beta"
                         ]
                     },
