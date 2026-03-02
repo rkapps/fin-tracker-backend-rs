@@ -1,21 +1,16 @@
 use std::sync::Arc;
-
-use agentic_core::{
-    agent::service::AgentService, capabilities::completion::response::CompletionResponseContent,
-};
 use axum::{
     Json,
     extract::{Path, State},
 };
-use fin_domain::ticker::{
-    Ticker, TickerEmbedding, TickerHistory, TickerIndicator, TickerSentiment,
+use fin_domain::{
+    dto::screen_param::TickerScreenParam,
+    ticker::{Ticker, TickerEmbedding, TickerHistory, TickerIndicator, TickerSentiment},
 };
 use fin_services::stocks::StocksService;
 use reqwest::StatusCode;
 use serde::{Deserialize, Serialize};
 use tracing::debug;
-
-use crate::state::{AnthropicApiKey, GeminiApiKey, OpenAIApiKey};
 
 #[derive(Deserialize, Debug)]
 pub struct TickerAnalyseParam {
@@ -128,50 +123,41 @@ pub async fn get_ticker_embeddings(
     Ok(Json(embeddings))
 }
 
-pub async fn analyse_tickers_handler(
-    State(stocks_service): State<Arc<StocksService>>,
-    State(agent_service): State<Arc<AgentService>>,
-    State(OpenAIApiKey(openai_api_key)): State<OpenAIApiKey>,
-    State(GeminiApiKey(gemini_api_key)): State<GeminiApiKey>,
-    State(AnthropicApiKey(anthropic_api_key)): State<AnthropicApiKey>,
-    Json(param): Json<TickerAnalyseParam>,
-) -> Result<Json<TickerAnalyseResponse>, (StatusCode, String)> {
-    debug!("analyse params: {:?}", param);
-    let response_id = param.prev_response_id;
 
-    let response = stocks_service
-        .analyse_tickers(
-            agent_service,
-            &openai_api_key,
-            &gemini_api_key,
-            &anthropic_api_key,
-            &param.prompt,
-            response_id,
-        )
+pub async fn screen_tickers_handler(
+    State(stocks_service): State<Arc<StocksService>>,
+    Json(param): Json<TickerScreenParam>,
+) -> Result<Json<Vec<String>>, (StatusCode, String)> {
+    debug!("screen params: {:?}", param);
+
+    let tickers = stocks_service
+        .screen_tickers(param)
         .await
         .map_err(|e| {
             (
                 StatusCode::BAD_REQUEST,
-                format!("Analyse ticker error: {}", e),
+                format!("Search ticker error: {}", e),
             )
         })?;
+    Ok(Json(tickers))
+    // Ok(Json(response))
+}
+pub async fn search_tickers_handler(
+    State(stocks_service): State<Arc<StocksService>>,
+    Json(param): Json<TickerScreenParam>,
+) -> Result<Json<Vec<Ticker>>, (StatusCode, String)> {
+    debug!("search params: {:?}", param);
 
-    let aresponse = response
-        .contents
-        .iter()
-        .find_map(|c| {
-            if let CompletionResponseContent::Text(val) = c {
-                Some(val.clone())
-            } else {
-                None
-            }
-        })
-        .unwrap_or_default();
-
-    let aresponse = TickerAnalyseResponse {
-        content: aresponse,
-        response_id: response.response_id,
-    };
-    Ok(Json(aresponse))
+    let tickers = stocks_service
+        .storage_service
+        .search_tickers(param)
+        .await
+        .map_err(|e| {
+            (
+                StatusCode::BAD_REQUEST,
+                format!("Search ticker error: {}", e),
+            )
+        })?;
+    Ok(Json(tickers))
     // Ok(Json(response))
 }
