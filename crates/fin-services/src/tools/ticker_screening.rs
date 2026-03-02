@@ -1,28 +1,20 @@
-use agentic_core::capabilities::client::{embeddings::EmbeddingClient, tool::Tool};
+use agentic_core::capabilities::client::tool::Tool;
 use anyhow::Result;
 use async_trait::async_trait;
-use fin_domain::{ticker::Ticker, utils::data_utils::get_overview_embeddings};
-use fin_storage::service::StorageService;
-use serde::Deserialize;
+use fin_domain::dto::screen_param::TickerScreenParam;
 use serde_json::{Value, json};
 use std::sync::Arc;
-use storage_core::vector::search;
-use tracing::{debug, info};
+use tracing::info;
+
+use crate::stocks::StocksService;
 
 #[derive(Debug)]
 pub struct TickerScreeningTool {
-    embedding_client: Arc<dyn EmbeddingClient>,
-    storage_service: Arc<dyn StorageService>,
+    stocks_service: Arc<StocksService>,
 }
 impl TickerScreeningTool {
-    pub fn new(
-        embedding_client: Arc<dyn EmbeddingClient>,
-        storage_service: Arc<dyn StorageService>,
-    ) -> TickerScreeningTool {
-        Self {
-            embedding_client,
-            storage_service,
-        }
+    pub fn new(stocks_service: Arc<StocksService>) -> TickerScreeningTool {
+        Self { stocks_service }
     }
 }
 
@@ -76,10 +68,10 @@ impl Tool for TickerScreeningTool {
                     "items": {
                         "type": "string",
                         "enum": [
-                            "SMA Stack Bullish", "SMA Stack Bearish", 
+                            "SMA Stack Bullish", "SMA Stack Bearish",
                             "Bullish Pullback", "Bearish Rally",
                             "Above SMA50", "Below SMA50",
-                            "Golden Cross", "Death Cross", 
+                            "Golden Cross", "Death Cross",
                             "MACD Bullish Crossover", "MACD Bearish Crossover",
                             "MACD Histogram Expanding", "MACD Histogram Weakening",
                             "BB Breakout Upper", "BB Breakout Lower", "BB Squeeze",
@@ -92,7 +84,7 @@ impl Tool for TickerScreeningTool {
                             "Momentum Breakout", "Bullish Trend Exhaustion", "Bearish Trend Exhaustion",
                             "Volatility Expanding", "Volatility Contracting",
                             "Analyst Strong Buy", "Analyst Buy", "Analyst Hold",
-                            "Analyst Sell", "Analyst Strong Sell", 
+                            "Analyst Sell", "Analyst Strong Sell",
                             "Low Beta", "Market Beta", "High Beta", "Very High Beta"
                         ]
                     },
@@ -122,49 +114,11 @@ impl Tool for TickerScreeningTool {
     }
 
     async fn execute(&self, value: serde_json::Value) -> Result<Value> {
-        #[derive(Debug, Deserialize)]
-        struct ScreenParams {
-            query: Option<String>, // semantic: "cloud security", "payments infrastructure"
-            signals: Option<Vec<String>>, // ["RSI Oversold", "MACD Bullish Crossover"]
-            industry: Option<String>, // regex match
-            market_cap_range: Option<String>, // "mega", "large", "mid", "small"
-            asset_type: Option<String>, // "stock", "etf"
-            limit: Option<usize>,
-        }
-
-        let params: ScreenParams = serde_json::from_value(value.clone())
+        let param: TickerScreenParam = serde_json::from_value(value.clone())
             .map_err(|e| anyhow::anyhow!("Failed to deserialize params: {:?} — {:?}", value, e))?;
-        info!("Screening Tools param: {:#?}", params);
+        info!("Screening Tools param: {:#?}", param);
 
-        let tickers = self
-            .storage_service
-            .search_tickers(
-                params.industry,
-                params.market_cap_range,
-                params.asset_type,
-                params.signals,
-            )
-            .await?;
-        debug!("Screened stocks from initial search: {}", tickers.len());
-
-        let overview_candidates: Vec<(Ticker, Vec<f32>)> = get_overview_embeddings(&tickers);
-        let limit = params.limit.unwrap_or(10);
-
-        let symbols: Vec<String> = if let Some(query) = params.query {
-            let vectors = self.embedding_client.embed_text(&query).await?.into_vec();
-
-            let candidates: Vec<(String, Vec<f32>)> = overview_candidates
-                .iter()
-                .map(|(t, e)| (t.symbol.clone(), e.clone()))
-                .collect();
-
-            search::search(&vectors, &candidates, limit)
-                .into_iter()
-                .map(|(s, _)| s)
-                .collect()
-        } else {
-            tickers.into_iter().take(limit).map(|t| t.symbol).collect()
-        };
+        let symbols = self.stocks_service.screen_tickers(param).await?;
 
         info!("Screened stocks: {:?}", symbols);
         Ok(json!({ "sreened_tickers": symbols }))

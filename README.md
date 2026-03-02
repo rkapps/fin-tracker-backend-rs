@@ -69,18 +69,18 @@ Supports Anthropic Claude, OpenAI GPT, and Google Gemini via a provider-agnostic
 
 ```
 ┌─────────────────────────────────────────────┐
-│                Angular Frontend              │
+│                Angular Frontend             │
 └─────────────────────────┬───────────────────┘
                           │ HTTP
 ┌─────────────────────────▼───────────────────┐
-│              Axum API (bins/api)             │
+│              Axum API (bins/api)            │
 │         /stocks/analyse endpoint            │
 └─────────────────────────┬───────────────────┘
                           │
-┌─────────────────────────▼───────────────────┐
-│           agentic-core-rs (Agent)            │
-│                                             │
-│  complete_with_tools()                      │
+┌─────────────────────────▼──────────────────┐
+│           agentic-core-rs (Agent)          │
+│                                            │
+│  complete_with_tools()                     │
 │  ┌─────────────────────────────────────┐   │
 │  │ Loop until no tool calls:           │   │
 │  │  1. Call LLM                        │   │
@@ -89,18 +89,18 @@ Supports Anthropic Claude, OpenAI GPT, and Google Gemini via a provider-agnostic
 │  └─────────────────────────────────────┘   │
 └──────────┬──────────────────────┬──────────┘
            │                      │
-┌──────────▼──────────┐  ┌───────▼──────────┐
-│   fin-analysis-rs   │  │   LLM Providers  │
-│                     │  │                  │
-│  Tool Registry      │  │  Anthropic       │
-│  - snapshot         │  │  OpenAI          │
-│  - indicator        │  │  Gemini          │
-│  - sentiment        │  └──────────────────┘
-│  - peers            │
-│  - screening        │
-│  - taxonomy         │
-│  - price_history    │
-└──────────┬──────────┘
+┌──────────▼───────────────┐  ┌───────▼──────────┐
+│   fin-tracker-backend-rs │  │   LLM Providers  │
+│                          │  │                  │
+│  Tool Registry           │  │  Anthropic       │
+│  - snapshot              │  │  OpenAI          │
+│  - indicator             │  │  Gemini          │
+│  - sentiment             │  └──────────────────┘
+│  - peers                 │
+│  - screening             │
+│  - taxonomy              │
+│  - price_history         │
+└──────────┬───────────────┘
            │
 ┌──────────▼──────────┐
 │   storage-core-rs   │
@@ -170,11 +170,10 @@ fin-tracker/
 │   └── api/                    # Axum HTTP server
 │   └── cron/                   # Axum HTTP serve
 ├── crates/
-│   ├── fin-analysis/           # Tool implementations, agent setup
 │   ├── fin-domain/             # Domain models (Ticker, TickerIndicator, etc.)
 │   └── fin-http/               # Http Client
 │   └── fin-providers/          # Providers for market data
-│   └── fin-services/           # Application services
+│   └── fin-services/           # Application services, tool implementations
 │   └── fin-storage/            # Application storage
 ---
 

@@ -10,18 +10,28 @@ use axum::{
 };
 
 use fin_http::HttpClient;
-use fin_services::stocks::StocksService;
-use fin_storage::{mongo_manager::MongoStorageManager, mongo_service::MongoStorageService, service::StorageService};
-use fin_tracker_api::{handlers::{cron::{handle_ticker_embeddings_eod, handle_tickers_eod}, stocks::{get_ticker_history, get_ticker_history_latest, get_ticker_indicators_latest}}, state::{AnthropicApiKey, GeminiApiKey, OpenAIApiKey}};
+use fin_services::{stocks::StocksService, tools::ToolsService};
+use fin_storage::{
+    mongo_manager::MongoStorageManager, mongo_service::MongoStorageService, service::StorageService,
+};
 use fin_tracker_api::{
     handlers::{
         self,
         stocks::{
-            analyse_tickers_handler, get_ticker_embeddings, get_ticker_sentiments, get_tickers,
-        },
+            get_ticker_embeddings, get_ticker_sentiments, get_tickers,
+        }, tools::analyse_tickers_handler,
     },
     middleware,
     state::AppState,
+};
+use fin_tracker_api::{
+    handlers::{
+        cron::{handle_ticker_embeddings_eod, handle_ticker_predictions_eod, handle_tickers_eod},
+        stocks::{
+            get_ticker_history, get_ticker_history_latest, get_ticker_indicators_latest,
+            screen_tickers_handler, search_tickers_handler,
+        },
+    },
 };
 
 use reqwest::Method;
@@ -36,24 +46,21 @@ async fn main() -> Result<()> {
     let filter = filter::Targets::new()
         .with_target("storage_core::mongo", Level::INFO)
         // .with_target("storage_core::vector", Level::DEBUG)
-        .with_target("agentic_core::http", Level::INFO)       
+        .with_target("agentic_core::http", Level::INFO)
         .with_target("agentic_core::agent", Level::INFO)
         .with_target("agentic_core::providers", Level::INFO)
         // .with_target("fin_tracker_backend_rs::http", Level::DEBUG)
         .with_target("fin_tracker_api", Level::DEBUG)
-        // .with_target("fin_services", Level::INFO)
+        .with_target("fin_services", Level::INFO)
         // .with_target("fin_storage", Level::INFO)
-        // .with_target("fin_analysis", Level::INFO)s
-        .with_target("fin_providers", Level::INFO)
-        ;
+        .with_target("fin_providers", Level::INFO);
     tracing_subscriber::registry()
         .with(
             fmt::layer().event_format(
                 fmt::format()
                     // .with_file(false)
                     // .with_line_number(true)
-                    .compact()
-                    // .pretty(),
+                    .compact(), // .pretty(),
             ),
         ) // Compact format
         .with(filter)
@@ -97,23 +104,28 @@ async fn main() -> Result<()> {
     let storage_service: Arc<dyn StorageService> =
         Arc::new(MongoStorageService::new(storage_manager));
 
-    let stock_service = StocksService::new(
+    let stocks_service = Arc::new(StocksService::new(
         Arc::clone(&storage_service),
         provider_service,
         // Arc::new(agent_service),
-        embedding_client,
-    );
+        embedding_client.clone(),
+    ));
 
     // agent service
     let agent_service = AgentService::new();
+    let tools_service = ToolsService::new(
+        stocks_service.clone(),
+        embedding_client.clone(),
+        Arc::new(agent_service),
+        openai_api_key,
+        gemini_api_key,
+        anthropic_api_key,
+    );
 
     // application state
     let app_state = AppState {
-        stocks_service: Arc::new(stock_service),
-        agent_service: Arc::new(agent_service),
-        openai_api_key: OpenAIApiKey(openai_api_key), // ✅ Wrap in newtype
-        gemini_api_key: GeminiApiKey(gemini_api_key),
-        anthropic_api_key: AnthropicApiKey(anthropic_api_key)
+        tools_service: Arc::new(tools_service),
+        stocks_service: stocks_service.clone(),
     };
 
     let admin_routes =
@@ -131,10 +143,11 @@ async fn main() -> Result<()> {
         // Apply the protection only to these routes
         .layer(axum::middleware::from_fn(middleware::guard_cron_request));
 
-        let origins = [
-            "http://localhost:4200".parse::<HeaderValue>().unwrap(),
-            "http://localhost:4201".parse::<HeaderValue>().unwrap(),
-        ];        
+    let origins = [
+        "http://localhost:4200".parse::<HeaderValue>().unwrap(),
+        "http://localhost:4201".parse::<HeaderValue>().unwrap(),
+        "http://localhost:4202".parse::<HeaderValue>().unwrap(),
+    ];
     let cors = CorsLayer::new()
         .allow_origin(origins)
         // .allow_origin("http://localhost:4201".parse::<HeaderValue>().unwrap())
@@ -153,9 +166,12 @@ async fn main() -> Result<()> {
         .route("/tickers/{symbol}/embeddings", get(get_ticker_embeddings))
         // .route("/tickers/{symbol}/update_embeddings", get(handle_embeddings_eod_update))
         // .route("/tickers/load", get(load_tickers_handler))
+        .route("/tickers/screen", post(screen_tickers_handler))
+        .route("/tickers/search", post(search_tickers_handler))
         .route("/tickers/analyse", post(analyse_tickers_handler))
         .route("/tickers/update-eod", get(handle_tickers_eod))
         .route("/tickers/update-ticker-embeddings-eod", get(handle_ticker_embeddings_eod))
+        .route("/tickers/update-ticker-predictions-eod", get(handle_ticker_predictions_eod))
         .layer(cors)
         .with_state(app_state) // Shared state
         ;
@@ -163,9 +179,7 @@ async fn main() -> Result<()> {
     let listener = TcpListener::bind("127.0.0.1:3002").await.unwrap();
     println!("🚀 Listening on http://127.0.0.1:3002");
 
-    axum::serve(listener, app)
-        .await
-        .unwrap();
+    axum::serve(listener, app).await.unwrap();
 
     Ok(())
 }

@@ -7,7 +7,7 @@ use fin_domain::ticker::TickerEmbedding;
 use fin_storage::service::StorageService;
 use serde_json::{Value, json};
 use storage_core::vector::search;
-use tracing::{debug, info};
+use tracing::debug;
 
 use crate::tools::TickerParam;
 
@@ -34,7 +34,7 @@ impl Tool for TickerSentimentTool {
         "ticker_sentiment".to_string()
     }
 
-    fn description(&self) -> String {
+    fn description(&self) -> String { 
         "Returns relevant sentiment analysis and news for a stock ticker, \
  filtered by the user's query context. Use this to understand market \
  narrative, news-driven momentum, and investor sentiment."
@@ -68,7 +68,7 @@ impl Tool for TickerSentimentTool {
 
         //Get ticker
         // let ticker = self.storage_service.get_ticker(&ticker_param.symbol).await?;
-        info!("Ticker sentiment params {:#?}", ticker_param.symbol);
+        debug!("Ticker sentiment params {:#?}", ticker_param.symbol);
 
         let embeddings = self
             .storage_service

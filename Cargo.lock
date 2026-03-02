@@ -624,21 +624,6 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "37909eebbb50d72f9059c3b6d82c0463f2ff062c9e95845c43a6c9c0355411be"
 
 [[package]]
-name = "fin-analysis"
-version = "0.1.0"
-dependencies = [
- "agentic-core",
- "anyhow",
- "async-trait",
- "fin-domain",
- "fin-storage",
- "serde",
- "serde_json",
- "storage-core",
- "tracing",
-]
-
-[[package]]
 name = "fin-domain"
 version = "0.1.0"
 dependencies = [
@@ -690,12 +675,13 @@ dependencies = [
  "anyhow",
  "async-trait",
  "chrono",
- "fin-analysis",
  "fin-domain",
  "fin-providers",
  "fin-storage",
  "rust_decimal",
  "rust_decimal_macros",
+ "serde",
+ "serde_json",
  "storage-core",
  "ta",
  "tokio",
@@ -726,7 +712,6 @@ dependencies = [
  "agentic-core",
  "anyhow",
  "axum",
- "fin-analysis",
  "fin-domain",
  "fin-http",
  "fin-providers",

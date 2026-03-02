@@ -6,7 +6,7 @@ use async_trait::async_trait;
 use fin_storage::service::StorageService;
 use serde::Deserialize;
 use serde_json::{Value, json};
-use tracing::{debug, info};
+use tracing::debug;
 
 #[derive(Debug)]
 pub struct TickerIndicatorTool {
@@ -58,7 +58,7 @@ impl Tool for TickerIndicatorTool {
         }
         let params: Params = serde_json::from_value(value.clone())
             .map_err(|e| anyhow::anyhow!("Failed to deserialize params: {:?} — {:?}", value, e))?;
-        info!("Ticker indicator params {:#?}", params);
+        debug!("Ticker indicator params {:#?}", params);
 
         let ticker = match self.storage_service.get_ticker(&params.symbol).await {
             Ok(t) => t,
