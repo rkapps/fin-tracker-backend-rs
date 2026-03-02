@@ -12,8 +12,11 @@ impl StocksService {
         let delay = Duration::from_millis(500); // Sleep for 0 milliseconds
 
         let mut count = 0;
-        for seed in ticker_seeds {
-            info!("Loading ticker: {}", seed.symbol);
+        let length = ticker_seeds.len();
+        for (i, seed) in ticker_seeds.iter().enumerate() {
+            if i%20 == 0 {
+                info!("Loading Ticker: {} {}/{}", seed.symbol, i+1, length);
+            }
 
             let (mut tc, mut ticker) = {
                 let tc = self

@@ -1,11 +1,11 @@
-use std::collections::HashMap;
+use std::{collections::HashMap, ops::Div};
 
 use anyhow::Result;
 use fin_domain::ticker::{
     TickerHistory, TickerIndicator,
     indicator_type::{
         ATR, BB_LOWER, BB_MIDDLE, BB_UPPER, EMA, MACD, MACD_HISTOGRAM, MACD_SIGNAL, RSI, SMA,
-        STOCHASTIC_D, STOCHASTIC_K,
+        STOCHASTIC_D, STOCHASTIC_K, VOLUME_RATIO,
     },
 };
 use rust_decimal::Decimal;
@@ -32,6 +32,7 @@ impl IndicatorCalculator {
         bb_period: usize,
         bb_std_dev: f64,
         atr_period: usize,
+        volume_ratio_period: usize
     ) -> Result<Vec<TickerIndicator>> {
         if history.is_empty() {
             return Ok(Vec::new());
@@ -70,6 +71,7 @@ impl IndicatorCalculator {
             let close_f64 = h.close.to_string().parse::<f64>()?;
 
             let mut values = HashMap::new();
+            values.insert("price".to_string(), h.close);
 
             // debug!("Value: {:?}", h);
             // Calculate all SMAs
@@ -189,7 +191,24 @@ impl IndicatorCalculator {
                 values.insert(format!("{}", ATR), dec);
             }
 
+            //Volume ratio 
+            if idx > volume_ratio_period {
+                let mut total_volume =Decimal::ZERO;
+                if h.volume > Decimal::ZERO {
+                    for index in (idx - 20)..idx {
+                        total_volume = total_volume + sorted_history[index].volume;
+                    }
+                    // debug!("total volume: {}", total_volume);
+                    total_volume = total_volume.div(Decimal::from(volume_ratio_period));
+                    // debug!("total volume average: {}", total_volume);
+                    total_volume = (total_volume / h.volume).round_dp(2);
+                }
+                // debug!("total volume ratio: {}", total_volume);
+                values.insert(VOLUME_RATIO.to_string(), total_volume);
+            }
+
             if values.len() > 0 {
+                
                 let indicator = TickerIndicator::new(
                     h.date,
                     &h.metadata.symbol,

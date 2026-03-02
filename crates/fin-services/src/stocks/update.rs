@@ -17,13 +17,14 @@ use crate::stocks::{StocksService, indicators::IndicatorCalculator};
 use anyhow::Result;
 
 impl StocksService {
-    // sync_ticker return true if not updated in 24 hours
-    pub(crate) fn should_sync_ticker(&self, tc: &TickerControl) -> bool {
-        if let Some(last_sync) = tc.last_sync_at {
-            return Utc::now() - last_sync > Duration::hours(24);
-        }
-        true
-    }
+    
+    // // sync_ticker return true if not updated in 24 hours
+    // pub(crate) fn should_sync_ticker(&self, tc: &TickerControl) -> bool {
+    //     if let Some(last_sync) = tc.last_sync_at {
+    //         return Utc::now() - last_sync > Duration::hours(24);
+    //     }
+    //     true
+    // }
 
     // sync_history return true if not updated in 24 hours
     pub(crate) fn should_sync_history(&self, tc: &TickerControl) -> bool {
@@ -307,7 +308,6 @@ impl StocksService {
             }
         };
 
-        debug!("Ticker History: {}", histories.len());
         let mut new_histories = Vec::new();
         if histories.len() > 0 {
             new_histories = match tc.last_history_sync_at {
@@ -321,6 +321,8 @@ impl StocksService {
                 }
             };
         }
+        debug!("Ticker History updates: {}", new_histories.len());
+
 
         Ok(new_histories)
     }
@@ -342,6 +344,7 @@ impl StocksService {
             let bb_period = 20;
             let bb_std_dev = 2.0;
             let atr_period = 14;
+            let volume_ratio_period = 20;
 
             let indicators = IndicatorCalculator::calculate_all_in_one_pass(
                 &histories,
@@ -353,9 +356,9 @@ impl StocksService {
                 bb_period,
                 bb_std_dev,
                 atr_period,
+                volume_ratio_period
             )?;
 
-            debug!("Ticker Indicators updates: {}", indicators.len());
             new_indicators = match tc.last_indicator_sync_at {
                 Some(last_sync) => indicators
                     .into_iter()
@@ -366,6 +369,7 @@ impl StocksService {
                     indicators
                 }
             };
+            debug!("Ticker Indicators updates: {}", new_indicators.len());
         }
 
         Ok(new_indicators)
@@ -542,6 +546,7 @@ impl StocksService {
         let price = Decimal::try_from(ticker.pr_last)?;
 
         let mut signals = Vec::new();
+        
         signals.extend(self.calculate_sma_stack(&window));
         signals.extend(self.calculate_sma_50(price, &window).unwrap_or_default());
         signals.extend(self.calculate_sma_crossover(&window));
@@ -590,4 +595,9 @@ impl StocksService {
         Ok(())
     }
 
+
+    pub(crate) async fn update_single_ticker_prediction_signals(&self, ticker: &mut Ticker) -> Result<()> {
+
+        Ok(())
+    }
 }

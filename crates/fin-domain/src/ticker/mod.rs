@@ -6,6 +6,7 @@ mod sentiment;
 mod ticker;
 mod indicator_snapshot;
 mod indicator_window;
+mod feature_snapshot;
 
 
 use chrono::DateTime;
@@ -21,6 +22,7 @@ pub use indicator::indicator_type;
 pub use sentiment::TickerSentiment;
 pub use indicator_snapshot::IndicatorSnapshot;
 pub use indicator_window::IndicatorWindow;
+pub use feature_snapshot::FeatureSnapshot;
 
 
 use serde::Serialize;

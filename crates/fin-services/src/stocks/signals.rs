@@ -1,6 +1,5 @@
 use crate::stocks::StocksService;
-use anyhow::Result;
-use fin_domain::ticker::{IndicatorWindow, Ticker};
+use fin_domain::ticker::IndicatorWindow;
 use rust_decimal::Decimal;
 use rust_decimal_macros::dec;
 

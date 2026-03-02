@@ -17,18 +17,22 @@ impl StocksService {
         // update ticker
         // update ticker history
         // update technicals
-        for symbol in symbols {
+        let length = tickers.len();
+        for (i, symbol) in symbols.enumerate() {
             let mut tc = self.storage_service.get_ticker_control(&symbol).await?;
             let mut ticker = self.storage_service.get_ticker(&symbol).await?;
-            info!("Updating Ticker: {}", ticker.symbol);
+            if i%20 == 0 {
+                info!("Updating Ticker: {} {}/{}", ticker.symbol, i+1, length);
+            }
             if let Err(e) = self
                 .update_and_save_single_ticker(&mut tc, &mut ticker)
                 .await
             {
                 error!("Ticker {}: {}", symbol, e);
                 continue;
-            } // break;
+            } 
             sleep(delay).await;
+            // break;
         }
         Ok(())
     }
@@ -38,11 +42,38 @@ impl StocksService {
         let tickers = self.storage_service.get_tickers().await?;
         let symbols = tickers.iter().map(|t| t.symbol.clone());
 
-        for symbol in symbols {
-            info!("Updating Ticker: {}", symbol);
+        let length = tickers.len();
+        for (i, symbol) in symbols.enumerate() {
             let mut ticker = self.storage_service.get_ticker(&symbol).await?;
+            if i%20 == 0 {
+                info!("Updating Ticker: {} {}/{}", ticker.symbol, i+1, length);
+            }
             if let Err(e) = self
                 .update_single_ticker_embedding(&mut ticker)
+                .await
+             {
+                error!("Ticker overview embedding {}: {}", symbol, e);
+                continue;
+            } // break;
+        }
+
+        Ok(())
+    }
+
+
+    pub async fn handle_ticker_predictions_eod(&self) -> Result<()> {
+
+        let tickers = self.storage_service.get_tickers().await?;
+        let symbols = tickers.iter().map(|t| t.symbol.clone());
+
+        let length = tickers.len();
+        for (i, symbol) in symbols.enumerate() {
+            let mut ticker = self.storage_service.get_ticker(&symbol).await?;
+            if i%20 == 0 {
+                info!("Updating Ticker: {} {}/{}", ticker.symbol, i+1, length);
+            }
+            if let Err(e) = self
+                .update_single_ticker_prediction_signals(&mut ticker)
                 .await
             {
                 error!("Ticker overview embedding {}: {}", symbol, e);
@@ -52,4 +83,5 @@ impl StocksService {
 
         Ok(())
     }
+
 }

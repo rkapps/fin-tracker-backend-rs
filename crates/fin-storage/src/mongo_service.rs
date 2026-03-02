@@ -1,8 +1,10 @@
 use anyhow::Result;
 use async_trait::async_trait;
 use chrono::{DateTime, Utc};
+use fin_domain::dto::screen_param::TickerScreenParam;
 use fin_domain::ticker::{
-    IndicatorSnapshot, IndicatorWindow, Ticker, TickerControl, TickerEmbedding, TickerHistory, TickerIndicator, TickerSentiment
+    IndicatorSnapshot, IndicatorWindow, Ticker, TickerControl, TickerEmbedding, TickerHistory,
+    TickerIndicator, TickerSentiment,
 };
 use fin_domain::utils::data_utils::{market_cap_label_range, market_cap_range};
 use rust_decimal::Decimal;
@@ -29,7 +31,7 @@ impl MongoStorageService {
                 repo.find(Some(criteria.clone())).await
             }
             Err(e) => {
-                return Err(anyhow::anyhow!("Error getting ticker history: {}", e));
+                return Err(anyhow::anyhow!("Error getting Ticker: {}", e));
             }
         }
     }
@@ -44,7 +46,22 @@ impl MongoStorageService {
                 repo.find(Some(criteria.clone())).await
             }
             Err(e) => {
-                return Err(anyhow::anyhow!("Error getting ticker history: {}", e));
+                return Err(anyhow::anyhow!("Error getting TickerHistory: {}", e));
+            }
+        }
+    }
+
+    async fn get_ticker_indicators_by_criteria(
+        &self,
+        criteria: &SearchCriteria,
+    ) -> Result<Vec<TickerIndicator>> {
+        match self.manager.ticker_indicators().await {
+            Ok(repo) => {
+                let mut repo = repo.lock().await;
+                repo.find(Some(criteria.clone())).await
+            }
+            Err(e) => {
+                return Err(anyhow::anyhow!("Error getting TickerIndicator: {}", e));
             }
         }
     }
@@ -59,7 +76,7 @@ impl StorageService for MongoStorageService {
                 repo.find_by_id(symbol.to_string()).await
             }
             Err(e) => {
-                return Err(anyhow::anyhow!("Error getting ticker control: {}", e));
+                return Err(anyhow::anyhow!("Error getting TickerControl: {}", e));
             }
         }
     }
@@ -71,21 +88,15 @@ impl StorageService for MongoStorageService {
                 repo.find_by_id(symbol.to_string()).await
             }
             Err(e) => {
-                return Err(anyhow::anyhow!("Error getting ticker: {}", e));
+                return Err(anyhow::anyhow!("Error getting Ticker: {}", e));
             }
         }
     }
 
     async fn get_tickers(&self) -> Result<Vec<Ticker>> {
-        match self.manager.tickers().await {
-            Ok(repo) => {
-                let mut repo = repo.lock().await;
-                repo.find_all().await
-            }
-            Err(e) => {
-                return Err(anyhow::anyhow!("Error getting ticker history: {}", e));
-            }
-        }
+        let mut criteria = SearchCriteria::new();
+        criteria.add_sort("symbol", true);
+        self.get_ticker_by_criteria(&criteria).await
     }
 
     async fn get_ticker_peers_by_industry(&self, symbol: &str) -> Result<Vec<Ticker>> {
@@ -120,24 +131,20 @@ impl StorageService for MongoStorageService {
         criteria.add_condition("market_cap", SearchOp::Lte, SearchValue::Int(max_cap));
         criteria.add_sort("market_cap", false);
 
-        // debug!("SearchCriteria: {:?}", criteria);
-
         self.get_ticker_by_criteria(&criteria).await
     }
 
     async fn search_tickers(
         &self,
-        industry: Option<String>,
-        market_cap_range: Option<String>, // "mega", "large", "mid", "small"
-        asset_type: Option<String>,
-        signals: Option<Vec<String>>,
+        param: TickerScreenParam,
     ) -> Result<Vec<Ticker>> {
         let mut criteria = SearchCriteria::new();
-        if let Some(industry) = industry {
+        if let Some(industry) = param.industry {
             criteria.add_condition("industry", SearchOp::Eq, SearchValue::String(industry));
         }
 
-        let new_asset_type = asset_type
+        let new_asset_type = param
+            .asset_type
             .unwrap_or_else(|| "stock".to_string())
             .to_uppercase();
         criteria.add_condition(
@@ -145,12 +152,12 @@ impl StorageService for MongoStorageService {
             SearchOp::Eq,
             SearchValue::String(new_asset_type),
         );
-        if let Some(range) = market_cap_range {
+        if let Some(range) = param.market_cap_range {
             let (min_cap, max_cap) = market_cap_label_range(Some(range));
             criteria.add_condition("market_cap", SearchOp::Gte, SearchValue::Int(min_cap));
             criteria.add_condition("market_cap", SearchOp::Lte, SearchValue::Int(max_cap));
         }
-        if let Some(signals) = signals {
+        if let Some(signals) = param.signals {
             criteria.add_condition("signals", SearchOp::All, SearchValue::Array(signals));
         }
         criteria.add_sort("market_cap", false);
@@ -195,6 +202,17 @@ impl StorageService for MongoStorageService {
         self.get_ticker_history_by_criteria(&criteria).await
     }
 
+    async fn get_ticker_indicators(&self, symbol: &str) -> Result<Vec<TickerIndicator>> {
+        let mut criteria = SearchCriteria::new();
+        criteria.add_condition(
+            "metadata.symbol",
+            SearchOp::Eq,
+            SearchValue::String(symbol.to_uppercase().to_string()),
+        );
+        criteria.add_sort("date", true);
+        self.get_ticker_indicators_by_criteria(&criteria).await
+    }
+
     async fn get_ticker_indicators_latest(&self, symbol: &str) -> Result<Vec<TickerIndicator>> {
         let hist = self.get_ticker_history_latest(symbol).await?;
         debug!("hist: {}", hist.len());
@@ -216,48 +234,28 @@ impl StorageService for MongoStorageService {
             SearchValue::DateTime(latest_hist.date),
         );
         criteria.add_sort("date", false);
-
-        match self.manager.ticker_indicators().await {
-            Ok(repo) => {
-                let mut repo = repo.lock().await;
-                repo.find(Some(criteria)).await
-            }
-            Err(e) => {
-                return Err(anyhow::anyhow!("Error getting ticker indicators: {}", e));
-            }
-        }
+        self.get_ticker_indicators_by_criteria(&criteria).await
     }
 
     async fn get_ticker_indicators_last_two(&self, symbol: &str) -> Result<Vec<TickerIndicator>> {
-        match self.manager.ticker_indicators().await {
-            Ok(repo) => {
-                let mut repo = repo.lock().await;
-
-                let mut criteria = SearchCriteria::new();
-                criteria.add_condition(
-                    "metadata.symbol",
-                    SearchOp::Eq,
-                    SearchValue::String(symbol.to_uppercase().to_string()),
-                );
-                criteria.add_sort("date", false);
-                criteria.add_limit(2);
-                let indicators = repo.find(Some(criteria)).await?;
-                Ok(indicators)
-            }
-            Err(e) => {
-                return Err(anyhow::anyhow!("Error getting ticker indicators: {}", e));
-            }
-        }
+        let mut criteria = SearchCriteria::new();
+        criteria.add_condition(
+            "metadata.symbol",
+            SearchOp::Eq,
+            SearchValue::String(symbol.to_uppercase().to_string()),
+        );
+        criteria.add_sort("date", false);
+        criteria.add_limit(2);
+        self.get_ticker_indicators_by_criteria(&criteria).await
     }
 
     async fn get_ticker_indicators_window(&self, symbol: &str) -> Result<IndicatorWindow> {
         let mut indicators = self.get_ticker_indicators_last_two(symbol).await?;
-        let curr = IndicatorSnapshot::from(indicators.remove(0));
         let prev = IndicatorSnapshot::from(indicators.remove(1));
+        let curr = IndicatorSnapshot::from(indicators.remove(0));
         let window = IndicatorWindow::new(curr, prev);
         Ok(window)
     }
-
 
     async fn get_ticker_sentiments(&self, symbol: &str) -> Result<Vec<TickerSentiment>> {
         let score = dec!(0);
@@ -287,7 +285,7 @@ impl StorageService for MongoStorageService {
                 repo.find(Some(criteria)).await
             }
             Err(e) => {
-                return Err(anyhow::anyhow!("Error getting ticker sentiment: {}", e));
+                return Err(anyhow::anyhow!("Error getting TickerSentiment: {}", e));
             }
         }
     }
@@ -307,7 +305,7 @@ impl StorageService for MongoStorageService {
                 repo.find(Some(criteria)).await
             }
             Err(e) => {
-                return Err(anyhow::anyhow!("Error getting ticker embedding: {}", e));
+                return Err(anyhow::anyhow!("Error getting TickerEmbedding: {}", e));
             }
         }
     }

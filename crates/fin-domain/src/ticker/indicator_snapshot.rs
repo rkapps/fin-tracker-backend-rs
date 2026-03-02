@@ -3,6 +3,7 @@ use rust_decimal::Decimal;
 use crate::ticker::TickerIndicator;
 
 pub struct IndicatorSnapshot {
+    pub price: Option<Decimal>,
     pub sma_20: Option<Decimal>,
     pub sma_50: Option<Decimal>,
     pub sma_100: Option<Decimal>,
@@ -18,7 +19,8 @@ pub struct IndicatorSnapshot {
     pub rsi_10: Option<Decimal>,
     pub rsi_14: Option<Decimal>,
     pub rsi_26: Option<Decimal>,
-    pub atr: Option<Decimal>
+    pub atr: Option<Decimal>,
+    pub volume_ratio: Option<Decimal>
 
 }
 
@@ -26,6 +28,7 @@ impl From<TickerIndicator> for IndicatorSnapshot {
     fn from(value: TickerIndicator) -> Self {
         let values = value.values;
         IndicatorSnapshot {
+            price: values.get("price").copied(),
             sma_20: values.get("sma_20").copied(),
             sma_50: values.get("sma_50").copied(),
             sma_100: values.get("sma_100").copied(),
@@ -41,7 +44,8 @@ impl From<TickerIndicator> for IndicatorSnapshot {
             rsi_10: values.get("rsi_10").copied(),
             rsi_14: values.get("rsi_14").copied(),
             rsi_26: values.get("rsi_26").copied(),
-            atr: values.get("atr").copied()
+            atr: values.get("atr").copied(),
+            volume_ratio: values.get("volume_ratio").copied()
         }
     }
 }

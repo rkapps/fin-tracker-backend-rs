@@ -3,9 +3,9 @@ use std::fmt::Debug;
 use anyhow::Result;
 use async_trait::async_trait;
 use chrono::{DateTime, Utc};
-use fin_domain::ticker::{
+use fin_domain::{dto::screen_param::TickerScreenParam, ticker::{
     IndicatorWindow, Ticker, TickerControl, TickerEmbedding, TickerHistory, TickerIndicator, TickerSentiment
-};
+}};
 use rust_decimal::Decimal;
 // use std::collections::HashMap;
 
@@ -18,16 +18,14 @@ pub trait StorageService: Send + Sync + Debug{
     async fn get_tickers(&self) -> Result<Vec<Ticker>>;
     async fn search_tickers(
         &self,
-        industry: Option<String>,
-        market_cap_range: Option<String>, // "mega", "large", "mid", "small"
-        asset_type: Option<String>,
-        signals: Option<Vec<String>>
+        param: TickerScreenParam,
     ) -> Result<Vec<Ticker>>;
 
 
     async fn get_ticker_history(&self, symbol: &str) -> Result<Vec<TickerHistory>>;
     async fn get_ticker_history_by_date(&self, symbol: &str, from_date: DateTime<Utc>) -> Result<Vec<TickerHistory>>;
     async fn get_ticker_history_latest(&self, symbol: &str ) -> Result<Vec<TickerHistory>>;
+    async fn get_ticker_indicators(&self, symbol: &str) -> Result<Vec<TickerIndicator>>;
     async fn get_ticker_indicators_latest(&self, symbol: &str) -> Result<Vec<TickerIndicator>>;
     async fn get_ticker_indicators_last_two(&self, symbol: &str) -> Result<Vec<TickerIndicator>>;
     async fn get_ticker_indicators_window(&self, symbol: &str) -> Result<IndicatorWindow>;

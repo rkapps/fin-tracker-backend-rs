@@ -38,3 +38,20 @@ pub async fn handle_ticker_embeddings_eod(
 
     StatusCode::ACCEPTED
 }
+
+pub async fn handle_ticker_predictions_eod(
+    State(stocks_service): State<Arc<StocksService>>,
+) -> StatusCode {
+    // 1. Clone the Arc so the background task owns a handle to the service
+    let service_clone = stocks_service.clone();
+
+    // 2. Spawn the task onto the Tokio runtime
+    tokio::spawn(async move {
+        match service_clone.handle_ticker_predictions_eod().await {
+            Ok(_) => info!("Background Ticker Predictions EOD Update completed successfully."),
+            Err(e) => error!("Background Ticker Predictions EOD Update failed: {:?}", e),
+        }
+    });
+
+    StatusCode::ACCEPTED
+}

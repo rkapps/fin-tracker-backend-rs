@@ -4,13 +4,15 @@ use agentic_core::capabilities::client::embeddings::EmbeddingClient;
 use fin_providers::ProviderService;
 use fin_storage::service::StorageService;
 
-pub mod analyse;
+// pub mod analyse;
 pub mod eod;
 pub mod load;
 pub mod update;
 pub mod indicators;
 pub mod signals;
+pub mod screen;
 
+#[derive(Debug)]
 pub struct StocksService {
     pub storage_service: Arc<dyn StorageService>,
     provider_service: ProviderService,

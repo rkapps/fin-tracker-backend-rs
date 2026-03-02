@@ -47,6 +47,7 @@ pub mod indicator_type {
     pub const ATR: &str = "atr";
     pub const STOCHASTIC_K: &str = "stochastic_k";  // %K (fast line)
     pub const STOCHASTIC_D: &str = "stochastic_d";  // %D (slow/signal line)
+    pub const VOLUME_RATIO: &str = "volume_ratio";
 }
 
 impl RepoModel<String> for TickerIndicator {
