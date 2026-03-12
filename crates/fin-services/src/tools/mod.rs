@@ -39,6 +39,7 @@ pub struct ToolsService {
     agent_service: Arc<AgentService>,
     #[allow(dead_code)]
     openai_api_key: String,
+    #[allow(dead_code)]
     gemini_api_key: String,
     #[allow(dead_code)]
     anthropic_api_key: String,
@@ -121,7 +122,7 @@ impl ToolsService {
                | Market Cap | $3.83T  | $4.57T  | \
              - If a row has no data (all cells are N/A or 0 or 0% empty), omit that row entirely. \
              - Apply bold to strong signals: \
-               RSI oversold/overbought, MACD crossover, returns above +15% or below -15%, \
+               RSI oversold/overbought, MACD crossover, Deeply Oversold, returns above +15% or below -15%, \
                Extremely Bullish/Bearish sentiment, Analyst Strong Buy/Strong Sell. \
              \
              RESPONSE FORMAT: \
@@ -129,8 +130,8 @@ impl ToolsService {
              'detail', 'deep dive', 'full breakdown', or 'more information'. \
              \
              SUMMARY — one compact table with these rows only: \
-             Sector, Industry, Price, Market Cap, Yield, P/E, Beta, MACD, RSI, Bands, \
-             3M Return, YTD Return, Analyst Consensus, Analyst Price Target, Sentiment. \
+             Sector, Industry, Price, Market Cap, P/E, Beta, MACD, RSI, Bands, Directional Accuracy\
+             YTD Return, Analyst Price Target, Analyst Consensus, Sentiment. \
              \
              P/E row: show as 'TTM / Forward' in a single cell and interpret the relationship. \
              Example: '33.45 / 30.21 — multiple compressing, earnings growth expected'. \
@@ -151,6 +152,8 @@ impl ToolsService {
              'Near lower band — oversold pressure', \
              'Above upper band — strongly overbought', \
              'Below lower band — strongly oversold'. \
+             \
+             Directional Accuracy row - Only shows this there is a 'ML Strong Bull' or 'ML Strong Bear' of any of tickers that are compared.
              \
              Sentiment must be exactly one of: \
              Extremely Bullish, Bullish, Neutral, Bearish, Extremely Bearish. \
@@ -189,8 +192,8 @@ impl ToolsService {
         let agent = self.agent_service
             .builder()
             // .with_openai(&self.openai_api_key)?
-            .with_gemini(&self.gemini_api_key)?
-            // .with_anthropic(&self.anthropic_api_key)?
+            // .with_gemini(&self.gemini_api_key)?
+            .with_anthropic(&self.anthropic_api_key)?
             .with_tool(screening_tool)
             .with_tool(taxonomy_tool)
             // .with_tool(simiarity_tool)

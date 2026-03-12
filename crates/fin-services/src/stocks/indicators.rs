@@ -1,4 +1,4 @@
-use std::{collections::HashMap, ops::Div};
+use std::{cmp, collections::HashMap, ops::Div};
 
 use anyhow::Result;
 use fin_domain::ticker::{
@@ -201,7 +201,8 @@ impl IndicatorCalculator {
                     // debug!("total volume: {}", total_volume);
                     total_volume = total_volume.div(Decimal::from(volume_ratio_period));
                     // debug!("total volume average: {}", total_volume);
-                    total_volume = (total_volume / h.volume).round_dp(2);
+                    total_volume = (h.volume / total_volume).round_dp(2);
+                    total_volume = cmp::min(total_volume, Decimal::from(10));
                 }
                 // debug!("total volume ratio: {}", total_volume);
                 values.insert(VOLUME_RATIO.to_string(), total_volume);
@@ -212,8 +213,8 @@ impl IndicatorCalculator {
                 let indicator = TickerIndicator::new(
                     h.date,
                     &h.metadata.symbol,
-                    &h.metadata.exchange,
-                    &h.metadata.granularity,
+                    // &h.metadata.exchange,
+                    // &h.metadata.granularity,
                     values,
                 );
                 indicators.push(indicator);

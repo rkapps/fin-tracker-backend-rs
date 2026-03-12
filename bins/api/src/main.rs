@@ -10,28 +10,19 @@ use axum::{
 };
 
 use fin_http::HttpClient;
-use fin_services::{stocks::StocksService, tools::ToolsService};
+use fin_services::{ml::service::MlService, stocks::StocksService, tools::ToolsService};
 use fin_storage::{
     mongo_manager::MongoStorageManager, mongo_service::MongoStorageService, service::StorageService,
 };
 use fin_tracker_api::{
     handlers::{
         self,
-        stocks::{
-            get_ticker_embeddings, get_ticker_sentiments, get_tickers,
-        }, tools::analyse_tickers_handler,
+        cron::{handle_build_tickers_training_model, handle_ticker_embeddings_eod, handle_ticker_prediction_signals_eod, handle_tickers_eod},
+        stocks::{get_ticker_embeddings, get_ticker_history, get_ticker_history_latest, get_ticker_indicators_latest, get_ticker_sentiments, get_tickers, screen_tickers_handler, search_tickers_handler},
+        tools::analyse_tickers_handler,
     },
     middleware,
     state::AppState,
-};
-use fin_tracker_api::{
-    handlers::{
-        cron::{handle_ticker_embeddings_eod, handle_ticker_predictions_eod, handle_tickers_eod},
-        stocks::{
-            get_ticker_history, get_ticker_history_latest, get_ticker_indicators_latest,
-            screen_tickers_handler, search_tickers_handler,
-        },
-    },
 };
 
 use reqwest::Method;
@@ -47,11 +38,14 @@ async fn main() -> Result<()> {
         .with_target("storage_core::mongo", Level::INFO)
         // .with_target("storage_core::vector", Level::DEBUG)
         .with_target("agentic_core::http", Level::INFO)
-        .with_target("agentic_core::agent", Level::INFO)
+        .with_target("agentic_core::agent", Level::DEBUG)
         .with_target("agentic_core::providers", Level::INFO)
         // .with_target("fin_tracker_backend_rs::http", Level::DEBUG)
         .with_target("fin_tracker_api", Level::DEBUG)
-        .with_target("fin_services", Level::INFO)
+        .with_target("fin_services::ml", Level::INFO)
+        .with_target("fin_services::stocks", Level::DEBUG)
+        .with_target("fin_services::tools", Level::DEBUG)
+        .with_target("fin_storage", Level::INFO)
         // .with_target("fin_storage", Level::INFO)
         .with_target("fin_providers", Level::INFO);
     tracing_subscriber::registry()
@@ -104,11 +98,14 @@ async fn main() -> Result<()> {
     let storage_service: Arc<dyn StorageService> =
         Arc::new(MongoStorageService::new(storage_manager));
 
+    let ml_service = MlService::new(Arc::clone(&storage_service));
+
     let stocks_service = Arc::new(StocksService::new(
         Arc::clone(&storage_service),
         provider_service,
         // Arc::new(agent_service),
         embedding_client.clone(),
+        ml_service.clone()
     ));
 
     // agent service
@@ -126,6 +123,7 @@ async fn main() -> Result<()> {
     let app_state = AppState {
         tools_service: Arc::new(tools_service),
         stocks_service: stocks_service.clone(),
+        ml_service: Arc::new(ml_service),
     };
 
     let admin_routes =
@@ -134,11 +132,19 @@ async fn main() -> Result<()> {
     let cron_routes = Router::new()
         .route(
             "/update-tickers-eod",
-            get(handlers::cron::handle_tickers_eod),
+            post(handle_tickers_eod),
         )
         .route(
             "/update-ticker-embeddings-eod",
-            get(handlers::cron::handle_ticker_embeddings_eod),
+            get(handle_ticker_embeddings_eod),
+        )
+        .route(
+            "/build_training_model",
+            post(handle_build_tickers_training_model),
+        )
+        .route(
+            "/update-ticker-predictions-eod",
+            post(handle_ticker_prediction_signals_eod),
         )
         // Apply the protection only to these routes
         .layer(axum::middleware::from_fn(middleware::guard_cron_request));
@@ -150,7 +156,6 @@ async fn main() -> Result<()> {
     ];
     let cors = CorsLayer::new()
         .allow_origin(origins)
-        // .allow_origin("http://localhost:4201".parse::<HeaderValue>().unwrap())
         .allow_methods([Method::GET, Method::POST])
         .allow_headers([axum::http::header::CONTENT_TYPE]);
 
@@ -169,9 +174,6 @@ async fn main() -> Result<()> {
         .route("/tickers/screen", post(screen_tickers_handler))
         .route("/tickers/search", post(search_tickers_handler))
         .route("/tickers/analyse", post(analyse_tickers_handler))
-        .route("/tickers/update-eod", get(handle_tickers_eod))
-        .route("/tickers/update-ticker-embeddings-eod", get(handle_ticker_embeddings_eod))
-        .route("/tickers/update-ticker-predictions-eod", get(handle_ticker_predictions_eod))
         .layer(cors)
         .with_state(app_state) // Shared state
         ;

@@ -115,7 +115,13 @@ pub struct Ticker {
     pub industry_embedding: Option<Vec<f32>>,
 
     #[serde(default)]
-    pub signals: Vec<String>
+    pub signals: Vec<String>, 
+
+    #[serde(default)]
+    pub lr_returns: HashMap<String, f64>,  // LinearRegression returns
+    
+    #[serde(default)]
+    pub rf_returns: HashMap<String, f64>  // RandomForst returns
 }
 
 impl RepoModel<String> for Ticker {

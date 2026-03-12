@@ -1,4 +1,4 @@
-use std::{collections::HashMap, sync::Arc};
+use std::sync::Arc;
 
 use agentic_core::capabilities::client::tool::Tool;
 use anyhow::Result;
@@ -42,16 +42,7 @@ impl Tool for TickerTaxonomyTool {
     async fn execute(&self, _value: serde_json::Value) -> Result<Value> {
 
         info!("Ticker taxonomy");
-        let mut groups: HashMap<String, Vec<String>> = HashMap::new();
-        let tickers = self.storage_service.get_tickers().await?;
-        for ticker in tickers {
-            if let (Some(sector), Some(industry)) = (ticker.sector, ticker.industry) {
-                let industries = groups.entry(sector).or_insert_with(Vec::new);
-                if !industries.contains(&industry) {
-                    industries.push(industry);
-                }
-            }
-        }
+        let groups = self.storage_service.get_ticker_groups().await?;
         debug!("Ticker groups: {:?}", groups);
         Ok(json!(groups))
     }

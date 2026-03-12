@@ -1,17 +1,19 @@
+use std::collections::HashMap;
+
 use anyhow::Result;
 use async_trait::async_trait;
 use chrono::{DateTime, Utc};
 use fin_domain::dto::screen_param::TickerScreenParam;
 use fin_domain::ticker::{
-    IndicatorSnapshot, IndicatorWindow, Ticker, TickerControl, TickerEmbedding, TickerHistory,
-    TickerIndicator, TickerSentiment,
+    IndicatorSnapshot, IndicatorWindow, Ticker, TickerAlpha, TickerControl, TickerEmbedding,
+    TickerHistory, TickerIndicator, TickerSentiment,
 };
 use fin_domain::utils::data_utils::{market_cap_label_range, market_cap_range};
 use rust_decimal::Decimal;
 use rust_decimal_macros::dec;
 use storage_core::core::Repository;
 use storage_core::core::search::{SearchCriteria, SearchOp, SearchValue};
-use tracing::debug;
+use tracing::{debug};
 
 use crate::{mongo_manager::MongoStorageManager, service::StorageService};
 
@@ -99,6 +101,37 @@ impl StorageService for MongoStorageService {
         self.get_ticker_by_criteria(&criteria).await
     }
 
+    async fn get_ticker_groups(&self) -> Result<HashMap<String, Vec<String>>> {
+        let mut groups: HashMap<String, Vec<String>> = HashMap::new();
+        let tickers = self.get_tickers().await?;
+        for ticker in tickers {
+            if let (Some(sector), Some(industry)) = (ticker.sector, ticker.industry) {
+                let industries = groups.entry(sector).or_insert_with(Vec::new);
+                if !industries.contains(&industry) {
+                    industries.push(industry);
+                }
+            }
+        }
+        Ok(groups)
+    }
+
+    async fn get_ticker_by_sector(&self, sector: &str) -> Result<Vec<Ticker>> {
+        let mut criteria = SearchCriteria::new();
+        criteria.add_condition(
+            "sector",
+            SearchOp::Eq,
+            SearchValue::String(sector.to_string()),
+        );
+        criteria.add_sort("market_cap", false);
+        self.get_ticker_by_criteria(&criteria).await
+    }
+
+    async fn get_tickers_by_marketcap(&self) -> Result<Vec<Ticker>> {
+        let mut criteria = SearchCriteria::new();
+        criteria.add_sort("market_cap", false);
+        self.get_ticker_by_criteria(&criteria).await
+    }
+
     async fn get_ticker_peers_by_industry(&self, symbol: &str) -> Result<Vec<Ticker>> {
         let ticker = self.get_ticker(symbol).await?;
         let industry = ticker.industry.unwrap_or_default();
@@ -134,10 +167,7 @@ impl StorageService for MongoStorageService {
         self.get_ticker_by_criteria(&criteria).await
     }
 
-    async fn search_tickers(
-        &self,
-        param: TickerScreenParam,
-    ) -> Result<Vec<Ticker>> {
+    async fn search_tickers(&self, param: TickerScreenParam) -> Result<Vec<Ticker>> {
         let mut criteria = SearchCriteria::new();
         if let Some(industry) = param.industry {
             criteria.add_condition("industry", SearchOp::Eq, SearchValue::String(industry));
@@ -205,7 +235,7 @@ impl StorageService for MongoStorageService {
     async fn get_ticker_indicators(&self, symbol: &str) -> Result<Vec<TickerIndicator>> {
         let mut criteria = SearchCriteria::new();
         criteria.add_condition(
-            "metadata.symbol",
+            "symbol",
             SearchOp::Eq,
             SearchValue::String(symbol.to_uppercase().to_string()),
         );
@@ -213,46 +243,74 @@ impl StorageService for MongoStorageService {
         self.get_ticker_indicators_by_criteria(&criteria).await
     }
 
-    async fn get_ticker_indicators_latest(&self, symbol: &str) -> Result<Vec<TickerIndicator>> {
-        let hist = self.get_ticker_history_latest(symbol).await?;
-        debug!("hist: {}", hist.len());
-        if hist.len() == 0 {
-            return Err(anyhow::anyhow!(
-                "Error getting ticker indicator. History is empty"
-            ));
-        }
-        let latest_hist = &hist[0];
+    async fn get_ticker_indicators_by_symbol(
+        &self,
+        symbol: &str,
+        from_date: DateTime<Utc>,
+    ) -> Result<Vec<TickerIndicator>> {
         let mut criteria = SearchCriteria::new();
         criteria.add_condition(
-            "metadata.symbol",
+            "symbol",
             SearchOp::Eq,
             SearchValue::String(symbol.to_uppercase().to_string()),
         );
-        criteria.add_condition(
-            "date",
-            SearchOp::Gte,
-            SearchValue::DateTime(latest_hist.date),
-        );
-        criteria.add_sort("date", false);
+        criteria.add_condition("date", SearchOp::Gte, SearchValue::DateTime(from_date));
+        criteria.add_sort("date", true);
         self.get_ticker_indicators_by_criteria(&criteria).await
     }
 
-    async fn get_ticker_indicators_last_two(&self, symbol: &str) -> Result<Vec<TickerIndicator>> {
+    async fn get_ticker_indicators_latest(&self, symbol: &str) -> Result<TickerIndicator> {
+        let indicators = self.get_ticker_indicators_last_n(&symbol, 1).await?;
+        let indicator = indicators.get(0).unwrap();
+        Ok(indicator.clone())
+    }
+
+    async fn get_ticker_indicators_last_n(
+        &self,
+        symbol: &str,
+        n: usize,
+    ) -> Result<Vec<TickerIndicator>> {
         let mut criteria = SearchCriteria::new();
         criteria.add_condition(
-            "metadata.symbol",
+            "symbol",
             SearchOp::Eq,
             SearchValue::String(symbol.to_uppercase().to_string()),
         );
         criteria.add_sort("date", false);
-        criteria.add_limit(2);
+        criteria.add_limit(n);
         self.get_ticker_indicators_by_criteria(&criteria).await
+    }
+
+    async fn get_ticker_indicators_map_by_sector(
+        &self,
+        sector: &str,
+        from_date: DateTime<Utc>,
+    ) -> Result<HashMap<String, Vec<TickerIndicator>>> {
+        let tickers = self.get_ticker_by_sector(&sector).await?;
+        let symbols: Vec<String> = tickers.iter().map(|t| t.symbol.clone()).collect();
+
+        debug!("Tickers for sector: {}-{:?}", sector, symbols);
+        let mut criteria = SearchCriteria::new();
+        criteria.add_condition("symbol", SearchOp::In, SearchValue::Array(symbols));
+        criteria.add_condition("date", SearchOp::Gte, SearchValue::DateTime(from_date));
+
+        criteria.add_sort("date", true);
+        let indicators = self.get_ticker_indicators_by_criteria(&criteria).await?;
+
+        // Group by symbol — sorted order preserved from query
+        let mut map: HashMap<String, Vec<TickerIndicator>> = HashMap::new();
+        for indicator in indicators {
+            map.entry(indicator.symbol.clone())
+                .or_default()
+                .push(indicator);
+        }
+        Ok(map)
     }
 
     async fn get_ticker_indicators_window(&self, symbol: &str) -> Result<IndicatorWindow> {
-        let mut indicators = self.get_ticker_indicators_last_two(symbol).await?;
-        let prev = IndicatorSnapshot::from(indicators.remove(1));
-        let curr = IndicatorSnapshot::from(indicators.remove(0));
+        let indicators = self.get_ticker_indicators_last_n(symbol, 2).await?;
+        let prev = IndicatorSnapshot::from(indicators.get(1).unwrap());
+        let curr = IndicatorSnapshot::from(indicators.get(0).unwrap());
         let window = IndicatorWindow::new(curr, prev);
         Ok(window)
     }
@@ -350,7 +408,6 @@ impl StorageService for MongoStorageService {
         let result = match self.manager.tickers().await {
             Ok(repo) => {
                 let mut repo = repo.lock().await;
-                debug!("before repo update");
                 repo.update(ticker).await
             }
             Err(e) => {
@@ -429,6 +486,33 @@ impl StorageService for MongoStorageService {
         for sentiment in sentiments {
             repo.insert(sentiment.clone()).await?;
         }
+        Ok(())
+    }
+
+    async fn get_ticker_alphas_by_key(&self, key: &str) -> Result<Vec<TickerAlpha>> {
+        let Ok(repo) = self.manager.ticker_alphas().await else {
+            return Err(anyhow::anyhow!("Error saving TickerAlpha",));
+        };
+        let mut repo = repo.lock().await;
+        let mut criteria = SearchCriteria::new();
+        criteria.add_condition("key", SearchOp::Eq, SearchValue::String(key.to_string()));
+        criteria.add_sort("date", false);
+
+        // for each ticker/sector there are 4 (periods) x 2 (algorithm lf/rf) =  8 records
+        criteria.add_limit(8);
+
+        repo.find(Some(criteria)).await
+    }
+
+    async fn save_ticker_alphas(&self, sas: &Vec<TickerAlpha>) -> Result<()> {
+        let Ok(repo) = self.manager.ticker_alphas().await else {
+            return Err(anyhow::anyhow!("Error saving SectorAlpha",));
+        };
+        let mut repo = repo.lock().await;
+        for sa in sas {
+            repo.insert(sa.clone()).await?;
+        }
+
         Ok(())
     }
 }

@@ -71,14 +71,14 @@ impl Tool for TickerIndicatorTool {
         };
 
         debug!("Ticker technical indicators params {:#?}", params);
-        let latest_indicators = self
+        let latest_indicator = self
             .storage_service
             .get_ticker_indicators_latest(&ticker.symbol)
             .await?;
-        debug!("Indicators: {:#?}", latest_indicators);
+        debug!("Indicators: {:#?}", latest_indicator);
         Ok(json!({
             "symbol": params.symbol,
-            "indicators": latest_indicators[0]
+            "indicators": latest_indicator
         }))
     }
 }

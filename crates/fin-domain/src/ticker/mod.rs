@@ -7,7 +7,7 @@ mod ticker;
 mod indicator_snapshot;
 mod indicator_window;
 mod feature_snapshot;
-
+mod alpha;
 
 use chrono::DateTime;
 use chrono::Utc;
@@ -23,7 +23,9 @@ pub use sentiment::TickerSentiment;
 pub use indicator_snapshot::IndicatorSnapshot;
 pub use indicator_window::IndicatorWindow;
 pub use feature_snapshot::FeatureSnapshot;
-
+pub use alpha::TickerAlpha;
+pub use alpha::ModelType;
+pub use alpha::ModelAlgorithm;
 
 use serde::Serialize;
 pub use ticker::AssetType;
@@ -36,6 +38,7 @@ pub const TICKER_HISTORY_COLLECTION_NAME: &str = "ticker_history";
 pub const TICKER_INDICATOR_COLLECTION_NAME: &str = "ticker_indicator";
 pub const TICKER_SENTIMENT_COLLECTION_NAME: &str = "ticker_sentiment";
 pub const TICKER_EMBEDDING_COLLECTION_NAME: &str = "ticker_embedding";
+pub const TICKER_ALPHA_COLLECTION_NAME: &str = "ticker_alpha";
 
 pub const TICKER_PERFORMANCE_PERIODS: [&str; 8] = ["1W", "1M", "3M", "6M", "1Y", "Ytd", "2Y", "5Y"];
 

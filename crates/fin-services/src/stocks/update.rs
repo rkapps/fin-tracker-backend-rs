@@ -1,7 +1,7 @@
 use chrono::{Duration, Months, Utc};
 use fin_domain::{
     ticker::{
-        AssetType, TICKER_PERFORMANCE_PERIODS, Ticker, TickerControl, TickerEmbedding,
+        AssetType, TICKER_PERFORMANCE_PERIODS, Ticker, TickerAlpha, TickerControl, TickerEmbedding,
         TickerHistory, TickerIndicator, TickerSentiment,
     },
     utils::data_utils::{
@@ -11,13 +11,12 @@ use fin_domain::{
 use rust_decimal::{Decimal, prelude::ToPrimitive};
 use rust_decimal_macros::dec;
 use std::collections::HashMap;
-use tracing::{debug, error, warn};
+use tracing::{debug, error, info, warn};
 
 use crate::stocks::{StocksService, indicators::IndicatorCalculator};
 use anyhow::Result;
 
 impl StocksService {
-    
     // // sync_ticker return true if not updated in 24 hours
     // pub(crate) fn should_sync_ticker(&self, tc: &TickerControl) -> bool {
     //     if let Some(last_sync) = tc.last_sync_at {
@@ -66,7 +65,7 @@ impl StocksService {
         let update = true;
         // update single ticker
         // if self.should_sync_ticker(tc) {
-            self.update_single_ticker(tc, ticker).await?;
+        self.update_single_ticker(tc, ticker).await?;
         // }
 
         // update history
@@ -136,6 +135,7 @@ impl StocksService {
         debug!("Ticker History: {}", histories.len());
 
         // update technical indicators
+        tc.last_indicator_sync_at = None;
         if self.should_sync_indicators(tc) {
             match self
                 .update_single_stock_indicators(tc, ticker, &histories)
@@ -323,7 +323,6 @@ impl StocksService {
         }
         debug!("Ticker History updates: {}", new_histories.len());
 
-
         Ok(new_histories)
     }
 
@@ -356,7 +355,7 @@ impl StocksService {
                 bb_period,
                 bb_std_dev,
                 atr_period,
-                volume_ratio_period
+                volume_ratio_period,
             )?;
 
             new_indicators = match tc.last_indicator_sync_at {
@@ -536,7 +535,6 @@ impl StocksService {
         Ok(())
     }
 
-
     pub(crate) async fn update_single_ticker_signals(&self, ticker: &mut Ticker) -> Result<()> {
         let window = self
             .storage_service
@@ -546,7 +544,7 @@ impl StocksService {
         let price = Decimal::try_from(ticker.pr_last)?;
 
         let mut signals = Vec::new();
-        
+
         signals.extend(self.calculate_sma_stack(&window));
         signals.extend(self.calculate_sma_50(price, &window).unwrap_or_default());
         signals.extend(self.calculate_sma_crossover(&window));
@@ -567,6 +565,23 @@ impl StocksService {
             self.calculate_confluence(price, &window)
                 .unwrap_or_default(),
         );
+
+        // Oversold using combinatioions
+        let oversold_count = [
+            signals.contains(&"RSI Oversold".to_string()),
+            signals.contains(&"BB Breakout Lower".to_string()),
+            signals.contains(&"Stochastic Bearish".to_string()),
+            signals.contains(&"Below SMA50".to_string()),
+        ]
+        .iter()
+        .filter(|&&x| x)
+        .count();
+
+        if oversold_count >= 3 {
+            signals.push("Deeply Oversold".to_string());
+        } else if oversold_count >= 2 {
+            signals.push("Moderately Oversold".to_string());
+        }
 
         // Beta signals
         if let Some(beta) = ticker.beta {
@@ -595,8 +610,60 @@ impl StocksService {
         Ok(())
     }
 
+    pub(crate) async fn update_single_ticker_prediction_signals(
+        &self,
+        ticker: &mut Ticker,
+        sas: &Vec<TickerAlpha>,
+    ) -> Result<()> {
+        let indicators = self
+            .storage_service
+            .get_ticker_indicators_last_n(&ticker.symbol, 2)
+            .await?;
 
-    pub(crate) async fn update_single_ticker_prediction_signals(&self, ticker: &mut Ticker) -> Result<()> {
+        // get() returns Option — convert to Result with ok_or_else
+        let indicator = indicators
+            .get(1)
+            .ok_or_else(|| anyhow::anyhow!("No current indicator for {}", ticker.symbol))?;
+
+        let prev_indicator = indicators.get(0); // Option<&TickerIndicator> — None is fine
+
+        // Try ticker model first, fall back to sector
+        let ticker_alphas = self
+            .storage_service
+            .get_ticker_alphas_by_key(&ticker.symbol)
+            .await
+            .unwrap_or_default();
+
+        let directional_accuracies: Vec<f64> = ticker_alphas
+            .iter()
+            .map(|f| f.directional_accuracy)
+            .collect();
+        let min_accuracy = directional_accuracies
+            .iter()
+            .copied()
+            .fold(f64::INFINITY, f64::min);
+
+        // let returns = self
+        //     .ml_service
+        //     .run_predictions(indicator, prev_indicator, sas.to_vec())?;
+
+        let returns = self
+            .ml_service
+            .run_ticker_predictions(indicator, prev_indicator, ticker_alphas, sas.to_vec())
+            .await?;
+
+        debug!("Returns: {:?}", returns);
+        let ml_signals = self.calculate_ml_signals(&returns.0, &returns.1, min_accuracy);
+        ticker.lr_returns = returns.0;
+        ticker.rf_returns = returns.1;
+
+        info!("Ml Signals: {:?}", ml_signals);
+        // Remove any existing LR signals
+        ticker
+            .signals
+            .retain(|s| !s.starts_with("LR") && !s.starts_with("RF") && !s.starts_with("ML"));
+        // Add fresh ones
+        ticker.signals.extend(ml_signals);
 
         Ok(())
     }

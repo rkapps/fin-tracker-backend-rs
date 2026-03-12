@@ -14,24 +14,24 @@ use crate::ticker::TICKER_INDICATOR_COLLECTION_NAME;
 pub struct TickerIndicator {
     pub id: String,
 
+    pub symbol: String,
     #[serde(
         deserialize_with = "deserialize_flexible_datetime",
         serialize_with = "serialize_as_bson_datetime"
     )]    
     pub date: DateTime<Utc>,
-    pub metadata: IndicatorMetadata,
 
     #[serde(with = "indicator_serde")]
     pub values: HashMap<String, Decimal>, // "sma_20": 182.3, "rsi_14": 68.4 etc
 }
 
-#[derive(Debug, Clone, Serialize, Deserialize)]
-pub struct IndicatorMetadata {
-    pub symbol: String,
-    pub r#type: String,
-    pub exchange: String,
-    pub granularity: String,
-}
+// #[derive(Debug, Clone, Serialize, Deserialize)]
+// pub struct IndicatorMetadata {
+//     pub symbol: String,
+//     pub r#type: String,
+//     pub exchange: String,
+//     pub granularity: String,
+// }
 
 // Indicator type constants
 pub mod indicator_type {
@@ -65,18 +65,19 @@ impl TickerIndicator {
     pub fn new(
         date: DateTime<Utc>,
         symbol: &str,
-        exchange: &str,
-        granularity: &str,
+        // exchange: &str,
+        // granularity: &str,
         values: HashMap<String, Decimal>
     ) -> TickerIndicator {
         Self {
             id: format!("{}_{}", symbol, date.format("%Y%m%d")),
-            metadata: IndicatorMetadata {
-                symbol: symbol.to_string(),
-                exchange: exchange.to_string(),
-                r#type: indicator_type::SMA.to_string(),
-                granularity: granularity.to_string(),
-            },
+            symbol: symbol.to_string(),
+            // metadata: IndicatorMetadata {
+            //     symbol: symbol.to_string(),
+            //     exchange: exchange.to_string(),
+            //     r#type: indicator_type::SMA.to_string(),
+            //     granularity: granularity.to_string(),
+            // },
             date,
             values
         }

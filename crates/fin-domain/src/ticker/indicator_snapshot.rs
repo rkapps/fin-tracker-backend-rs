@@ -2,8 +2,12 @@ use rust_decimal::Decimal;
 
 use crate::ticker::TickerIndicator;
 
+#[derive(Debug, Clone)]
 pub struct IndicatorSnapshot {
     pub price: Option<Decimal>,
+    pub rsi_10: Option<Decimal>,
+    pub rsi_14: Option<Decimal>,
+    pub rsi_26: Option<Decimal>,
     pub sma_20: Option<Decimal>,
     pub sma_50: Option<Decimal>,
     pub sma_100: Option<Decimal>,
@@ -16,17 +20,13 @@ pub struct IndicatorSnapshot {
     pub bb_lower: Option<Decimal>,
     pub stochastic_k_14: Option<Decimal>,
     pub stochastic_d: Option<Decimal>,
-    pub rsi_10: Option<Decimal>,
-    pub rsi_14: Option<Decimal>,
-    pub rsi_26: Option<Decimal>,
     pub atr: Option<Decimal>,
     pub volume_ratio: Option<Decimal>
-
 }
 
-impl From<TickerIndicator> for IndicatorSnapshot {
-    fn from(value: TickerIndicator) -> Self {
-        let values = value.values;
+impl From<&TickerIndicator> for IndicatorSnapshot {
+    fn from(value: &TickerIndicator) -> Self {
+        let values = value.values.clone();
         IndicatorSnapshot {
             price: values.get("price").copied(),
             sma_20: values.get("sma_20").copied(),

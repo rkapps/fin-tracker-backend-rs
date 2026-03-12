@@ -2,10 +2,7 @@ use std::sync::Arc;
 
 use anyhow::Result;
 use fin_domain::ticker::{
-    TICKER_COLLECTION_NAME, TICKER_CONTROL_COLLECTION_NAME, TICKER_EMBEDDING_COLLECTION_NAME,
-    TICKER_HISTORY_COLLECTION_NAME, TICKER_INDICATOR_COLLECTION_NAME,
-    TICKER_SENTIMENT_COLLECTION_NAME, Ticker, TickerControl, TickerEmbedding, TickerHistory,
-    TickerIndicator, TickerSentiment,
+    TICKER_ALPHA_COLLECTION_NAME, TickerAlpha, TICKER_COLLECTION_NAME, TICKER_CONTROL_COLLECTION_NAME, TICKER_EMBEDDING_COLLECTION_NAME, TICKER_HISTORY_COLLECTION_NAME, TICKER_INDICATOR_COLLECTION_NAME, TICKER_SENTIMENT_COLLECTION_NAME, Ticker, TickerControl, TickerEmbedding, TickerHistory, TickerIndicator, TickerSentiment
 };
 use storage_core::mongo::{database::MongoDatabase, repository::MongoRepository};
 use tokio::sync::Mutex;
@@ -42,6 +39,12 @@ impl MongoStorageManager {
             TICKER_EMBEDDING_COLLECTION_NAME.to_string(),
         )
         .await?;
+
+        mdb.register_collection::<String, TickerAlpha>(
+            TICKER_ALPHA_COLLECTION_NAME.to_string(),
+        )
+        .await?;
+
         Ok(MongoStorageManager { db: mdb })
     }
 
@@ -90,4 +93,13 @@ impl MongoStorageManager {
             .collection::<String, TickerEmbedding>(TICKER_EMBEDDING_COLLECTION_NAME.to_string())
             .await
     }
+
+    pub async fn ticker_alphas(
+        &self,
+    ) -> Result<Arc<Mutex<MongoRepository<String, TickerAlpha>>>> {
+        self.db
+            .collection::<String, TickerAlpha>(TICKER_ALPHA_COLLECTION_NAME.to_string())
+            .await
+    }
+
 }

@@ -1,12 +1,13 @@
 use std::sync::Arc;
 use axum::extract::FromRef;
-use fin_services::{stocks::StocksService, tools::ToolsService};
+use fin_services::{ml::service::MlService, stocks::StocksService, tools::ToolsService};
 
 
 #[derive(Clone)]
 pub struct AppState {
     pub stocks_service: Arc<StocksService>,
     pub tools_service: Arc<ToolsService>,
+    pub ml_service: Arc<MlService>,
 }
 
 
@@ -31,5 +32,11 @@ impl FromRef<AppState> for Arc<ToolsService> {
 impl FromRef<AppState> for Arc<StocksService> {
     fn from_ref(state: &AppState) -> Self {
         state.stocks_service.clone()
+    }
+}
+
+impl FromRef<AppState> for Arc<MlService> {
+    fn from_ref(state: &AppState) -> Self {
+        state.ml_service.clone()
     }
 }

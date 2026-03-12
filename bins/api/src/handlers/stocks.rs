@@ -73,8 +73,8 @@ pub async fn get_ticker_history_latest(
 pub async fn get_ticker_indicators_latest(
     State(stocks_service): State<Arc<StocksService>>,
     Path(symbol): Path<String>,
-) -> Result<Json<Vec<TickerIndicator>>, (StatusCode, String)> {
-    let indicators = stocks_service
+) -> Result<Json<TickerIndicator>, (StatusCode, String)> {
+    let indicator = stocks_service
         .storage_service
         .get_ticker_indicators_latest(&symbol)
         .await
@@ -85,8 +85,7 @@ pub async fn get_ticker_indicators_latest(
             )
         })?;
 
-    debug!("Indicators: {:#?}", indicators.len());
-    Ok(Json(indicators))
+    Ok(Json(indicator))
 }
 
 pub async fn get_ticker_sentiments(

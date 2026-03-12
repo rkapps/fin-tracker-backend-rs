@@ -39,6 +39,7 @@ impl Tool for TickerScreeningTool {
         Examples: \
             'software infrastructure mid cap stocks' → query: 'software infrastructure', industry: 'Software - Infrastructure', market_cap_range: 'mid' \
             'find oversold cloud security companies' → query: 'cloud security', signals: ['RSI Oversold'] \
+            'mostly oversold' or 'heavily oversold'  → signals: ['Deeply Oversold']\
             'defensive buy rated stocks' → signals: ['Low Beta', 'Analyst Buy'] \
             'compare spider ETFs' → query: 'SPDR ETFs', asset_type: 'etf' \
         \
@@ -47,7 +48,7 @@ impl Tool for TickerScreeningTool {
             Categories: \
                 Trend: 'Golden Cross', 'Death Cross', 'Above SMA50', 'Below SMA50'. \
                 Momentum: 'MACD Bullish Crossover', 'MACD Bearish Crossover'. \
-                RSI: 'RSI Oversold', 'RSI Overbought'. \
+                RSI: 'RSI Oversold', 'RSI Overbought', 'Deeply Oversold', 'Mostly Oversold' \
                 Bands: 'BB Breakout Upper', 'BB Breakout Lower', 'BB Squeeze'. \
                 Stochastic: 'Stochastic Bullish', 'Stochastic Bearish'. \
                 Analyst: 'Analyst Strong Buy', 'Analyst Buy', 'Analyst Hold', 'Analyst Sell', 'Analyst Strong Sell'. \
@@ -80,12 +81,14 @@ impl Tool for TickerScreeningTool {
                             "RSI Overbought", "RSI Recovering from Overbought", "RSI Multi-period Overbought",
                             "Oversold Confluence", "Oversold Reversal Setup",
                             "Overbought Confluence", "Overbought Reversal Setup",
+                            "Deeply Oversold", "Moderately Oversold",
                             "Mean Reversion Candidate",
                             "Momentum Breakout", "Bullish Trend Exhaustion", "Bearish Trend Exhaustion",
                             "Volatility Expanding", "Volatility Contracting",
                             "Analyst Strong Buy", "Analyst Buy", "Analyst Hold",
                             "Analyst Sell", "Analyst Strong Sell",
-                            "Low Beta", "Market Beta", "High Beta", "Very High Beta"
+                            "Low Beta", "Market Beta", "High Beta", "Very High Beta",
+                            "ML Strong Bull — All Periods Confirmed", "ML Strong Bear — All Periods Confirmed"
                         ]
                     },
                     "description": "Filter by active technical or analyst signals."

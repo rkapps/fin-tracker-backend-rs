@@ -8,7 +8,13 @@ async-trait = "0.1"
 axum = { version = "0.8.8", features = ["macros"] }
 bson = { version = "3.1", features = ["serde", "chrono-0_4", "serde_with-3"] }
 chrono = { version = "0.4", features = ["serde"] }
+linfa = "0.8.1"
+linfa-linear = "0.8.1"
+linfa-ensemble = "0.8.1"
+linfa-trees = "0.8.1"
+
 mongodb = { version = "3.5.1", features = ["bson-3"] }
+ndarray = "0.16"
 serde_with = { version = "3.0", features = ["macros"] }
 serde = { version = "1", features = ["derive"] }
 serde_json = "1.0.148"

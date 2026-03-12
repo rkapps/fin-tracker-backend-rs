@@ -4,6 +4,8 @@ use agentic_core::capabilities::client::embeddings::EmbeddingClient;
 use fin_providers::ProviderService;
 use fin_storage::service::StorageService;
 
+use crate::ml::service::MlService;
+
 // pub mod analyse;
 pub mod eod;
 pub mod load;
@@ -18,6 +20,7 @@ pub struct StocksService {
     provider_service: ProviderService,
     // agent_service: Arc<AgentService>,
     embedding_client: Arc<dyn EmbeddingClient>,
+    ml_service: MlService
 }
 
 impl StocksService {
@@ -26,12 +29,14 @@ impl StocksService {
         provider_service: ProviderService,
         // agent_service: Arc<AgentService>,
         embedding_client: Arc<dyn EmbeddingClient>,
+        ml_service: MlService,
     ) -> StocksService {
         StocksService {
             storage_service,
             provider_service,
             // agent_service,
             embedding_client,
+            ml_service
         }
     }
 }
