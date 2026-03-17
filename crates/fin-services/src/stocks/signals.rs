@@ -1,7 +1,7 @@
 use std::collections::HashMap;
 
 use crate::stocks::StocksService;
-use fin_domain::ticker::IndicatorWindow;
+use fin_domain::ticker::{IndicatorWindow, TickerAlpha};
 use rust_decimal::Decimal;
 use rust_decimal_macros::dec;
 
@@ -353,93 +353,126 @@ impl StocksService {
         None
     }
 
-    pub(crate) fn calculate_ml_signals(
-        &self,
-        lr_returns: &HashMap<String, f64>,
-        rf_returns: &HashMap<String, f64>,
-        min_accurary: f64
-    ) -> Vec<String> {
-        let mut signals = Vec::new();
+pub(crate) fn calculate_ml_signals(
+    &self,
+    lr_returns:  &HashMap<String, f64>,
+    rf_returns:  Option<&HashMap<String, f64>>,
+    mlp_returns: &HashMap<String, f64>,
+    mlp_alphas:  &HashMap<String, &TickerAlpha>,
+    min_accuracy: f64,
+) -> Vec<String> {
+    let mut signals = Vec::new();
+    let rf_available = rf_returns.is_some();
 
-        for period in ["5", "10", "20", "60"] {
-            let lr = lr_returns.get(period).copied().unwrap_or(0.0);
-            let rf = rf_returns.get(period).copied().unwrap_or(0.0);
+    for period in ["5", "10", "20", "60"] {
+        let lr  = lr_returns.get(period).copied().unwrap_or(0.0);
+        let rf  = rf_returns.and_then(|m| m.get(period)).copied().unwrap_or(0.0);
+        let mlp = mlp_returns.get(period).copied().unwrap_or(0.0);
 
-            // LR signal — magnitude
-            let lr_signal = if lr > 3.0 {
-                format!("LR{} Strong Bullish ({:.1}%)", period, lr)
-            } else if lr > 0.5 {
-                format!("LR{} Bullish ({:.1}%)", period, lr)
-            } else if lr < -3.0 {
-                format!("LR{} Strong Bearish ({:.1}%)", period, lr)
-            } else if lr < -0.5 {
-                format!("LR{} Bearish ({:.1}%)", period, lr)
-            } else {
-                format!("LR{} Neutral ({:.1}%)", period, lr)
-            };
-            signals.push(lr_signal);
+        // --- MLP only — unique signal not captured by LR/RF ---
+        if let Some(alpha) = mlp_alphas.get(period) {
+            if mlp != 0.0 && alpha.directional_accuracy >= min_accuracy {
+                let bullish_ok = mlp > 0.0 && alpha.bullish_precision >= 0.55;
+                let bearish_ok = mlp < 0.0 && alpha.bearish_precision >= 0.55;
 
-            // RF signal — direction confirmation
-            let rf_signal = if rf > 0.0 {
-                format!("RF{} Bullish", period)
-            } else if rf < 0.0 {
-                format!("RF{} Bearish", period)
-            } else {
-                format!("RF{} Neutral", period)
-            };
-            signals.push(rf_signal);
-
-            // Confluence — both models agree
-            let lr_bullish = lr > 0.5;
-            let lr_bearish = lr < -0.5;
-            let rf_bullish = rf > 0.0;
-            let rf_bearish = rf < 0.0;
-
-            if lr_bullish && rf_bullish {
-                signals.push(format!("ML{} Confirmed Bullish", period));
-            } else if lr_bearish && rf_bearish {
-                signals.push(format!("ML{} Confirmed Bearish", period));
-            } else if lr_bullish && rf_bearish || lr_bearish && rf_bullish {
-                signals.push(format!("ML{} Conflicting", period));
+                if bullish_ok {
+                    signals.push(format!(
+                        "MLP{} Bullish ({:.1}%  precision: {:.0}%)",
+                        period, mlp, alpha.bullish_precision * 100.0
+                    ));
+                } else if bearish_ok {
+                    signals.push(format!(
+                        "MLP{} Bearish ({:.1}%  precision: {:.0}%)",
+                        period, mlp, alpha.bearish_precision * 100.0
+                    ));
+                }
             }
         }
 
-        let all_lr_bullish = ["5", "10", "20", "60"]
-            .iter()
-            .all(|p| lr_returns.get(*p).copied().unwrap_or(0.0) > 0.5);
+        // --- Confluence — only emit when models agree ---
+        let lr_bullish  = lr > 0.5;
+        let lr_bearish  = lr < -0.5;
+        let rf_bullish  = rf_available && rf > 0.0;
+        let rf_bearish  = rf_available && rf < 0.0;
+        let mlp_bullish = mlp > 0.0
+            && mlp_alphas.get(period)
+                .map(|a| a.bullish_precision >= 0.55 && a.directional_accuracy >= min_accuracy)
+                .unwrap_or(false);
+        let mlp_bearish = mlp < 0.0
+            && mlp_alphas.get(period)
+                .map(|a| a.bearish_precision >= 0.55 && a.directional_accuracy >= min_accuracy)
+                .unwrap_or(false);
 
-        let all_rf_bullish = ["5", "10", "20", "60"]
-            .iter()
-            .all(|p| rf_returns.get(*p).copied().unwrap_or(0.0) > 0.0);
+        let bull_votes = [lr_bullish, rf_bullish, mlp_bullish]
+            .iter().filter(|&&v| v).count();
+        let bear_votes = [lr_bearish, rf_bearish, mlp_bearish]
+            .iter().filter(|&&v| v).count();
 
-        let all_lr_bearish = ["5", "10", "20", "60"]
-            .iter()
-            .all(|p| lr_returns.get(*p).copied().unwrap_or(0.0) < -0.5);
+        let total = 2 + if rf_available { 1 } else { 0 };
 
-        let all_rf_bearish = ["5", "10", "20", "60"]
-            .iter()
-            .all(|p| rf_returns.get(*p).copied().unwrap_or(0.0) < 0.0);
-
-        if all_lr_bullish && all_rf_bullish {
-            signals.push("ML Strong Bull — All Periods Confirmed".to_string());
-        } else if all_lr_bearish && all_rf_bearish {
-            signals.push("ML Strong Bear — All Periods Confirmed".to_string());
-        } else if all_lr_bullish && all_rf_bearish {
-            signals.push("ML Caution — LR Bullish RF Bearish All Periods".to_string());
-        } else if all_lr_bearish && all_rf_bullish {
-            signals.push("ML Caution — LR Bearish RF Bullish All Periods".to_string());
+        // Only emit confluence when at least 2 models agree
+        if bull_votes >= 2 {
+            signals.push(format!(
+                "ML{} Bullish — {}/{} Confirmed", period, bull_votes, total
+            ));
+        } else if bear_votes >= 2 {
+            signals.push(format!(
+                "ML{} Bearish — {}/{} Confirmed", period, bear_votes, total
+            ));
         }
-
-        // if all_lr_bullish && all_rf_bullish {
-        //     signals.push(format!("ML Strong Bull — All Periods Confirmed({:.0}% acc)", min_accurary * 100.0));
-        // } else if all_lr_bearish && all_rf_bearish {
-        //     signals.push(format!("ML Strong Bear — All Periods Confirmed ({:.0}% acc)", min_accurary * 100.0));
-        // } else if all_lr_bullish && all_rf_bearish {
-        //     signals.push("ML Caution — LR Bullish RF Bearish All Periods".to_string());
-        // } else if all_lr_bearish && all_rf_bullish {
-        //     signals.push("ML Caution — LR Bearish RF Bullish All Periods".to_string());
-        // }
-
-        signals
+        // Skip conflicting and single-model signals — too noisy
     }
+
+    // --- Cross-period summary — single most important signal ---
+    let trusted_mlp_bullish = |p: &str| {
+        mlp_returns.get(p).copied().unwrap_or(0.0) > 0.0
+            && mlp_alphas.get(p)
+                .map(|a| a.bullish_precision >= 0.55 && a.directional_accuracy >= min_accuracy)
+                .unwrap_or(false)
+    };
+    let trusted_mlp_bearish = |p: &str| {
+        mlp_returns.get(p).copied().unwrap_or(0.0) < 0.0
+            && mlp_alphas.get(p)
+                .map(|a| a.bearish_precision >= 0.55 && a.directional_accuracy >= min_accuracy)
+                .unwrap_or(false)
+    };
+
+    let all_lr_bullish  = ["5","10","20","60"].iter().all(|p| lr_returns.get(*p).copied().unwrap_or(0.0) > 0.5);
+    let all_lr_bearish  = ["5","10","20","60"].iter().all(|p| lr_returns.get(*p).copied().unwrap_or(0.0) < -0.5);
+    let all_mlp_bullish = ["5","10","20","60"].iter().all(|p| trusted_mlp_bullish(p));
+    let all_mlp_bearish = ["5","10","20","60"].iter().all(|p| trusted_mlp_bearish(p));
+    let all_rf_bullish  = !rf_available || ["5","10","20","60"].iter()
+        .all(|p| rf_returns.unwrap().get(*p).copied().unwrap_or(0.0) > 0.0);
+    let all_rf_bearish  = !rf_available || ["5","10","20","60"].iter()
+        .all(|p| rf_returns.unwrap().get(*p).copied().unwrap_or(0.0) < 0.0);
+
+    if all_lr_bullish && all_rf_bullish && all_mlp_bullish {
+        signals.push("ML Strong Bull — All Periods All Models Confirmed".to_string());
+    } else if all_lr_bullish && all_rf_bullish {
+        signals.push("ML Strong Bull — All Periods Confirmed".to_string());
+    } else if all_lr_bullish && all_mlp_bullish {
+        signals.push("ML Strong Bull — All Periods LR+MLP Confirmed".to_string());
+    } else if all_lr_bearish && all_rf_bearish && all_mlp_bearish {
+        signals.push("ML Strong Bear — All Periods All Models Confirmed".to_string());
+    } else if all_lr_bearish && all_rf_bearish {
+        signals.push("ML Strong Bear — All Periods Confirmed".to_string());
+    } else if all_lr_bearish && all_mlp_bearish {
+        signals.push("ML Strong Bear — All Periods LR+MLP Confirmed".to_string());
+    }
+
+    signals
+}
+// Before:                          After:
+// ────────────────────────────     ────────────────────────────
+// LR5/10/20/60 signals (4)    ←   removed — LR captured in confluence
+// RF5/10/20/60 signals (4)    ←   removed — RF captured in confluence  
+// MLP Weak Bullish/Bearish    ←   removed — below precision threshold, not actionable
+// ML Conflicting              ←   removed — noise, no clear action
+// ML Caution LR/RF mismatch   ←   removed — too granular
+
+// Kept:
+// MLP{period} Bullish/Bearish      ← unique magnitude + precision info
+// ML{period} Bullish/Bearish N/M   ← confluence per period
+// ML Strong Bull/Bear summary      ← most important cross-period signal
+
 }

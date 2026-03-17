@@ -1,5 +1,5 @@
 use anyhow::Result;
-use tracing::debug;
+use tracing::info;
 
 // ── Metrics ───────────────────────────────────────────────────────────
 pub(crate) fn log_metrics_from_vecs(
@@ -65,15 +65,6 @@ pub(crate) fn log_metrics_from_vecs(
     } else {
         0.0
     };
-
-    debug!(
-        "    Dir Acc: {:.1}%  Bullish: {:.1}%  Bearish: {:.1}%  MAE: {:.4}  R2: {:.4}",
-        directional_accuracy * 100.0,
-        bullish_precision * 100.0,
-        bearish_precision * 100.0,
-        mae,
-        r2
-    );
 
     Ok((
         directional_accuracy,

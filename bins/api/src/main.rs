@@ -17,9 +17,16 @@ use fin_storage::{
 use fin_tracker_api::{
     handlers::{
         self,
-        cron::{handle_build_tickers_training_model, handle_ticker_embeddings_eod, handle_ticker_prediction_signals_eod, handle_tickers_eod},
-        stocks::{get_ticker_embeddings, get_ticker_history, get_ticker_history_latest, get_ticker_indicators_latest, get_ticker_sentiments, get_tickers, screen_tickers_handler, search_tickers_handler},
-        tools::analyse_tickers_handler,
+        cron::{
+            handle_build_tickers_training_model, handle_ticker_embeddings_eod,
+            handle_ticker_prediction_signals_eod, handle_tickers_eod,
+        },
+        stocks::{
+            get_ticker_embeddings, get_ticker_history, get_ticker_history_latest,
+            get_ticker_indicators_latest, get_ticker_sentiments, get_tickers,
+            screen_tickers_handler, search_tickers_handler,
+        },
+        tools::{analyse_tickers_handler, analyse_tickers_streaming_handler},
     },
     middleware,
     state::AppState,
@@ -38,16 +45,17 @@ async fn main() -> Result<()> {
         .with_target("storage_core::mongo", Level::INFO)
         // .with_target("storage_core::vector", Level::DEBUG)
         .with_target("agentic_core::http", Level::INFO)
-        .with_target("agentic_core::agent", Level::DEBUG)
+        .with_target("agentic_core::agent", Level::INFO)
         .with_target("agentic_core::providers", Level::INFO)
         // .with_target("fin_tracker_backend_rs::http", Level::DEBUG)
-        .with_target("fin_tracker_api", Level::DEBUG)
-        .with_target("fin_services::ml", Level::INFO)
-        .with_target("fin_services::stocks", Level::DEBUG)
-        .with_target("fin_services::tools", Level::DEBUG)
+        .with_target("fin_tracker_api", Level::INFO)
+        .with_target("fin_services", Level::INFO)
+        .with_target("fin_services::stocks", Level::INFO)
+        .with_target("fin_services::tools", Level::INFO)
         .with_target("fin_storage", Level::INFO)
         // .with_target("fin_storage", Level::INFO)
         .with_target("fin_providers", Level::INFO);
+
     tracing_subscriber::registry()
         .with(
             fmt::layer().event_format(
@@ -105,7 +113,7 @@ async fn main() -> Result<()> {
         provider_service,
         // Arc::new(agent_service),
         embedding_client.clone(),
-        ml_service.clone()
+        ml_service.clone(),
     ));
 
     // agent service
@@ -130,13 +138,10 @@ async fn main() -> Result<()> {
         Router::new().route("/load-tickers", post(handlers::admin::load_tickers_handler));
 
     let cron_routes = Router::new()
-        .route(
-            "/update-tickers-eod",
-            post(handle_tickers_eod),
-        )
+        .route("/update-tickers-eod", post(handle_tickers_eod))
         .route(
             "/update-ticker-embeddings-eod",
-            get(handle_ticker_embeddings_eod),
+            post(handle_ticker_embeddings_eod),
         )
         .route(
             "/build_training_model",
@@ -174,6 +179,8 @@ async fn main() -> Result<()> {
         .route("/tickers/screen", post(screen_tickers_handler))
         .route("/tickers/search", post(search_tickers_handler))
         .route("/tickers/analyse", post(analyse_tickers_handler))
+        .route("/tickers/analyse_streaming", post(analyse_tickers_streaming_handler))
+
         .layer(cors)
         .with_state(app_state) // Shared state
         ;

@@ -122,7 +122,8 @@ impl Tool for TickerSnapshotTool {
                 "52wk_low": ticker.pr_52_wk_low,
             },
             "fundamentals": fundamentals,
-            "performance" : ticker.performance
+            "performance" : ticker.performance,
+            "signals": ticker.signals
         });
 
         debug!("Snapshot: {:#?}", snapshot);

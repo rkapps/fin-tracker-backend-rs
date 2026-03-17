@@ -15,6 +15,14 @@ pub struct RfResult {
     pub mean_down: f64,
 }
 
+pub struct MlpResult {
+    pub model_weights: Vec<u8>,  // serialized safetensors bytes
+    pub metrics: ModelMetrics,
+    pub mean_up: f64,
+    pub mean_neutral: f64,
+    pub mean_down: f64,
+}
+
 pub struct ModelMetrics {
     pub directional_accuracy: f64,
     pub bullish_precision: f64,

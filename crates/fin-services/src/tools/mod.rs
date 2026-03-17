@@ -1,12 +1,13 @@
 use agentic_core::{
-    agent::service::AgentService,
+    agent::{completion::Agent, service::AgentService},
     capabilities::{
-        client::embeddings::EmbeddingClient,
+        client::{completion::CompletionStreamResponse, embeddings::EmbeddingClient},
         completion::{message::Message, response::CompletionResponse},
     },
 };
 use anyhow::Result;
 use serde::Deserialize;
+use tracing::info;
 use std::sync::Arc;
 
 use crate::stocks::StocksService;
@@ -52,8 +53,7 @@ impl ToolsService {
         agent_service: Arc<AgentService>,
         openai_api_key: String,
         gemini_api_key: String,
-        anthropic_api_key: String
-
+        anthropic_api_key: String,
     ) -> Self {
         Self {
             stocks_service,
@@ -61,7 +61,7 @@ impl ToolsService {
             agent_service,
             openai_api_key,
             gemini_api_key,
-            anthropic_api_key
+            anthropic_api_key,
         }
     }
 
@@ -77,6 +77,35 @@ impl ToolsService {
         };
         messages.push(message);
 
+        let agent = self.build_agent(prompt).await?;
+        let system_prompt = self.build_system_prompt();
+        let response = agent.complete_with_tools(&system_prompt, &messages).await?;
+        Ok(response)
+    }
+
+    pub async fn analyse_tickers_streaming(
+        &self,
+        prompt: &str,
+        response_id: Option<String>,
+    ) -> Result<CompletionStreamResponse> {
+        let mut messages = vec![];
+        let message = Message::User {
+            content: prompt.to_string(),
+            response_id: response_id,
+        };
+        messages.push(message);
+        info!("analyse ticker prompt: {:?}", messages);
+
+        let agent = self.build_agent(prompt).await?;
+        let system_prompt = self.build_system_prompt();
+        // let system_prompt = Some("You are a expert at everthing".to_string());
+        let stream = agent
+            .complete_with_tools_streaming(&system_prompt, &messages)
+            .await?;
+        Ok(Box::pin(stream))
+    }
+
+    async fn build_agent(&self, prompt: &str) -> Result<Agent> {
         // get the input embeddings for the prompt
         let query_embedding = self
             .embedding_client
@@ -84,6 +113,41 @@ impl ToolsService {
             .await
             .map_err(|e| anyhow::anyhow!("Error embedding input prompt {}: {}", prompt, e))?;
 
+        let taxonomy_tool = TickerTaxonomyTool::new(self.stocks_service.storage_service.clone());
+        let sentiment_tool = TickerSentimentTool::new(
+            query_embedding.clone(),
+            self.stocks_service.storage_service.clone(),
+        );
+        let screening_tool = TickerScreeningTool::new(self.stocks_service.clone());
+        // let simiarity_tool =
+        //     TickerSimilarityTool::new(query_embedding, self.storage_service.clone());
+        let snapshot_tool = TickerSnapshotTool::new(self.stocks_service.storage_service.clone());
+        let history_tool = TickerPriceHistoryTool::new(self.stocks_service.storage_service.clone());
+        let indicator_tool = TickerIndicatorTool::new(self.stocks_service.storage_service.clone());
+        let peers_tool = TickerPeersTool::new(self.stocks_service.storage_service.clone());
+
+        let agent = self
+            .agent_service
+            .builder()
+            .with_openai(&self.openai_api_key)?
+            // .with_gemini(&self.gemini_api_key)?
+            // .with_anthropic(&self.anthropic_api_key)?
+            .with_tool(screening_tool)
+            .with_tool(taxonomy_tool)
+            // .with_tool(simiarity_tool)
+            .with_tool(sentiment_tool)
+            .with_tool(snapshot_tool)
+            .with_tool(history_tool)
+            .with_tool(indicator_tool)
+            .with_tool(peers_tool)
+            .with_temperature(0.1)
+            .with_max_tokens(3000)
+            .build()?;
+
+        Ok(agent)
+    }
+
+    fn build_system_prompt(&self) -> Option<String> {
         /*
                 let system_prompt = Some("You are financial expert and advisor in analysing stocks and market trends. You will help guide my decision making in the stock market. Use the provide tool if necessary to get information on the stocks".to_string());
         */
@@ -130,8 +194,8 @@ impl ToolsService {
              'detail', 'deep dive', 'full breakdown', or 'more information'. \
              \
              SUMMARY — one compact table with these rows only: \
-             Sector, Industry, Price, Market Cap, P/E, Beta, MACD, RSI, Bands, Directional Accuracy\
-             YTD Return, Analyst Price Target, Analyst Consensus, Sentiment. \
+             Sector, Industry, Price, Market Cap, P/E, Beta, MACD, RSI, Bands\
+             YTD Return, Analyst Price Target, Analyst Consensus, Sentiment, MLP Signal\
              \
              P/E row: show as 'TTM / Forward' in a single cell and interpret the relationship. \
              Example: '33.45 / 30.21 — multiple compressing, earnings growth expected'. \
@@ -153,9 +217,13 @@ impl ToolsService {
              'Above upper band — strongly overbought', \
              'Below lower band — strongly oversold'. \
              \
-             Directional Accuracy row - Only shows this there is a 'ML Strong Bull' or 'ML Strong Bear' of any of tickers that are compared.
-             \
-             Sentiment must be exactly one of: \
+            MLP Signal: list each MLP signal on a new line within the cell.\
+                Only include signals where precision ≥ 55%.\
+                If none available skip the ML Signal rows.\
+            Example: 'MLP20 Bullish (3.2%) ✅ | MLP60 Bullish (7.3%) ✅'\
+                    ML Confluence: the cross-period summary signal if present, e.g.\
+            'ML Strong Bull — All Periods Confirmed' or '—' if none.\
+            Sentiment must be exactly one of: \
              Extremely Bullish, Bullish, Neutral, Bearish, Extremely Bearish. \
              \
              DETAIL — full table with four row groups as bold headers within a single unified table: \
@@ -174,38 +242,6 @@ impl ToolsService {
             .to_string()
         );
 
-        let taxonomy_tool = TickerTaxonomyTool::new(self.stocks_service.storage_service.clone());
-        let sentiment_tool = TickerSentimentTool::new(
-            query_embedding.clone(),
-            self.stocks_service.storage_service.clone(),
-        );
-        let screening_tool = TickerScreeningTool::new(
-            self.stocks_service.clone(),
-        );
-        // let simiarity_tool =
-        //     TickerSimilarityTool::new(query_embedding, self.storage_service.clone());
-        let snapshot_tool = TickerSnapshotTool::new(self.stocks_service.storage_service.clone());
-        let history_tool = TickerPriceHistoryTool::new(self.stocks_service.storage_service.clone());
-        let indicator_tool = TickerIndicatorTool::new(self.stocks_service.storage_service.clone());
-        let peers_tool = TickerPeersTool::new(self.stocks_service.storage_service.clone());
-
-        let agent = self.agent_service
-            .builder()
-            // .with_openai(&self.openai_api_key)?
-            // .with_gemini(&self.gemini_api_key)?
-            .with_anthropic(&self.anthropic_api_key)?
-            .with_tool(screening_tool)
-            .with_tool(taxonomy_tool)
-            // .with_tool(simiarity_tool)
-            .with_tool(sentiment_tool)
-            .with_tool(snapshot_tool)
-            .with_tool(history_tool)
-            .with_tool(indicator_tool)
-            .with_tool(peers_tool)
-            .with_temperature(0.1)
-            .with_max_tokens(3000)
-            .build()?;
-        let response = agent.complete_with_tools(&system_prompt, &messages).await?;
-        Ok(response)
+        system_prompt
     }
 }

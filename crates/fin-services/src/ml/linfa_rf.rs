@@ -153,7 +153,7 @@ pub fn train_models_for_randomforest(
     })
 }
 
-pub fn run_prediction_for_rf(
+pub fn run_rf_predictions(
     sa: &TickerAlpha,
     model: &EnsembleLearner<DecisionTree<f64, usize>>,
     normalized: Vec<f64>,

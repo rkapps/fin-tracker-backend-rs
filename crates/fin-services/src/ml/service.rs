@@ -1,25 +1,31 @@
 use anyhow::Result;
 use chrono::{DateTime, Months, Utc};
 use fin_domain::ticker::{
-    FeatureSnapshot, IndicatorSnapshot, ModelAlgorithm, ModelType, TickerAlpha, TickerIndicator,
+    FeatureSnapshot, IndicatorSnapshot, ModelAlgorithm, ModelType, Ticker, TickerAlpha,
+    TickerIndicator,
 };
 use fin_storage::service::StorageService;
 use linfa_ensemble::EnsembleLearner;
 use linfa_trees::DecisionTree;
-use std::{collections::HashMap, sync::Arc, vec};
+use rayon::iter::{IntoParallelRefIterator, ParallelIterator};
+use std::{
+    collections::HashMap, panic, sync::{Arc, Mutex}, vec
+};
 use tokio::sync::RwLock;
 use tracing::{debug, info, warn};
 
 use crate::ml::{
     labels::{build_labels_for_ticker, compute_normalization_params, normalize_single},
-    linfa_lr::{run_prediction_for_lr, train_models_for_linfa},
-    linfa_rf::{run_prediction_for_rf, train_models_for_randomforest},
+    linfa_lr::{run_lr_predictions, train_models_for_linfa},
+    linfa_rf::{run_rf_predictions, train_models_for_randomforest},
+    mlp::{predict_mlp, train_models_for_mlp},
 };
 
 const PERIODS: [i32; 4] = [5, 10, 20, 60];
-const MIN_SAMPLES: usize = 200;
+// const PERIODS: [i32; 2] = [10, 60];
+const MIN_SAMPLES: usize = 100;
 // Don't store alphas below this threshold — useless at prediction time
-const MIN_DIRECTIONAL_ACCURACY: f64 = 0.40;
+// const MIN_DIRECTIONAL_ACCURACY: f64 = 0.40;
 
 #[derive(Clone)]
 pub struct MlService {
@@ -44,7 +50,7 @@ impl MlService {
     // ── Public entry points ───────────────────────────────────────────────
 
     pub async fn build_and_train_all(&self) -> Result<()> {
-        let from_date = Utc::now().checked_sub_months(Months::new(36)).unwrap();
+        let from_date = Utc::now().checked_sub_months(Months::new(60)).unwrap();
         // let from_date = Utc::now().checked_sub_days(Days::new(40)).unwrap();
 
         info!("Training sector models...");
@@ -133,24 +139,23 @@ impl MlService {
         Vec<TickerAlpha>,
         HashMap<String, Option<EnsembleLearner<DecisionTree<f64, usize>>>>,
     )> {
-        let tickers = self.storage_service.get_tickers().await?;
+        let tickers = self.storage_service.get_tickers_by_marketcap().await?;
 
-        let mut all_alphas = Vec::new();
-        let mut all_rf_models = HashMap::new();
         let length = tickers.len();
+
+        // --- Step 1: Fetch all indicator data async (sequential, IO-bound) ---
+        let mut ticker_data: Vec<(Ticker, Vec<TickerIndicator>)> = Vec::new();
+
         for (i, ticker) in tickers.iter().enumerate() {
-            // for ticker in &tickers {
-            if !(ticker.symbol == "NVDA" || ticker.symbol == "AAPL") {
-                continue;
-            }
             if i % 20 == 0 {
-                info!("Training Ticker: {} {}/{}", ticker.symbol, i + 1, length);
+                info!("Fetching Ticker: {} {}/{}", ticker.symbol, i + 1, length);
             }
 
             let indicators = self
                 .storage_service
                 .get_ticker_indicators_by_symbol(&ticker.symbol, from_date)
                 .await?;
+
             if indicators.len() < MIN_SAMPLES {
                 warn!(
                     "Ticker {} insufficient data: {} rows",
@@ -160,25 +165,76 @@ impl MlService {
                 continue;
             }
 
-            for n in &PERIODS {
-                // Same function — single ticker, first record skipped
-                let ticker_labels = build_labels_for_ticker(&indicators, *n as usize)?;
-                info!("Ticker: {} labels: {}", ticker.symbol, ticker_labels.len());
-                let result = Self::train_labels_for_all_algorithms(
-                    &ticker.symbol,
-                    &ticker.sector.clone().unwrap(),
-                    ticker_labels.clone(),
-                    *n,
-                    ModelType::Ticker,
-                )?;
-
-                all_alphas.extend(result.0);
-                for value in result.1 {
-                    all_rf_models.insert(value.0, value.1);
-                }
-            }
+            ticker_data.push((ticker.clone(), indicators));
         }
 
+        info!(
+            "Fetched {} tickers, starting parallel training...",
+            ticker_data.len()
+        );
+
+        // --- Step 2: Parallel training (CPU-bound) ---
+        let all_alphas = Mutex::new(Vec::new());
+        let all_rf_models = Mutex::new(HashMap::new());
+
+        ticker_data.par_iter().for_each(|(ticker, indicators)| {
+            let mut ticker_alphas = Vec::new();
+            let mut ticker_rf_models = HashMap::new();
+            let mut success_count = 0;
+
+            for n in &PERIODS {
+                let ticker_labels = match build_labels_for_ticker(indicators, *n as usize) {
+                    Ok(labels) => labels,
+                    Err(e) => {
+                        warn!("Label build failed {} period {}: {}", ticker.symbol, n, e);
+                        continue;
+                    }
+                };
+
+                match Self::train_labels_for_all_algorithms(
+                    &ticker.symbol,
+                    &ticker.sector.clone().unwrap_or_default(),
+                    ticker_labels,
+                    *n,
+                    ModelType::Ticker,
+                ) {
+                    Ok(result) => {
+                        ticker_alphas.extend(result.0);
+                        ticker_rf_models.extend(result.1);
+                        success_count += 1;
+                    }
+                    Err(e) => {
+                        warn!("Training failed {} period {}: {}", ticker.symbol, n, e);
+                    }
+                }
+            }
+
+            info!(
+                "  {} — trained {}/{} periods, {} alphas",
+                ticker.symbol,
+                success_count,
+                PERIODS.len(),
+                ticker_alphas.len()
+            );
+
+            if !ticker_alphas.is_empty() {
+                match all_alphas.lock() {
+                    Ok(mut guard) => guard.extend(ticker_alphas),
+                    Err(e) => warn!("Mutex poisoned for {}: {}", ticker.symbol, e),
+                }
+            }
+
+            if !ticker_rf_models.is_empty() {
+                match all_rf_models.lock() {
+                    Ok(mut guard) => guard.extend(ticker_rf_models),
+                    Err(e) => warn!("RF mutex poisoned for {}: {}", ticker.symbol, e),
+                }
+            }
+        });
+
+        // Check what was collected
+        let all_alphas = all_alphas.into_inner().unwrap_or_default();
+        let all_rf_models = all_rf_models.into_inner().unwrap_or_default();
         Ok((all_alphas, all_rf_models))
     }
 
@@ -192,7 +248,7 @@ impl MlService {
         Vec<TickerAlpha>,
         HashMap<String, Option<EnsembleLearner<DecisionTree<f64, usize>>>>,
     )> {
-        info!("Key: {} Sector: {}", key, sector);
+        debug!("  Period: {} Sector: {}", n, sector);
         let split_idx = (labeled_data.len() as f64 * 0.8) as usize;
         let (train_data, test_data) = labeled_data.split_at(split_idx);
 
@@ -212,9 +268,9 @@ impl MlService {
         let up_count = labeled_data.iter().filter(|(l, _)| *l > 0.0).count() as i32;
         let down_count = labeled_data.iter().filter(|(l, _)| *l < 0.0).count() as i32;
 
-        info!(
-            "  Period: {} samples: {} UP: {} DOWN: {}",
-            n, sample_count, up_count, down_count
+        debug!(
+            "  samples: {} UP: {} DOWN: {}",
+            sample_count, up_count, down_count
         );
 
         let mut all_alphas = Vec::new();
@@ -225,85 +281,138 @@ impl MlService {
         for model_algorithm in &[
             ModelAlgorithm::LinearRegression,
             ModelAlgorithm::RandomForest,
-            // ModelAlgorithm::MLP,
+            ModelAlgorithm::MLP,
         ] {
             let means_clone = means.clone();
             let stds_clone = stds.clone();
-            info!("  Training model: {:?}...", model_algorithm);
+            debug!("  Training model: {:?}...", model_algorithm);
             // Time-based split — never shuffle time series data
-            let (metrics, intercept, params, rf_model, mean_down, mean_neutral, mean_up) =
-                match model_algorithm {
-                    ModelAlgorithm::LinearRegression => {
-                        match train_models_for_linfa(
-                            &labeled_data,
-                            train_data,
-                            test_data,
-                            &means_clone,
-                            &stds_clone,
-                        ) {
-                            Ok(result) => (
-                                result.metrics,
-                                result.intercept,
-                                result.params,
-                                None,
-                                0.0,
-                                0.0,
-                                0.0,
-                            ),
-                            Err(e) => {
-                                warn!(
-                                    "LR training failed for {} period {}: {}, skipping",
-                                    key, n, e
-                                );
-                                continue;
-                            }
+            let (
+                metrics,
+                intercept,
+                params,
+                rf_model,
+                mean_down,
+                mean_neutral,
+                mean_up,
+                mlp_weights,
+                label_mean,
+                label_std,
+            ) = match model_algorithm {
+                ModelAlgorithm::LinearRegression => {
+                    match train_models_for_linfa(
+                        &labeled_data,
+                        train_data,
+                        test_data,
+                        &means_clone,
+                        &stds_clone,
+                    ) {
+                        Ok(result) => (
+                            result.metrics,
+                            result.intercept,
+                            result.params,
+                            None,
+                            0.0,
+                            0.0,
+                            0.0,
+                            None,
+                            0.0,
+                            0.0,
+                        ),
+                        Err(e) => {
+                            warn!(
+                                "LR training failed for {} period {}: {}, skipping",
+                                key, n, e
+                            );
+                            continue;
                         }
                     }
+                }
 
-                    ModelAlgorithm::RandomForest => {
-                        match train_models_for_randomforest(
-                            &labeled_data,
-                            train_data,
-                            test_data,
-                            &means_clone,
-                            &stds_clone,
-                        ) {
-                            Ok(result) => {
-                                (
-                                    result.metrics,
-                                    0.0,
-                                    vec![],
-                                    Some(result.model),
-                                    result.mean_down,
-                                    result.mean_neutral,
-                                    result.mean_up,
-                               )
-       
-                            },
-                            Err(e) => {
-                                warn!(
-                                    "RF training failed for {} period {}: {}, skipping",
-                                    key, n, e
-                                );
-                                continue;
-                            }
+                ModelAlgorithm::RandomForest => {
+                    match train_models_for_randomforest(
+                        &labeled_data,
+                        train_data,
+                        test_data,
+                        &means_clone,
+                        &stds_clone,
+                    ) {
+                        Ok(result) => (
+                            result.metrics,
+                            0.0,
+                            vec![],
+                            Some(result.model),
+                            result.mean_down,
+                            result.mean_neutral,
+                            result.mean_up,
+                            None,
+                            0.0,
+                            0.0,
+                        ),
+                        Err(e) => {
+                            warn!(
+                                "RF training failed for {} period {}: {}, skipping",
+                                key, n, e
+                            );
+                            continue;
                         }
                     }
+                }
+                ModelAlgorithm::MLP => {
+                    match train_models_for_mlp(
+                        &labeled_data,
+                        train_data,
+                        test_data,
+                        &means_clone,
+                        &stds_clone,
+                    ) {
+                        Ok(result) => (
+                            result.metrics,
+                            0.0,
+                            vec![],
+                            None,
+                            result.mean_down,
+                            result.mean_neutral,
+                            result.mean_up,
+                            Some(result.weights),
+                            result.label_mean,
+                            result.label_std,
+                        ),
+                        Err(e) => {
+                            warn!(
+                                "MLP training failed for {} period {}: {}, skipping",
+                                key, n, e
+                            );
+                            continue;
+                        }
+                    }
+                }
+            };
 
-                };
-
-            if metrics.directional_accuracy < MIN_DIRECTIONAL_ACCURACY {
-                warn!(
-                    "Ticker {} period {} accuracy too low: {:.1}%, skipping",
-                    key,
-                    n,
-                    metrics.directional_accuracy * 100.0
-                );
-                continue;
-            }
+            // if metrics.directional_accuracy < MIN_DIRECTIONAL_ACCURACY {
+            //     warn!(
+            //         "Ticker {} period {} accuracy too low: {:.1}%, skipping",
+            //         key,
+            //         n,
+            //         metrics.directional_accuracy * 100.0
+            //     );
+            //     continue;
+            // }
 
             let date = Utc::now();
-            let alpha_key = TickerAlpha::id(key, n, date);
+            // let alpha_key = TickerAlpha::id(key, n, date);
+            let alpha_key = TickerAlpha::new_id(key, n, model_algorithm);
+
+            info!(
+                "Key: {} Dir Acc: {:.1}%  Bullish: {:.1}%  Bearish: {:.1}%  MAE: {:.4}  R2: {:.4}",
+                alpha_key,
+                metrics.directional_accuracy * 100.0,
+                metrics.bullish_precision * 100.0,
+                metrics.bearish_precision * 100.0,
+                metrics.mae,
+                metrics.r2
+            );
+
             let alpha = TickerAlpha {
                 id: alpha_key.clone(),
                 key: key.to_string(),
@@ -332,6 +441,9 @@ impl MlService {
                 mean_down,
                 mean_neutral,
                 mean_up,
+                mlp_weights,
+                label_mean,
+                label_std,
             };
 
             all_alphas.push(alpha);
@@ -348,15 +460,37 @@ impl MlService {
         indicator: &TickerIndicator,
         prev_indicator: Option<&TickerIndicator>,
         sas: Vec<TickerAlpha>,
-    ) -> Result<(HashMap<String, f64>, HashMap<String, f64>)> {
+    ) -> Result<(
+        HashMap<String, f64>,
+        HashMap<String, f64>,
+        HashMap<String, f64>,
+    )> {
         let isnapshot = IndicatorSnapshot::from(indicator);
-        let prev_snapshot = prev_indicator.map(|p| IndicatorSnapshot::from(p));
+        info!("i am here-21: {:?}", prev_indicator);
 
-        let fsnapshot =
-            FeatureSnapshot::from_indicator_with_prev(&isnapshot, prev_snapshot.as_ref())?;
+        let prev_snapshot = prev_indicator.map(|p| IndicatorSnapshot::from(p));
+        info!("i am here-2");
+
+        let fsnapshot = match panic::catch_unwind(|| {
+            FeatureSnapshot::from_indicator_with_prev(&isnapshot, prev_snapshot.as_ref())
+        }) {
+            Ok(Ok(fs)) => fs,
+            Ok(Err(e)) => {
+                warn!("FeatureSnapshot error for {}: {}", indicator.symbol, e);
+                return Ok((HashMap::new(), HashMap::new(), HashMap::new()));
+            }
+            Err(_) => {
+                warn!(
+                    "FeatureSnapshot panicked for {} — likely division by zero in indicators",
+                    indicator.symbol
+                );
+                return Ok((HashMap::new(), HashMap::new(), HashMap::new()));
+            }
+        };
 
         let mut lf_returns = HashMap::new();
         let mut rf_returns = HashMap::new();
+        let mut mlp_returns = HashMap::new();
 
         for sa in sas {
             if sa.means.len() != fsnapshot.values().len() {
@@ -370,10 +504,10 @@ impl MlService {
             }
 
             let normalized = normalize_single(fsnapshot.values(), &sa.means, &sa.stds);
-
+            info!("i am here");
             match sa.model_algorithm {
                 ModelAlgorithm::LinearRegression => {
-                    let predicted_return = run_prediction_for_lr(&sa, &normalized);
+                    let predicted_return = run_lr_predictions(&sa, &normalized);
                     lf_returns.insert(sa.n.to_string(), predicted_return);
                     debug!(
                         "Period {} algorithm: {:?} predicted: {:.2}%",
@@ -384,10 +518,10 @@ impl MlService {
                     let key = format!("{}:{}", sa.key, sa.n);
                     let lock = self.rf_models.read().await;
                     let Some(Some(model)) = lock.get(&key) else {
-                        warn!("RF model not found for {}", sa.id);
+                        // warn!("RF model not found for {}", sa.id);
                         continue;
                     };
-                    match run_prediction_for_rf(&sa, model, normalized) {
+                    match run_rf_predictions(&sa, model, normalized) {
                         Ok(c) => {
                             rf_returns.insert(sa.n.to_string(), c);
                             debug!(
@@ -396,14 +530,24 @@ impl MlService {
                             );
                         }
                         Err(e) => {
-                            return Err(anyhow::anyhow!("Prediction error: {}", e));
+                            return Err(anyhow::anyhow!("RF Prediction error: {}", e));
                         }
                     };
                 }
+                ModelAlgorithm::MLP => match predict_mlp(&sa, normalized) {
+                    Ok(c) => {
+                        mlp_returns.insert(sa.n.to_string(), c);
+
+                        info!("predictions for period:{} : {:?}", sa.n, c);
+                    }
+                    Err(e) => {
+                        return Err(anyhow::anyhow!("MLP Prediction error: {}", e));
+                    }
+                },
             };
         }
 
-        Ok((lf_returns, rf_returns))
+        Ok((lf_returns, rf_returns, mlp_returns))
     }
 
     /// Prefer ticker model, fall back to sector model
@@ -411,17 +555,22 @@ impl MlService {
         &self,
         indicator: &TickerIndicator,
         prev_indicator: Option<&TickerIndicator>,
-        ticker_alphas: Vec<TickerAlpha>,
+        ticker_alphas: &Vec<TickerAlpha>,
         sector_alphas: Vec<TickerAlpha>,
-    ) -> Result<(HashMap<String, f64>, HashMap<String, f64>)> {
+    ) -> Result<(
+        HashMap<String, f64>,
+        HashMap<String, f64>,
+        HashMap<String, f64>,
+    )> {
         let sas = if !ticker_alphas.is_empty() {
-            debug!("Using ticker model for {}", indicator.symbol);
+            info!("Using ticker model for {}", indicator.symbol);
             ticker_alphas
         } else {
-            debug!("Falling back to sector model for {}", indicator.symbol);
-            sector_alphas
+            info!("Falling back to sector model for {}", indicator.symbol);
+            &sector_alphas
         };
 
-        self.run_predictions(indicator, prev_indicator, sas).await
+        self.run_predictions(indicator, prev_indicator, sas.to_vec())
+            .await
     }
 }

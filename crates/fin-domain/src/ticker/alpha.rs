@@ -1,4 +1,5 @@
 use chrono::{DateTime, Utc};
+use fin_providers::alpha::model;
 use serde::{Deserialize, Serialize};
 use storage_core::core::RepoModel;
 
@@ -14,7 +15,7 @@ pub enum ModelType {
 pub enum ModelAlgorithm {
     LinearRegression,
     RandomForest,
-    // MLP,
+    MLP,
 }
 
 #[derive(Serialize, Deserialize, Clone, Debug)]
@@ -46,6 +47,12 @@ pub struct TickerAlpha {
     pub mean_up:      f64,
     pub mean_neutral: f64,
     pub mean_down:    f64,
+
+    //mlp_weights
+    pub label_mean: f64,
+    pub label_std: f64,
+    pub mlp_weights: Option<Vec<u8>>,
+
 }
 
 
@@ -62,5 +69,8 @@ impl RepoModel<String> for TickerAlpha {
 impl TickerAlpha {
     pub fn id(sector: &str, n: i32, date: DateTime<Utc>) -> String {
         format!("{}:{}:{}", sector, n, date.timestamp_millis())
+    }
+     pub fn new_id(sector: &str, n: i32, model_algorithm: &ModelAlgorithm) -> String {
+        format!("{}:{}:{:?}", sector, n, model_algorithm)
     }
 }

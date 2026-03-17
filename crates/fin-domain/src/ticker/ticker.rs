@@ -121,7 +121,11 @@ pub struct Ticker {
     pub lr_returns: HashMap<String, f64>,  // LinearRegression returns
     
     #[serde(default)]
-    pub rf_returns: HashMap<String, f64>  // RandomForst returns
+    pub rf_returns: HashMap<String, f64>,  // RandomForst returns
+
+    #[serde(default)]
+    pub mlp_returns: HashMap<String, f64>  // MLP returns
+
 }
 
 impl RepoModel<String> for Ticker {

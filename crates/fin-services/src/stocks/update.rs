@@ -1,8 +1,8 @@
 use chrono::{Duration, Months, Utc};
 use fin_domain::{
     ticker::{
-        AssetType, TICKER_PERFORMANCE_PERIODS, Ticker, TickerAlpha, TickerControl, TickerEmbedding,
-        TickerHistory, TickerIndicator, TickerSentiment,
+        AssetType, ModelAlgorithm, TICKER_PERFORMANCE_PERIODS, Ticker, TickerAlpha, TickerControl,
+        TickerEmbedding, TickerHistory, TickerIndicator, TickerSentiment,
     },
     utils::data_utils::{
         calculate_performance, get_period_close, get_period_start, market_cap_label,
@@ -135,7 +135,7 @@ impl StocksService {
         debug!("Ticker History: {}", histories.len());
 
         // update technical indicators
-        tc.last_indicator_sync_at = None;
+        // tc.last_indicator_sync_at = None;
         if self.should_sync_indicators(tc) {
             match self
                 .update_single_stock_indicators(tc, ticker, &histories)
@@ -634,34 +634,55 @@ impl StocksService {
             .await
             .unwrap_or_default();
 
-        let directional_accuracies: Vec<f64> = ticker_alphas
-            .iter()
-            .map(|f| f.directional_accuracy)
-            .collect();
+        info!(
+            "Ticker: {} Sector alphas: {} Ticker alphas: {}",
+            ticker.symbol,
+            sas.len(),
+            ticker_alphas.len(),
+        );
+
+        // if we do not have data for 4 periods and 2 algos, use the sector alphas
+        let alphas = if ticker_alphas.is_empty() || ticker_alphas.len() < 2 {
+            sas.to_vec()
+        } else {
+            ticker_alphas
+        };
+
+        let directional_accuracies: Vec<f64> =
+            alphas.iter().map(|f| f.directional_accuracy).collect();
         let min_accuracy = directional_accuracies
             .iter()
             .copied()
             .fold(f64::INFINITY, f64::min);
 
-        // let returns = self
-        //     .ml_service
-        //     .run_predictions(indicator, prev_indicator, sas.to_vec())?;
-
         let returns = self
             .ml_service
-            .run_ticker_predictions(indicator, prev_indicator, ticker_alphas, sas.to_vec())
+            .run_ticker_predictions(indicator, prev_indicator, &alphas, sas.to_vec())
             .await?;
 
+        let mlp_alphas: HashMap<String, &TickerAlpha> = alphas
+            .iter()
+            .filter(|a| matches!(a.model_algorithm, ModelAlgorithm::MLP))
+            .map(|a| (a.n.to_string(), a))
+            .collect();
+
         debug!("Returns: {:?}", returns);
-        let ml_signals = self.calculate_ml_signals(&returns.0, &returns.1, min_accuracy);
+        let ml_signals = self.calculate_ml_signals(
+            &returns.0,
+            Some(&returns.1),
+            &returns.2,
+            &mlp_alphas,
+            min_accuracy,
+        );
         ticker.lr_returns = returns.0;
         ticker.rf_returns = returns.1;
+        ticker.mlp_returns = returns.2;
 
         info!("Ml Signals: {:?}", ml_signals);
         // Remove any existing LR signals
         ticker
             .signals
-            .retain(|s| !s.starts_with("LR") && !s.starts_with("RF") && !s.starts_with("ML"));
+            .retain(|s| !s.starts_with("LR") && !s.starts_with("RF") && !s.starts_with("ML") && !s.starts_with("MLP"));
         // Add fresh ones
         ticker.signals.extend(ml_signals);
 

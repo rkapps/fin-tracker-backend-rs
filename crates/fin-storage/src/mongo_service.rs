@@ -13,7 +13,7 @@ use rust_decimal::Decimal;
 use rust_decimal_macros::dec;
 use storage_core::core::Repository;
 use storage_core::core::search::{SearchCriteria, SearchOp, SearchValue};
-use tracing::{debug};
+use tracing::{debug, info, warn};
 
 use crate::{mongo_manager::MongoStorageManager, service::StorageService};
 
@@ -309,8 +309,16 @@ impl StorageService for MongoStorageService {
 
     async fn get_ticker_indicators_window(&self, symbol: &str) -> Result<IndicatorWindow> {
         let indicators = self.get_ticker_indicators_last_n(symbol, 2).await?;
-        let prev = IndicatorSnapshot::from(indicators.get(1).unwrap());
-        let curr = IndicatorSnapshot::from(indicators.get(0).unwrap());
+        let prev = IndicatorSnapshot::from(
+            indicators
+                .get(1)
+                .ok_or(anyhow::anyhow!("Not enough indicators"))?,
+        );
+        let curr = IndicatorSnapshot::from(
+            indicators
+                .get(0)
+                .ok_or(anyhow::anyhow!("Not enough indicators"))?,
+        );
         let window = IndicatorWindow::new(curr, prev);
         Ok(window)
     }
@@ -499,20 +507,30 @@ impl StorageService for MongoStorageService {
         criteria.add_sort("date", false);
 
         // for each ticker/sector there are 4 (periods) x 2 (algorithm lf/rf) =  8 records
-        criteria.add_limit(8);
+        // criteria.add_limit(8);
 
         repo.find(Some(criteria)).await
     }
 
     async fn save_ticker_alphas(&self, sas: &Vec<TickerAlpha>) -> Result<()> {
         let Ok(repo) = self.manager.ticker_alphas().await else {
-            return Err(anyhow::anyhow!("Error saving SectorAlpha",));
+            return Err(anyhow::anyhow!("Error saving SectorAlpha"));
         };
         let mut repo = repo.lock().await;
+        let mut saved = 0;
+        let mut failed = 0;
+
         for sa in sas {
-            repo.insert(sa.clone()).await?;
+            match repo.insert(sa.clone()).await {
+                Ok(_) => saved += 1,
+                Err(e) => {
+                    warn!("Failed to save alpha {}:{} — {}", sa.key, sa.n, e);
+                    failed += 1;
+                }
+            }
         }
 
+        info!("Saved {} alphas, {} failed", saved, failed);
         Ok(())
     }
 }
