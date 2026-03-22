@@ -50,25 +50,28 @@ impl MlService {
     // ── Public entry points ───────────────────────────────────────────────
 
     pub async fn build_and_train_all(&self) -> Result<()> {
-        let from_date = Utc::now().checked_sub_months(Months::new(60)).unwrap();
+
         // let from_date = Utc::now().checked_sub_days(Days::new(40)).unwrap();
+        let _ = self.build_lr_model().await;
 
-        info!("Training sector models...");
 
-        // let result = self.build_and_train_by_sector(from_date).await?;
+                // let result = self.build_and_train_by_sector(from_date).await?;
         // let _ = self.storage_service.save_ticker_alphas(&result.0).await;
         // for value in result.1 {
         //     let mut lock = self.rf_models.write().await;
         //     lock.insert(value.0, value.1);
         // }
 
-        info!("Training per-ticker models...");
-        let result = self.build_and_train_by_ticker(from_date).await?;
-        let _ = self.storage_service.save_ticker_alphas(&result.0).await;
-        for value in result.1 {
-            let mut lock = self.rf_models.write().await;
-            lock.insert(value.0, value.1);
-        }
+        // let from_date = Utc::now().checked_sub_months(Months::new(60)).unwrap();
+        // info!("Training sector models...");
+
+        // info!("Training per-ticker models...");
+        // let result = self.build_and_train_by_ticker(from_date).await?;
+        // let _ = self.storage_service.save_ticker_alphas(&result.0).await;
+        // for value in result.1 {
+        //     let mut lock = self.rf_models.write().await;
+        //     lock.insert(value.0, value.1);
+        // }
 
         Ok(())
     }

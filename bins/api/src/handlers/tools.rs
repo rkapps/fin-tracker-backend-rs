@@ -1,6 +1,6 @@
 use std::{convert::Infallible, sync::Arc};
 
-use agentic_core::capabilities::completion::response::CompletionResponseContent;
+use agentic_core::client::response::CompletionResponseContent;
 use axum::{
     Json,
     extract::State,

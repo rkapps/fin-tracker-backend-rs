@@ -1,6 +1,6 @@
 use std::{collections::HashMap, sync::Arc};
 
-use agentic_core::capabilities::{client::tool::Tool, embeddings::Embedding};
+use agentic_core::client::{embeddings::Embedding, tools::Tool};
 use anyhow::Result;
 use async_trait::async_trait;
 use fin_storage::service::StorageService;

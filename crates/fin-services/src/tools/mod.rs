@@ -1,9 +1,5 @@
 use agentic_core::{
-    agent::{completion::Agent, service::AgentService},
-    capabilities::{
-        client::{completion::CompletionStreamResponse, embeddings::EmbeddingClient},
-        completion::{message::Message, response::CompletionResponse},
-    },
+    agent::{completion::Agent, service::AgentService}, client::{embeddings::EmbeddingClient, llm::CompletionStreamResponse, message::Message, response::CompletionResponse}, providers::{anthropic::{MODEL_CLAUDE_OPUS_4_6, MODEL_CLAUDE_SONNET_4_6}, gemini::MODEL_GEMINI_3_FLASH_PREVIEW},
 };
 use anyhow::Result;
 use serde::Deserialize;
@@ -129,9 +125,12 @@ impl ToolsService {
         let agent = self
             .agent_service
             .builder()
-            .with_openai(&self.openai_api_key)?
-            // .with_gemini(&self.gemini_api_key)?
-            // .with_anthropic(&self.anthropic_api_key)?
+            // .with_openai(&self.openai_api_key, MODEL_GPT_5_4_MINI)?
+            .with_gemini(&self.gemini_api_key, MODEL_GEMINI_3_FLASH_PREVIEW)?
+            // .with_anthropic(&self.anthropic_api_key, MODEL_CLAUDE_OPUS_4_6)?
+            // .with_anthropic(&self.anthropic_api_key, MODEL_CLAUDE_SONNET_4_6)?
+
+            .with_preset_thorough()
             .with_tool(screening_tool)
             .with_tool(taxonomy_tool)
             // .with_tool(simiarity_tool)
@@ -140,8 +139,8 @@ impl ToolsService {
             .with_tool(history_tool)
             .with_tool(indicator_tool)
             .with_tool(peers_tool)
-            .with_temperature(0.1)
-            .with_max_tokens(3000)
+            // .with_temperature(0.1)
+            // .with_max_tokens(3000)
             .build()?;
 
         Ok(agent)

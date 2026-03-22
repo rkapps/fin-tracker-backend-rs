@@ -1,6 +1,6 @@
 use std::sync::Arc;
 
-use agentic_core::capabilities::client::embeddings::EmbeddingClient;
+use agentic_core::client::embeddings::EmbeddingClient;
 use fin_providers::ProviderService;
 use fin_storage::service::StorageService;
 

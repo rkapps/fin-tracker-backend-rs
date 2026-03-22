@@ -1,6 +1,6 @@
 use std::sync::Arc;
 
-use agentic_core::capabilities::client::tool::Tool;
+use agentic_core::client::tools::Tool;
 use anyhow::Result;
 use async_trait::async_trait;
 use fin_storage::service::StorageService;
