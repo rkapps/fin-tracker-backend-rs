@@ -1,7 +1,6 @@
-use crate::tiingo::model::TiingoTickerHistory;
+use crate::{HttpClient, tiingo::model::TiingoTickerHistory};
 use anyhow::Result;
 use chrono::{DateTime, Utc};
-use fin_http::HttpClient;
 use tracing::debug;
 
 const TIINGO_EOD_URL: &str = "https://api.tiingo.com/tiingo/daily/";

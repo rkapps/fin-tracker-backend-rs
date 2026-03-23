@@ -1,13 +1,11 @@
 use crate::{
-    alpha::{
+    HttpClient, alpha::{
         self,
         model::{AlphaTicker, AlphaTickerSentimentFeed},
-    },
-    tiingo::{self, model::TiingoTickerHistory},
+    }, tiingo::{self, model::TiingoTickerHistory}
 };
 use anyhow::Result;
 use chrono::{DateTime, Utc};
-use fin_http::HttpClient;
 
 #[derive(Debug, Clone)]
 pub struct ProviderService {
@@ -17,12 +15,15 @@ pub struct ProviderService {
 }
 
 impl ProviderService {
-    pub fn new(http_client: HttpClient, alpha_key: &str, tiingo_token: &str) -> Self {
-        ProviderService {
+    pub fn new(alpha_key: &str, tiingo_token: &str) -> Result<Self> {
+
+        let http_client = HttpClient::new().expect("Http Client cannot be configured.");
+
+        Ok(ProviderService {
             http_client,
             alpha_key: alpha_key.to_string(),
             tiingo_token: tiingo_token.to_string(),
-        }
+        })
     }
 
     pub async fn get_stock(&self, symbol: &str) -> Result<AlphaTicker> {
@@ -30,7 +31,6 @@ impl ProviderService {
         // Ok(AlphaTicker::to_domain(raw))
         Ok(raw)
     }
-
 
     pub async fn get_ticker_sentiment(
         &self,

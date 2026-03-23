@@ -1,9 +1,8 @@
 use anyhow::Result;
 use chrono::{DateTime, Utc};
-use fin_http::HttpClient;
 use tracing::debug;
 
-use crate::alpha::model::{AlphaTicker, AlphaTickerSentiment, AlphaTickerSentimentFeed};
+use crate::{HttpClient, alpha::model::{AlphaTicker, AlphaTickerSentiment, AlphaTickerSentimentFeed}};
 
 const ALPHA_BASE_URL: &str = "https://www.alphavantage.co/";
 const ALPHA_FUNCTION_NEWS_SENTIMENT: &str = "NEWS_SENTIMENT";
@@ -78,12 +77,11 @@ mod tests {
 
     use anyhow::Result;
     use chrono::Utc;
-    use fin_http::HttpClient;
     use std::env;
     use tracing::Level;
     use tracing_subscriber::{filter, layer::SubscriberExt, util::SubscriberInitExt};
 
-    use crate::alpha::api::get_stock_sentiments;
+    use crate::{HttpClient, alpha::api::get_stock_sentiments};
 
     #[tokio::test]
     #[ignore]
