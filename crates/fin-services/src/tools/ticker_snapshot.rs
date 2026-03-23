@@ -57,7 +57,7 @@ impl Tool for TickerSnapshotTool {
             }
         };
         info!("Ticker Snapshot params {:#?}", ticker_param.symbol);
-        let ticker = match self.storage_service.get_ticker(&ticker_param.symbol).await {
+        let ticker = match self.storage_service.get_ticker_by_symbol(&ticker_param.symbol).await {
             Ok(t) => t,
             Err(_) => {
                 return Ok(json!({

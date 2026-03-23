@@ -81,7 +81,7 @@ impl StocksService {
                         }
                     };
 
-                    let mut ticker = match storage.get_ticker(&symbol).await {
+                    let mut ticker = match storage.get_ticker_by_symbol(&symbol).await {
                         Ok(t) => t,
                         Err(e) => {
                             error!("Failed to get ticker {}: {}", symbol, e);
@@ -135,7 +135,7 @@ impl StocksService {
 
         let length = tickers.len();
         for (i, symbol) in symbols.enumerate() {
-            let mut ticker = self.storage_service.get_ticker(&symbol).await?;
+            let mut ticker = self.storage_service.get_ticker_by_symbol(&symbol).await?;
             if i % 20 == 0 {
                 info!("Updating Ticker: {} {}/{}", ticker.symbol, i + 1, length);
             }
@@ -156,7 +156,7 @@ impl StocksService {
         let mut sasm = HashMap::new();
 
         for (i, symbol) in symbols.enumerate() {
-            let mut ticker = self.storage_service.get_ticker(&symbol).await?;
+            let mut ticker = self.storage_service.get_ticker_by_symbol(&symbol).await?;
             // if !(ticker.symbol == "NVDA" || ticker.symbol == "AAPL") {
             //     continue;
             // }

@@ -60,7 +60,7 @@ impl Tool for TickerIndicatorTool {
             .map_err(|e| anyhow::anyhow!("Failed to deserialize params: {:?} — {:?}", value, e))?;
         debug!("Ticker indicator params {:#?}", params);
 
-        let ticker = match self.storage_service.get_ticker(&params.symbol).await {
+        let ticker = match self.storage_service.get_ticker_by_symbol(&params.symbol).await {
             Ok(t) => t,
             Err(_) => {
                 return Ok(json!({

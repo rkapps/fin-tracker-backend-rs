@@ -1,5 +1,4 @@
 use anyhow::Result;
-use tracing::info;
 
 // ── Metrics ───────────────────────────────────────────────────────────
 pub(crate) fn log_metrics_from_vecs(

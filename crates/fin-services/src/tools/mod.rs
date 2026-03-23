@@ -1,10 +1,17 @@
 use agentic_core::{
-    agent::{completion::Agent, service::AgentService}, client::{embeddings::EmbeddingClient, llm::CompletionStreamResponse, message::Message, response::CompletionResponse}, providers::{anthropic::{MODEL_CLAUDE_OPUS_4_6, MODEL_CLAUDE_SONNET_4_6}, gemini::MODEL_GEMINI_3_FLASH_PREVIEW},
+    agent::{completion::Agent, service::AgentService},
+    client::{
+        embeddings::EmbeddingClient, llm::CompletionStreamResponse, message::Message,
+        response::CompletionResponse,
+    },
+    providers::{
+        gemini::MODEL_GEMINI_3_FLASH_PREVIEW,
+    },
 };
 use anyhow::Result;
 use serde::Deserialize;
-use tracing::info;
 use std::sync::Arc;
+use tracing::info;
 
 use crate::stocks::StocksService;
 
@@ -129,7 +136,6 @@ impl ToolsService {
             .with_gemini(&self.gemini_api_key, MODEL_GEMINI_3_FLASH_PREVIEW)?
             // .with_anthropic(&self.anthropic_api_key, MODEL_CLAUDE_OPUS_4_6)?
             // .with_anthropic(&self.anthropic_api_key, MODEL_CLAUDE_SONNET_4_6)?
-
             .with_preset_thorough()
             .with_tool(screening_tool)
             .with_tool(taxonomy_tool)

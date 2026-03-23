@@ -52,7 +52,6 @@ pub mod decimal_serde {
     where
         S: Serializer,
     {
-        // Serialize as f64 for MongoDB (not Decimal128)
         let d128 = Decimal128::from_str(&decimal.to_string()).map_err(serde::ser::Error::custom)?;
         d128.serialize(serializer)
     }
