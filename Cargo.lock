@@ -817,23 +817,11 @@ dependencies = [
 ]
 
 [[package]]
-name = "fin-http"
-version = "0.1.0"
-dependencies = [
- "anyhow",
- "reqwest",
- "serde",
- "serde_json",
- "tracing",
-]
-
-[[package]]
 name = "fin-providers"
 version = "0.1.0"
 dependencies = [
  "anyhow",
  "chrono",
- "fin-http",
  "reqwest",
  "rust_decimal",
  "serde",
@@ -900,7 +888,6 @@ dependencies = [
  "anyhow",
  "axum",
  "fin-domain",
- "fin-http",
  "fin-providers",
  "fin-services",
  "fin-storage",
@@ -908,6 +895,7 @@ dependencies = [
  "reqwest",
  "serde",
  "serde_json",
+ "serde_with",
  "storage-core",
  "tokio",
  "tower-http",

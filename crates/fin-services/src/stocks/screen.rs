@@ -1,8 +1,11 @@
-use fin_domain::{dto::screen_param::TickerScreenParam, ticker::Ticker, utils::data_utils::get_overview_embeddings};
+use crate::stocks::StocksService;
 use anyhow::Result;
+use fin_domain::{
+    dto::screen_param::TickerScreenParam, ticker::Ticker,
+    utils::data_utils::get_overview_embeddings,
+};
 use storage_core::vector::search;
 use tracing::debug;
-use crate::stocks::StocksService;
 
 impl StocksService {
     pub async fn screen_tickers(
@@ -13,7 +16,8 @@ impl StocksService {
         // asset_type: Option<String>,
         // signals: Option<Vec<String>>
     ) -> Result<Vec<String>> {
-        let tickers = self.storage_service
+        let tickers = self
+            .storage_service
             .search_tickers(
                 param.clone(), // params.industry,
                                // params.market_cap_range,

@@ -9,10 +9,13 @@ use axum::{
     routing::{get, post},
 };
 
-use fin_http::HttpClient;
-use fin_services::{ml::service::MlService, stocks::StocksService, tools::ToolsService};
+use fin_services::{
+    ml::service::MlService, stocks::StocksService, ticker_service::TickerService,
+    tools::ToolsService,
+};
 use fin_storage::{
-    mongo_manager::MongoStorageManager, mongo_service::MongoStorageService, service::StorageService,
+    mongo::{MongoStorageManager, MongoStorageService},
+    service::StorageService,
 };
 use fin_tracker_api::{
     handlers::{
@@ -23,9 +26,10 @@ use fin_tracker_api::{
         },
         stocks::{
             get_ticker_embeddings, get_ticker_history, get_ticker_history_latest,
-            get_ticker_indicators_latest, get_ticker_sentiments, get_tickers,
-            screen_tickers_handler, search_tickers_handler,
+            get_ticker_indicators_latest, get_ticker_sentiments, screen_tickers_handler,
+            search_tickers_handler,
         },
+        tickers::{get_ticker_charts, get_tickers},
         tools::{analyse_tickers_handler, analyse_tickers_streaming_handler},
     },
     middleware,
@@ -49,7 +53,7 @@ async fn main() -> Result<()> {
         .with_target("agentic_core::providers", Level::INFO)
         // .with_target("fin_tracker_backend_rs::http", Level::DEBUG)
         .with_target("fin_tracker_api", Level::INFO)
-        .with_target("fin_services", Level::INFO)
+        .with_target("fin_services", Level::DEBUG)
         .with_target("fin_services::stocks", Level::INFO)
         .with_target("fin_services::tools", Level::INFO)
         .with_target("fin_storage", Level::INFO)
@@ -79,7 +83,6 @@ async fn main() -> Result<()> {
     //     env::var("FINANCE_DB_PATH").expect("FINANCE_DB_PATH not found in environment variables.");
     // let finance_db_name =
     //     env::var("FINANCE_DB_NAME").expect("FINANCE_DB_NAME not found in environment variables.");
-    let http_client = HttpClient::new().expect("Http Client cannot be configured.");
     let alpha_key =
         env::var("ALPHA_API_KEY").expect("ALPHA_API_KEY not found in environment variables.");
     let tiingo_token =
@@ -93,8 +96,7 @@ async fn main() -> Result<()> {
 
     // stocks
     let embedding_client = Arc::new(OpenAIEmbeddingClient::new(&openai_api_key)?);
-    let provider_service =
-        fin_providers::ProviderService::new(http_client, &alpha_key, &tiingo_token);
+    let provider_service = fin_providers::ProviderService::new(&alpha_key, &tiingo_token)?;
     // let stocks_storage = FileStorageManager::new(finance_db_name, finance_db_path).await?;
 
     let mongo_uri = env::var("MONGO_ATLAS_CONN_STR")
@@ -107,6 +109,7 @@ async fn main() -> Result<()> {
         Arc::new(MongoStorageService::new(storage_manager));
 
     let ml_service = MlService::new(Arc::clone(&storage_service));
+    let ticker_service = TickerService::new(Arc::clone(&storage_service));
 
     let stocks_service = Arc::new(StocksService::new(
         Arc::clone(&storage_service),
@@ -129,6 +132,7 @@ async fn main() -> Result<()> {
 
     // application state
     let app_state = AppState {
+        ticker_service: Arc::new(ticker_service),
         tools_service: Arc::new(tools_service),
         stocks_service: stocks_service.clone(),
         ml_service: Arc::new(ml_service),
@@ -170,6 +174,8 @@ async fn main() -> Result<()> {
         .nest("/admin", admin_routes)
         .route("/tickers", get(get_tickers))
         .route("/tickers/{symbol}/history", get(get_ticker_history))
+        .route("/tickers/{symbol}/charts", get(get_ticker_charts))
+
         .route("/tickers/{symbol}/history_latest", get(get_ticker_history_latest))
         .route("/tickers/{symbol}/indicators_latest", get(get_ticker_indicators_latest))
         .route("/tickers/{symbol}/sentiments", get(get_ticker_sentiments))

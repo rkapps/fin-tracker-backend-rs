@@ -1,6 +1,6 @@
 [workspace]
 resolver = "2"
-members = ["crates/*", "bins/*"]
+members = ["crates/*", "bin/*"]
 
 [workspace.dependencies]
 anyhow = "1.0.100"
@@ -45,7 +45,6 @@ agentic-core = { path = "../libs/agentic-core-rs" }
 
 # Local app crates
 fin-domain = { path = "crates/fin-domain" }
-fin-http = { path = "crates/fin-http"}
 fin-services = { path = "crates/fin-services" }
 fin-storage = { path = "crates/fin-storage"}
 fin-providers = { path = "crates/fin-providers"}

@@ -1,4 +1,3 @@
-use std::sync::Arc;
 use axum::{
     Json,
     extract::{Path, State},
@@ -10,7 +9,9 @@ use fin_domain::{
 use fin_services::stocks::StocksService;
 use reqwest::StatusCode;
 use serde::{Deserialize, Serialize};
+use std::sync::Arc;
 use tracing::debug;
+
 
 #[derive(Deserialize, Debug)]
 pub struct TickerAnalyseParam {
@@ -24,17 +25,6 @@ pub struct TickerAnalyseResponse {
     pub response_id: String,
 }
 
-pub async fn get_tickers(
-    State(stocks_service): State<Arc<StocksService>>,
-) -> Result<Json<Vec<Ticker>>, (StatusCode, String)> {
-    let tickers = stocks_service
-        .storage_service
-        .get_tickers()
-        .await
-        .map_err(|e| (StatusCode::BAD_REQUEST, format!("Get Ticker error: {}", e)))?;
-
-    Ok(Json(tickers))
-}
 
 pub async fn get_ticker_history(
     State(stocks_service): State<Arc<StocksService>>,
@@ -122,22 +112,18 @@ pub async fn get_ticker_embeddings(
     Ok(Json(embeddings))
 }
 
-
 pub async fn screen_tickers_handler(
     State(stocks_service): State<Arc<StocksService>>,
     Json(param): Json<TickerScreenParam>,
 ) -> Result<Json<Vec<String>>, (StatusCode, String)> {
     debug!("screen params: {:?}", param);
 
-    let tickers = stocks_service
-        .screen_tickers(param)
-        .await
-        .map_err(|e| {
-            (
-                StatusCode::BAD_REQUEST,
-                format!("Search ticker error: {}", e),
-            )
-        })?;
+    let tickers = stocks_service.screen_tickers(param).await.map_err(|e| {
+        (
+            StatusCode::BAD_REQUEST,
+            format!("Search ticker error: {}", e),
+        )
+    })?;
     Ok(Json(tickers))
     // Ok(Json(response))
 }

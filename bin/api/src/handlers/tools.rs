@@ -9,7 +9,7 @@ use axum::{
 use fin_services::tools::ToolsService;
 use futures::StreamExt;
 use reqwest::StatusCode;
-use tracing::{debug, info};
+use tracing::debug;
 
 use crate::handlers::stocks::{TickerAnalyseParam, TickerAnalyseResponse};
 
