@@ -5,7 +5,8 @@ use agentic_core::{
         response::CompletionResponse,
     },
     providers::{
-        gemini::MODEL_GEMINI_3_FLASH_PREVIEW,
+        anthropic::MODEL_CLAUDE_SONNET_4_6, gemini::MODEL_GEMINI_3_FLASH_PREVIEW,
+        openai::MODEL_GPT_5_4_MINI,
     },
 };
 use anyhow::Result;
@@ -70,6 +71,7 @@ impl ToolsService {
 
     pub async fn analyse_tickers(
         &self,
+        llm: &str,
         prompt: &str,
         response_id: Option<String>,
     ) -> Result<CompletionResponse> {
@@ -80,7 +82,7 @@ impl ToolsService {
         };
         messages.push(message);
 
-        let agent = self.build_agent(prompt).await?;
+        let agent = self.build_agent(llm, prompt).await?;
         let system_prompt = self.build_system_prompt();
         let response = agent.complete_with_tools(&system_prompt, &messages).await?;
         Ok(response)
@@ -88,6 +90,7 @@ impl ToolsService {
 
     pub async fn analyse_tickers_streaming(
         &self,
+        llm: &str,
         prompt: &str,
         response_id: Option<String>,
     ) -> Result<CompletionStreamResponse> {
@@ -97,9 +100,9 @@ impl ToolsService {
             response_id: response_id,
         };
         messages.push(message);
-        info!("analyse ticker prompt: {:?}", messages);
+        info!("analyse ticker prompt: llm: {} {:?}", llm, messages);
 
-        let agent = self.build_agent(prompt).await?;
+        let agent = self.build_agent(llm, prompt).await?;
         let system_prompt = self.build_system_prompt();
         // let system_prompt = Some("You are a expert at everthing".to_string());
         let stream = agent
@@ -108,7 +111,7 @@ impl ToolsService {
         Ok(Box::pin(stream))
     }
 
-    async fn build_agent(&self, prompt: &str) -> Result<Agent> {
+    async fn build_agent(&self, llm: &str, prompt: &str) -> Result<Agent> {
         // get the input embeddings for the prompt
         let query_embedding = self
             .embedding_client
@@ -129,25 +132,47 @@ impl ToolsService {
         let indicator_tool = TickerIndicatorTool::new(self.stocks_service.storage_service.clone());
         let peers_tool = TickerPeersTool::new(self.stocks_service.storage_service.clone());
 
-        let agent = self
-            .agent_service
-            .builder()
-            // .with_openai(&self.openai_api_key, MODEL_GPT_5_4_MINI)?
-            .with_gemini(&self.gemini_api_key, MODEL_GEMINI_3_FLASH_PREVIEW)?
-            // .with_anthropic(&self.anthropic_api_key, MODEL_CLAUDE_OPUS_4_6)?
-            // .with_anthropic(&self.anthropic_api_key, MODEL_CLAUDE_SONNET_4_6)?
-            .with_preset_thorough()
-            .with_tool(screening_tool)
-            .with_tool(taxonomy_tool)
-            // .with_tool(simiarity_tool)
-            .with_tool(sentiment_tool)
-            .with_tool(snapshot_tool)
-            .with_tool(history_tool)
-            .with_tool(indicator_tool)
-            .with_tool(peers_tool)
-            // .with_temperature(0.1)
-            // .with_max_tokens(3000)
-            .build()?;
+        let builder = self.agent_service.builder();
+        let agent = match llm {
+            "openai" => builder
+                .with_openai(&self.openai_api_key, MODEL_GPT_5_4_MINI)?
+                .with_preset_thorough()
+                .with_tool(screening_tool)
+                .with_tool(taxonomy_tool)
+                // .with_tool(simiarity_tool)
+                .with_tool(sentiment_tool)
+                .with_tool(snapshot_tool)
+                .with_tool(history_tool)
+                .with_tool(indicator_tool)
+                .with_tool(peers_tool)
+                .build()?,
+            "gemini" => builder
+                .with_gemini(&self.gemini_api_key, MODEL_GEMINI_3_FLASH_PREVIEW)?
+                .with_preset_thorough()
+                .with_tool(screening_tool)
+                .with_tool(taxonomy_tool)
+                // .with_tool(simiarity_tool)
+                .with_tool(sentiment_tool)
+                .with_tool(snapshot_tool)
+                .with_tool(history_tool)
+                .with_tool(indicator_tool)
+                .with_tool(peers_tool)
+                .build()?,
+
+            "anthropic" => builder
+                .with_anthropic(&self.anthropic_api_key, MODEL_CLAUDE_SONNET_4_6)?
+                .with_preset_thorough()
+                .with_tool(screening_tool)
+                .with_tool(taxonomy_tool)
+                // .with_tool(simiarity_tool)
+                .with_tool(sentiment_tool)
+                .with_tool(snapshot_tool)
+                .with_tool(history_tool)
+                .with_tool(indicator_tool)
+                .with_tool(peers_tool)
+                .build()?,
+            _ => return Err(anyhow::anyhow!("Llm {} not recognised", llm)),
+        };
 
         Ok(agent)
     }

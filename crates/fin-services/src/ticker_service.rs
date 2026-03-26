@@ -1,6 +1,6 @@
 use anyhow::Result;
 use fin_domain::{
-    dto::{ticker_chart_entity::TickerChartEntity, ticker_entity::TickerEntity},
+    dto::{screen_param::TickerScreenParam, ticker_chart_entity::TickerChartEntity, ticker_entity::TickerEntity},
     ticker::TickerIndicator,
 };
 use fin_storage::service::StorageService;
@@ -31,6 +31,15 @@ impl TickerService {
         Ok(tentities)
     }
 
+    pub async fn get_ticker_groups(&self) -> Result<HashMap<String, Vec<String>>> {
+        let groups = self
+            .storage_service
+            .get_ticker_groups()
+            .await
+            .map_err(|e| anyhow::anyhow!(format!("Get Ticker Groups error: {}", e)))?;
+        Ok(groups)
+    }
+
     pub async fn get_tickers_by_function(&self, function: &str) -> Result<Vec<TickerEntity>> {
         let tentities: Vec<TickerEntity> = match function {
             "etfs" => {
@@ -41,6 +50,8 @@ impl TickerService {
                     "GLD".into(),
                     "GBTC".into(),
                     "ETHE".into(),
+                    "QQQ".into(),
+                    "VIX".into(),
                 ];
                 self.get_tickers_by_symbols(symbols).await.unwrap()
             }
@@ -93,8 +104,10 @@ impl TickerService {
             .await
             .map_err(|e| anyhow::anyhow!(format!("Get Ticker error: {}", e)))?;
 
-        let indicator_map: HashMap<String, TickerIndicator> =
-            indicators.iter().map(|t| (t.id.clone(), t.clone())).collect();
+        let indicator_map: HashMap<String, TickerIndicator> = indicators
+            .iter()
+            .map(|t| (t.id.clone(), t.clone()))
+            .collect();
 
         let history = self
             .storage_service
@@ -102,31 +115,48 @@ impl TickerService {
             .await
             .map_err(|e| anyhow::anyhow!(format!("Get Ticker error: {}", e)))?;
 
-        let charts = history.into_iter().filter_map(|b| {
-            indicator_map.get(&b.id).map(|val_a| {
-                let sma_50 = val_a
-                    .values
-                    .get("sma_50")
-                    .unwrap_or_else(|| &Decimal::ZERO)
-                    .to_f64()
-                    .unwrap_or_default();
-                let sma_200 = val_a
-                    .values
-                    .get("sma_200")
-                    .unwrap_or_else(|| &Decimal::ZERO)
-                    .to_f64()
-                    .unwrap_or_default();
+        let charts = history
+            .into_iter()
+            .filter_map(|b| {
+                indicator_map.get(&b.id).map(|val_a| {
+                    let sma_50 = val_a
+                        .values
+                        .get("sma_50")
+                        .unwrap_or_else(|| &Decimal::ZERO)
+                        .to_f64()
+                        .unwrap_or_default();
+                    let sma_200 = val_a
+                        .values
+                        .get("sma_200")
+                        .unwrap_or_else(|| &Decimal::ZERO)
+                        .to_f64()
+                        .unwrap_or_default();
 
-                TickerChartEntity {
-                    symbol: b.metadata.symbol,
-                    date: b.date,
-                    close: b.close.to_f64().unwrap_or_default(),
-                    sma_50,
-                    sma_200,
-                }
+                    TickerChartEntity {
+                        symbol: b.metadata.symbol,
+                        date: b.date,
+                        close: b.close.to_f64().unwrap_or_default(),
+                        sma_50,
+                        sma_200,
+                    }
+                })
             })
-        }).collect();
+            .collect();
 
         Ok(charts)
+    }
+
+    pub async fn search_tickers(&self, param: TickerScreenParam) -> Result<Vec<TickerEntity>> {
+        let tickers = self
+            .storage_service
+            .search_tickers(param)
+            .await
+            .map_err(|e| anyhow::anyhow!(format!("Get Ticker error: {}", e)))?;
+
+        let tentities = tickers
+            .iter()
+            .map(|t| TickerEntity::from(t.clone()))
+            .collect();
+        Ok(tentities)
     }
 }

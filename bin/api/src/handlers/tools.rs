@@ -21,7 +21,7 @@ pub async fn analyse_tickers_handler(
     let response_id = param.prev_response_id;
 
     let response = tools_service
-        .analyse_tickers(&param.prompt, response_id)
+        .analyse_tickers(&param.llm, &param.prompt, response_id)
         .await
         .map_err(|e| {
             (
@@ -59,7 +59,7 @@ pub async fn analyse_tickers_streaming_handler(
     let response_id = param.prev_response_id;
 
     let stream = match tools_service
-        .analyse_tickers_streaming(&param.prompt, response_id)
+        .analyse_tickers_streaming(&param.llm, &param.prompt, response_id)
         .await
     {
         Ok(stream) => stream,

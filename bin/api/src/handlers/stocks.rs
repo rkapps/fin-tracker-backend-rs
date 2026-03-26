@@ -15,6 +15,7 @@ use tracing::debug;
 
 #[derive(Deserialize, Debug)]
 pub struct TickerAnalyseParam {
+    pub llm: String,
     pub prompt: String,
     pub prev_response_id: Option<String>,
 }
@@ -127,22 +128,22 @@ pub async fn screen_tickers_handler(
     Ok(Json(tickers))
     // Ok(Json(response))
 }
-pub async fn search_tickers_handler(
-    State(stocks_service): State<Arc<StocksService>>,
-    Json(param): Json<TickerScreenParam>,
-) -> Result<Json<Vec<Ticker>>, (StatusCode, String)> {
-    debug!("search params: {:?}", param);
+// pub async fn search_tickers_handler(
+//     State(stocks_service): State<Arc<StocksService>>,
+//     Json(param): Json<TickerScreenParam>,
+// ) -> Result<Json<Vec<Ticker>>, (StatusCode, String)> {
+//     debug!("search params: {:?}", param);
 
-    let tickers = stocks_service
-        .storage_service
-        .search_tickers(param)
-        .await
-        .map_err(|e| {
-            (
-                StatusCode::BAD_REQUEST,
-                format!("Search ticker error: {}", e),
-            )
-        })?;
-    Ok(Json(tickers))
-    // Ok(Json(response))
-}
+//     let tickers = stocks_service
+//         .storage_service
+//         .search_tickers(param)
+//         .await
+//         .map_err(|e| {
+//             (
+//                 StatusCode::BAD_REQUEST,
+//                 format!("Search ticker error: {}", e),
+//             )
+//         })?;
+//     Ok(Json(tickers))
+//     // Ok(Json(response))
+// }

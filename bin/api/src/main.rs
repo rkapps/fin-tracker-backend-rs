@@ -27,9 +27,8 @@ use fin_tracker_api::{
         stocks::{
             get_ticker_embeddings, get_ticker_history, get_ticker_history_latest,
             get_ticker_indicators_latest, get_ticker_sentiments, screen_tickers_handler,
-            search_tickers_handler,
         },
-        tickers::{get_ticker_charts, get_tickers},
+        tickers::{get_ticker_charts_handler, get_ticker_groups_handler, get_tickers_handler, search_tickers_handler},
         tools::{analyse_tickers_handler, analyse_tickers_streaming_handler},
     },
     middleware,
@@ -172,9 +171,10 @@ async fn main() -> Result<()> {
     let app = Router::new()
         .nest("/cron", cron_routes)
         .nest("/admin", admin_routes)
-        .route("/tickers", get(get_tickers))
+        .route("/tickers", get(get_tickers_handler))
+        .route("/tickers/groups", get(get_ticker_groups_handler))
         .route("/tickers/{symbol}/history", get(get_ticker_history))
-        .route("/tickers/{symbol}/charts", get(get_ticker_charts))
+        .route("/tickers/{symbol}/charts", get(get_ticker_charts_handler))
 
         .route("/tickers/{symbol}/history_latest", get(get_ticker_history_latest))
         .route("/tickers/{symbol}/indicators_latest", get(get_ticker_indicators_latest))
