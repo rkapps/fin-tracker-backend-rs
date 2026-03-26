@@ -8,10 +8,12 @@ use fin_domain::{
     ticker::Ticker,
     utils::data_utils::{market_cap_label_range, market_cap_range},
 };
+use rust_decimal::{Decimal, prelude::ToPrimitive};
 use storage_core::core::{
     Repository as _,
     search::{SearchCriteria, SearchOp, SearchValue},
 };
+use tracing::debug;
 
 #[async_trait]
 impl TickerStorageService for MongoStorageService {
@@ -160,9 +162,10 @@ impl TickerStorageService for MongoStorageService {
     }
 
     async fn search_tickers(&self, param: TickerScreenParam) -> Result<Vec<Ticker>> {
+
         let mut criteria = SearchCriteria::new();
         if let Some(industry) = param.industry {
-            criteria.add_condition("industry", SearchOp::Eq, SearchValue::String(industry));
+            criteria.add_condition("industry", SearchOp::Contains, SearchValue::String(industry));
         }
 
         let new_asset_type = param
@@ -182,7 +185,15 @@ impl TickerStorageService for MongoStorageService {
         if let Some(signals) = param.signals {
             criteria.add_condition("signals", SearchOp::All, SearchValue::Array(signals));
         }
+
+        if let Some(cyield) = param.r#yield && cyield > 0.0{
+            let dec_yield: Decimal = Decimal::from_f32_retain(cyield).unwrap();
+            let dec_yield = dec_yield / Decimal::from(100);
+            criteria.add_condition("yield", SearchOp::Gte, SearchValue::Decimal(dec_yield));
+        }
+
         criteria.add_sort("market_cap", false);
+        debug!("search_tickers criteria: {:#?}", criteria);
 
         self.get_ticker_by_criteria(&criteria).await
     }

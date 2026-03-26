@@ -8,4 +8,5 @@ pub struct TickerScreenParam {
     pub market_cap_range: Option<String>, // "mega", "large", "mid", "small"
     pub asset_type: Option<String>, // "stock", "etf"
     pub limit: Option<usize>,
+    pub r#yield: Option<f32>
 }
