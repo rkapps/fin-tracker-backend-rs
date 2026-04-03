@@ -3,7 +3,6 @@ use fin_domain::ticker::{FeatureSnapshot, IndicatorSnapshot, TickerIndicator};
 use rust_decimal::prelude::ToPrimitive;
 use tracing::debug;
 
-
 /// Single-ticker version — used by train_for_key for both sector and ticker models.
 /// No cross-ticker contamination possible since data is already isolated.
 pub fn build_labels_for_ticker(
@@ -45,11 +44,11 @@ pub fn build_labels_for_ticker(
         raw_labels.push((return_pct, fsnapshot.values()));
         debug!(
             "  Indicators {} price: {:.2} --RSI: {:?}:{:?}:{:?} - divergence: {:?} --SMA: {:?}:{:?}:{:?} - : {:?} {:?} {:?}",
-            &indicators[index].date, 
+            &indicators[index].date,
             current_price,
-            isnapshot.rsi_10, 
-            isnapshot.rsi_14, 
-            isnapshot.rsi_26, 
+            isnapshot.rsi_10,
+            isnapshot.rsi_14,
+            isnapshot.rsi_26,
             fsnapshot.values().get(1).unwrap(),
             isnapshot.sma_20,
             isnapshot.sma_100,
@@ -60,7 +59,7 @@ pub fn build_labels_for_ticker(
         );
         // info!("  Features: {:?}", fsnapshot.values())
     }
- 
+
     // Clip outliers — splits, delistings, bad EOD data
     let clipped_labels: Vec<(f64, Vec<f64>)> = raw_labels
         .into_iter()

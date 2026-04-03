@@ -1,11 +1,15 @@
 use anyhow::Result;
 use fin_domain::{
-    dto::{screen_param::TickerScreenParam, ticker_chart_entity::TickerChartEntity, ticker_entity::TickerEntity},
+    dto::{
+        screen_param::TickerScreenParam, ticker_chart_entity::TickerChartEntity,
+        ticker_entity::TickerEntity,
+    },
     ticker::TickerIndicator,
 };
 use fin_storage::service::StorageService;
 use rust_decimal::{Decimal, prelude::ToPrimitive};
 use std::{collections::HashMap, sync::Arc};
+use tracing::debug;
 
 #[derive(Debug)]
 pub struct TickerService {
@@ -153,6 +157,7 @@ impl TickerService {
             .await
             .map_err(|e| anyhow::anyhow!(format!("Get Ticker error: {}", e)))?;
 
+        debug!("Tickers: {}", tickers.len());
         let tentities = tickers
             .iter()
             .map(|t| TickerEntity::from(t.clone()))

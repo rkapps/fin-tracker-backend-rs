@@ -5,7 +5,7 @@ use fin_domain::{
     utils::data_utils::get_overview_embeddings,
 };
 use storage_core::vector::search;
-use tracing::debug;
+use tracing::{debug, info};
 
 impl StocksService {
     pub async fn screen_tickers(
@@ -16,6 +16,7 @@ impl StocksService {
         // asset_type: Option<String>,
         // signals: Option<Vec<String>>
     ) -> Result<Vec<String>> {
+        info!("reached here");
         let tickers = self
             .storage_service
             .search_tickers(

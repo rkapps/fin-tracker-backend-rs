@@ -3,11 +3,9 @@ use std::str::FromStr;
 use chrono::{DateTime, NaiveDate, NaiveDateTime, Utc};
 use rust_decimal::Decimal;
 
-
 pub fn string_to_float(s: &str) -> f64 {
     s.parse::<f64>().unwrap_or_default()
 }
-
 
 pub fn string_to_decimal(s: &str) -> Decimal {
     Decimal::from_str(s).unwrap_or(Decimal::ZERO)

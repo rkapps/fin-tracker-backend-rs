@@ -1,7 +1,7 @@
 pub mod alpha;
-pub mod tiingo;
 pub mod http;
+pub mod tiingo;
 
 mod service;
-pub use service::ProviderService;
 pub use http::HttpClient;
+pub use service::ProviderService;

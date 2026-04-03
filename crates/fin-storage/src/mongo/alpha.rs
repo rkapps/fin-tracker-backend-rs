@@ -1,6 +1,9 @@
 use async_trait::async_trait;
 use fin_domain::ticker::TickerAlpha;
-use storage_core::core::{Repository as _, search::{SearchCriteria, SearchOp, SearchValue}};
+use storage_core::core::{
+    Repository as _,
+    search::{SearchCriteria, SearchOp, SearchValue},
+};
 use tracing::{info, warn};
 
 use crate::{mongo::MongoStorageService, service::TickerAlphaStorageService};
@@ -8,7 +11,6 @@ use anyhow::Result;
 
 #[async_trait]
 impl TickerAlphaStorageService for MongoStorageService {
-
     async fn get_ticker_alphas_by_key(&self, key: &str) -> Result<Vec<TickerAlpha>> {
         let Ok(repo) = self.manager.ticker_alphas().await else {
             return Err(anyhow::anyhow!("Error saving TickerAlpha",));
@@ -45,5 +47,4 @@ impl TickerAlphaStorageService for MongoStorageService {
         info!("Saved {} alphas, {} failed", saved, failed);
         Ok(())
     }
-
 }

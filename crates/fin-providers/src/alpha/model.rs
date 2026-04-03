@@ -67,7 +67,6 @@ pub struct AlphaTicker {
     pub pr_52_wk_low: String,
 }
 
-
 #[derive(Debug, Deserialize)]
 pub struct AlphaTickerSentiment {
     pub feed: Vec<AlphaTickerSentimentFeed>,

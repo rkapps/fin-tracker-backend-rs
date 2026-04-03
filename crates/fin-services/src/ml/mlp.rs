@@ -217,19 +217,19 @@ fn normalize_single(features: &[f64], means: &[f64], stds: &[f64]) -> Vec<f32> {
 }
 
 /// label f64 → class index u32
-fn label_to_class(label: f64) -> u32 {
-    if label > 0.0 {
-        2
-    }
-    // Up
-    else if label < 0.0 {
-        0
-    }
-    // Down
-    else {
-        1
-    } // Neutral
-}
+// fn label_to_class(label: f64) -> u32 {
+//     if label > 0.0 {
+//         2
+//     }
+//     // Up
+//     else if label < 0.0 {
+//         0
+//     }
+//     // Down
+//     else {
+//         1
+//     } // Neutral
+// }
 
 pub fn to_tensors(
     data: &[(f64, Vec<f64>)],

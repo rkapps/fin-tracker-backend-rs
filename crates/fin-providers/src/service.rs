@@ -1,8 +1,10 @@
 use crate::{
-    HttpClient, alpha::{
+    HttpClient,
+    alpha::{
         self,
         model::{AlphaTicker, AlphaTickerSentimentFeed},
-    }, tiingo::{self, model::TiingoTickerHistory}
+    },
+    tiingo::{self, model::TiingoTickerHistory},
 };
 use anyhow::Result;
 use chrono::{DateTime, Utc};
@@ -16,7 +18,6 @@ pub struct ProviderService {
 
 impl ProviderService {
     pub fn new(alpha_key: &str, tiingo_token: &str) -> Result<Self> {
-
         let http_client = HttpClient::new().expect("Http Client cannot be configured.");
 
         Ok(ProviderService {

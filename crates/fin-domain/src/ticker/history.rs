@@ -102,7 +102,7 @@ impl TickerHistory {
             adj_low: tiingo.adj_low,
             adj_open: tiingo.adj_open,
             adj_volume: tiingo.adj_volume,
-            split_factor: tiingo.split_factor
+            split_factor: tiingo.split_factor,
         })
     }
 

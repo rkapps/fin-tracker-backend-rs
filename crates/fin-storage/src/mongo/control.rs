@@ -32,5 +32,5 @@ impl TickerControlStorageService for MongoStorageService {
                 )));
             }
         }
-    }    
+    }
 }

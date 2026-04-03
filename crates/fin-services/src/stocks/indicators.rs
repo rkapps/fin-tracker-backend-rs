@@ -32,7 +32,7 @@ impl IndicatorCalculator {
         bb_period: usize,
         bb_std_dev: f64,
         atr_period: usize,
-        volume_ratio_period: usize
+        volume_ratio_period: usize,
     ) -> Result<Vec<TickerIndicator>> {
         if history.is_empty() {
             return Ok(Vec::new());
@@ -40,7 +40,6 @@ impl IndicatorCalculator {
 
         let mut sorted_history = history.to_vec();
         sorted_history.sort_by_key(|h| h.date);
-
 
         let mut sma_calcs: Vec<(usize, SimpleMovingAverage)> = sma_periods
             .iter()
@@ -191,9 +190,9 @@ impl IndicatorCalculator {
                 values.insert(format!("{}", ATR), dec);
             }
 
-            //Volume ratio 
+            //Volume ratio
             if idx > volume_ratio_period {
-                let mut total_volume =Decimal::ZERO;
+                let mut total_volume = Decimal::ZERO;
                 if h.volume > Decimal::ZERO {
                     for index in (idx - 20)..idx {
                         total_volume = total_volume + sorted_history[index].volume;
@@ -209,7 +208,6 @@ impl IndicatorCalculator {
             }
 
             if values.len() > 0 {
-                
                 let indicator = TickerIndicator::new(
                     h.date,
                     &h.metadata.symbol,

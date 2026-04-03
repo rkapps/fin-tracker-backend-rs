@@ -7,7 +7,6 @@ use fin_storage::service::StorageService;
 use serde_json::{Value, json};
 use tracing::{debug, info};
 
-
 #[derive(Debug)]
 pub struct TickerTaxonomyTool {
     storage_service: Arc<dyn StorageService>,
@@ -40,7 +39,6 @@ impl Tool for TickerTaxonomyTool {
     }
 
     async fn execute(&self, _value: serde_json::Value) -> Result<Value> {
-
         info!("Ticker taxonomy");
         let groups = self.storage_service.get_ticker_groups().await?;
         debug!("Ticker groups: {:?}", groups);

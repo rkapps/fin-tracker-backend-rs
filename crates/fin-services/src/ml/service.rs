@@ -9,7 +9,10 @@ use linfa_ensemble::EnsembleLearner;
 use linfa_trees::DecisionTree;
 use rayon::iter::{IntoParallelRefIterator, ParallelIterator};
 use std::{
-    collections::HashMap, panic, sync::{Arc, Mutex}, vec
+    collections::HashMap,
+    panic,
+    sync::{Arc, Mutex},
+    vec,
 };
 use tokio::sync::RwLock;
 use tracing::{debug, info, warn};
@@ -50,7 +53,6 @@ impl MlService {
     // ── Public entry points ───────────────────────────────────────────────
 
     pub async fn build_and_train_all(&self) -> Result<()> {
-
         // let result = self.build_and_train_by_sector(from_date).await?;
         // let _ = self.storage_service.save_ticker_alphas(&result.0).await;
         // for value in result.1 {

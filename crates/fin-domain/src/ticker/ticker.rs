@@ -115,17 +115,16 @@ pub struct Ticker {
     pub industry_embedding: Option<Vec<f32>>,
 
     #[serde(default)]
-    pub signals: Vec<String>, 
+    pub signals: Vec<String>,
 
     #[serde(default)]
-    pub lr_returns: HashMap<String, f64>,  // LinearRegression returns
-    
-    #[serde(default)]
-    pub rf_returns: HashMap<String, f64>,  // RandomForst returns
+    pub lr_returns: HashMap<String, f64>, // LinearRegression returns
 
     #[serde(default)]
-    pub mlp_returns: HashMap<String, f64>  // MLP returns
+    pub rf_returns: HashMap<String, f64>, // RandomForst returns
 
+    #[serde(default)]
+    pub mlp_returns: HashMap<String, f64>, // MLP returns
 }
 
 impl RepoModel<String> for Ticker {
@@ -233,6 +232,8 @@ impl Ticker {
         Ok(())
     }
 
+    
+
     fn calculate_price_diff(&mut self) -> Result<()> {
         if self.pr_prev == Decimal::ZERO {
             self.pr_diff_amt = self.pr_last;
@@ -250,12 +251,11 @@ impl Ticker {
         Ok(())
     }
 
-
     fn set_analyst_consensus(&mut self) -> String {
         let strong_buy = self.analyst_rating_strong_buy.unwrap_or(0);
         let buy = self.analyst_rating_buy.unwrap_or(0);
         let hold = self.analyst_rating_hold.unwrap_or(0);
-        let sell =self.analyst_rating_sell.unwrap_or(0);
+        let sell = self.analyst_rating_sell.unwrap_or(0);
         let strong_sell = self.analyst_rating_strong_sell.unwrap_or(0);
         let total = strong_buy + buy + hold + sell + strong_sell;
 
@@ -270,6 +270,4 @@ impl Ticker {
             _ => "NA".to_string(),
         }
     }
-
-
 }

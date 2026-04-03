@@ -69,7 +69,6 @@ pub fn train_models_for_randomforest(
     means: &[f64],
     stds: &[f64],
 ) -> Result<RfResult> {
-
     // Cap the RF samples to 20K, find the lastest 20K
     let max_rf_samples = 20_000;
     let train_data = if train_data.len() > max_rf_samples {

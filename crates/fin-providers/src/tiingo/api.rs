@@ -1,11 +1,10 @@
-use crate::{HttpClient, tiingo::model::TiingoTickerHistory};
+use crate::{HttpClient, tiingo::model::{TiingoTickerHistory, TiingoTickerPriceData}};
 use anyhow::Result;
 use chrono::{DateTime, Utc};
 use tracing::debug;
 
 const TIINGO_EOD_URL: &str = "https://api.tiingo.com/tiingo/daily/";
 const TIINGO_CRYPTO_URL: &str = "https://api.tiingo.com/tiingo/crypto/prices";
-
 
 pub async fn get_stock_history(
     http_client: &HttpClient,
@@ -15,7 +14,10 @@ pub async fn get_stock_history(
 ) -> Result<Vec<TiingoTickerHistory>> {
     let url = format!(
         "{}{}/prices?token={}&startDate={}",
-        TIINGO_EOD_URL, symbol, api_token, convert_datetime_utc_to_ymd(start_date)
+        TIINGO_EOD_URL,
+        symbol,
+        api_token,
+        convert_datetime_utc_to_ymd(start_date)
     );
     debug!("Tiingo daily url: {}", url);
     let headers = reqwest::header::HeaderMap::new();
@@ -33,17 +35,21 @@ pub async fn get_crypto_history(
     api_token: &str,
 ) -> Result<Vec<TiingoTickerHistory>> {
     let url = format!(
-        "{}?tickers={}&frequency={}&token={}", TIINGO_CRYPTO_URL, symbol, frequency, api_token);
+        "{}?tickers={}&frequency={}&token={}",
+        TIINGO_CRYPTO_URL, symbol, frequency, api_token
+    );
     debug!("Tiingo crypto url: {}", url);
     let headers = reqwest::header::HeaderMap::new();
-    let hist = http_client
-        .get_request::<Vec<TiingoTickerHistory>>(url, Some(headers))
+    let data = http_client
+        .get_request::<Vec<TiingoTickerPriceData>>(url, Some(headers))
         .await?;
-
-    Ok(hist)
+    if data.len() == 0 {
+        return Err(anyhow::anyhow!("No ticker history available"))
+    }
+    let price_data = data.get(0).unwrap();
+    // let his = price_data.clone().price_data;
+    Ok(price_data.clone().price_data)
 }
-
-
 
 fn convert_datetime_utc_to_ymd(now: &DateTime<Utc>) -> String {
     let today_utc = now.naive_utc().date();

@@ -14,8 +14,8 @@ impl StocksService {
         let mut count = 0;
         let length = ticker_seeds.len();
         for (i, seed) in ticker_seeds.iter().enumerate() {
-            if i%20 == 0 {
-                info!("Loading Ticker: {} {}/{}", seed.symbol, i+1, length);
+            if i % 20 == 0 {
+                info!("Loading Ticker: {} {}/{}", seed.symbol, i + 1, length);
             }
 
             let (mut tc, mut ticker) = {
@@ -23,13 +23,14 @@ impl StocksService {
                     .storage_service
                     .get_ticker_control(&seed.symbol.clone())
                     .await
-                    .unwrap_or_else(|_|TickerControl::new(seed.clone()));
+                    .unwrap_or_else(|_| TickerControl::new(seed.clone()));
 
                 let ticker = Ticker::new(seed.clone());
                 (tc, ticker)
             };
 
-            if let Err(e) = self.update_and_save_single_ticker(&mut tc, &mut ticker)
+            if let Err(e) = self
+                .update_and_save_single_ticker(&mut tc, &mut ticker)
                 .await
             {
                 error!("Ticker {}: {}", seed.symbol, e);
@@ -44,5 +45,4 @@ impl StocksService {
         info!("Loaded {} tickers.", count);
         Ok(())
     }
-
 }

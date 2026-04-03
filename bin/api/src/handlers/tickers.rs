@@ -3,11 +3,9 @@ use axum::{
     Json,
     extract::{Path, Query, State},
 };
-use fin_domain::{
-    dto::{
-        screen_param::TickerScreenParam, ticker_chart_entity::TickerChartEntity,
-        ticker_entity::TickerEntity,
-    },
+use fin_domain::dto::{
+    screen_param::TickerScreenParam, ticker_chart_entity::TickerChartEntity,
+    ticker_entity::TickerEntity,
 };
 use fin_services::ticker_service::TickerService;
 use reqwest::StatusCode;
@@ -42,13 +40,12 @@ pub async fn get_tickers_handler(
                 StatusCode::BAD_REQUEST,
                 "Cannot use 'symbols' and 'function' together".to_string(),
             ));
-        }
-        // _ => {
-        //     return Err((
-        //         StatusCode::BAD_REQUEST,
-        //         "Must provide 'symbols' or 'function'".to_string(),
-        //     ));
-        // }
+        } // _ => {
+          //     return Err((
+          //         StatusCode::BAD_REQUEST,
+          //         "Must provide 'symbols' or 'function'".to_string(),
+          //     ));
+          // }
     };
 
     Ok(Json(tickers))
@@ -83,7 +80,7 @@ pub async fn get_ticker_groups_handler(
 
 pub async fn search_tickers_handler(
     State(ticker_service): State<Arc<TickerService>>,
-    Query(param): Query<TickerScreenParam>,
+    Json(param): Json<TickerScreenParam>,
 ) -> Result<Json<Vec<TickerEntity>>, (StatusCode, String)> {
     let tickers = ticker_service
         .search_tickers(param)

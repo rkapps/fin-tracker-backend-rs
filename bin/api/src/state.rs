@@ -1,7 +1,9 @@
-use std::sync::Arc;
 use axum::extract::FromRef;
-use fin_services::{ml::service::MlService, stocks::StocksService, ticker_service::TickerService, tools::ToolsService};
-
+use fin_services::{
+    ml::service::MlService, stocks::StocksService, ticker_service::TickerService,
+    tools::ToolsService,
+};
+use std::sync::Arc;
 
 #[derive(Clone)]
 pub struct AppState {
@@ -11,7 +13,6 @@ pub struct AppState {
     pub ml_service: Arc<MlService>,
 }
 
-
 #[derive(Clone)]
 pub struct OpenAIApiKey(pub String);
 
@@ -20,7 +21,6 @@ pub struct GeminiApiKey(pub String);
 
 #[derive(Clone)]
 pub struct AnthropicApiKey(pub String);
-
 
 impl FromRef<AppState> for Arc<TickerService> {
     fn from_ref(state: &AppState) -> Self {

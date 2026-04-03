@@ -21,7 +21,7 @@ pub struct IndicatorSnapshot {
     pub stochastic_k_14: Option<Decimal>,
     pub stochastic_d: Option<Decimal>,
     pub atr: Option<Decimal>,
-    pub volume_ratio: Option<Decimal>
+    pub volume_ratio: Option<Decimal>,
 }
 
 impl From<&TickerIndicator> for IndicatorSnapshot {
@@ -45,7 +45,7 @@ impl From<&TickerIndicator> for IndicatorSnapshot {
             rsi_14: values.get("rsi_14").copied(),
             rsi_26: values.get("rsi_26").copied(),
             atr: values.get("atr").copied(),
-            volume_ratio: values.get("volume_ratio").copied()
+            volume_ratio: values.get("volume_ratio").copied(),
         }
     }
 }

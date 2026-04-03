@@ -44,8 +44,8 @@ impl StocksService {
         let total = tickers.len();
 
         // Limit to 5 concurrent requests (matches rate limit)
-        let semaphore = Arc::new(Semaphore::new(5));
-        let delay = Duration::from_millis(200); // Slightly faster since we have 5 concurrent
+        let semaphore = Arc::new(Semaphore::new(3));
+        let delay = Duration::from_millis(1000); // Slightly faster since we have 5 concurrent
 
         info!("Processing {} tickers with 5 concurrent workers", total);
 
@@ -190,7 +190,6 @@ impl StocksService {
 
             // save the predictions
             self.storage_service.save_ticker(ticker).await?;
-            
         }
 
         Ok(())

@@ -28,7 +28,10 @@ use fin_tracker_api::{
             get_ticker_embeddings, get_ticker_history, get_ticker_history_latest,
             get_ticker_indicators_latest, get_ticker_sentiments, screen_tickers_handler,
         },
-        tickers::{get_ticker_charts_handler, get_ticker_groups_handler, get_tickers_handler, search_tickers_handler},
+        tickers::{
+            get_ticker_charts_handler, get_ticker_groups_handler, get_tickers_handler,
+            search_tickers_handler,
+        },
         tools::{analyse_tickers_handler, analyse_tickers_streaming_handler},
     },
     middleware,
@@ -38,7 +41,7 @@ use fin_tracker_api::{
 use reqwest::Method;
 use tokio::net::TcpListener;
 use tower_http::cors::CorsLayer;
-use tracing::{Level, debug};
+use tracing::Level;
 use tracing_subscriber::{filter, fmt, prelude::*};
 
 #[tokio::main]
@@ -52,7 +55,7 @@ async fn main() -> Result<()> {
         .with_target("agentic_core::providers", Level::INFO)
         // .with_target("fin_tracker_backend_rs::http", Level::DEBUG)
         .with_target("fin_tracker_api", Level::INFO)
-        .with_target("fin_services", Level::DEBUG)
+        .with_target("fin_services", Level::INFO)
         .with_target("fin_services::stocks", Level::INFO)
         .with_target("fin_services::tools", Level::INFO)
         .with_target("fin_storage", Level::INFO)
@@ -100,7 +103,7 @@ async fn main() -> Result<()> {
 
     let mongo_uri = env::var("MONGO_ATLAS_CONN_STR")
         .expect("MONGO_ATLAS_CONN_STR envrionment variable not set");
-    debug!("MongoAtlas Uri: {}", mongo_uri);
+    println!("MongoAtlas Uri: {}", mongo_uri);
     let storage_manager = MongoStorageManager::new(&mongo_uri, "test").await?;
 
     // 2. Wrap in storage service (business logic layer)

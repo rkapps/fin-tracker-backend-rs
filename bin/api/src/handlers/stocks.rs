@@ -4,14 +4,13 @@ use axum::{
 };
 use fin_domain::{
     dto::screen_param::TickerScreenParam,
-    ticker::{Ticker, TickerEmbedding, TickerHistory, TickerIndicator, TickerSentiment},
+    ticker::{TickerEmbedding, TickerHistory, TickerIndicator, TickerSentiment},
 };
 use fin_services::stocks::StocksService;
 use reqwest::StatusCode;
 use serde::{Deserialize, Serialize};
 use std::sync::Arc;
 use tracing::debug;
-
 
 #[derive(Deserialize, Debug)]
 pub struct TickerAnalyseParam {
@@ -25,7 +24,6 @@ pub struct TickerAnalyseResponse {
     pub content: String,
     pub response_id: String,
 }
-
 
 pub async fn get_ticker_history(
     State(stocks_service): State<Arc<StocksService>>,

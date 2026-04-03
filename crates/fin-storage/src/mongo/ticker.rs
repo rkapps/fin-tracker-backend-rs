@@ -8,7 +8,7 @@ use fin_domain::{
     ticker::Ticker,
     utils::data_utils::{market_cap_label_range, market_cap_range},
 };
-use rust_decimal::{Decimal, prelude::ToPrimitive};
+use rust_decimal::Decimal;
 use storage_core::core::{
     Repository as _,
     search::{SearchCriteria, SearchOp, SearchValue},
@@ -29,14 +29,11 @@ impl TickerStorageService for MongoStorageService {
         }
     }
 
-
-
     async fn get_tickers(&self) -> Result<Vec<Ticker>> {
         let mut criteria = SearchCriteria::new();
         criteria.add_sort("symbol", true);
         self.get_ticker_by_criteria(&criteria).await
     }
-
 
     async fn get_tickers_by_symbols(&self, symbols: Vec<String>) -> Result<Vec<Ticker>> {
         let mut criteria = SearchCriteria::new();
@@ -77,7 +74,6 @@ impl TickerStorageService for MongoStorageService {
     }
 
     async fn get_tickers_by_movers(&self, function: &str) -> Result<Vec<Ticker>> {
-
         let mut criteria = SearchCriteria::new();
         match function {
             "top_gainers" => {
@@ -97,14 +93,10 @@ impl TickerStorageService for MongoStorageService {
                 criteria.add_sort("performance_search.Ytd.perc", true);
                 criteria.add_limit(20);
             }
-            _ => {
-
-            }
+            _ => {}
         }
         self.get_ticker_by_criteria(&criteria).await
-
     }
-
 
     async fn get_ticker_peers_by_industry(&self, symbol: &str) -> Result<Vec<Ticker>> {
         let ticker = self.get_ticker_by_symbol(symbol).await?;
@@ -162,10 +154,13 @@ impl TickerStorageService for MongoStorageService {
     }
 
     async fn search_tickers(&self, param: TickerScreenParam) -> Result<Vec<Ticker>> {
-
         let mut criteria = SearchCriteria::new();
         if let Some(industry) = param.industry {
-            criteria.add_condition("industry", SearchOp::Contains, SearchValue::String(industry));
+            criteria.add_condition(
+                "industry",
+                SearchOp::Contains,
+                SearchValue::String(industry),
+            );
         }
 
         let new_asset_type = param
@@ -186,7 +181,9 @@ impl TickerStorageService for MongoStorageService {
             criteria.add_condition("signals", SearchOp::All, SearchValue::Array(signals));
         }
 
-        if let Some(cyield) = param.r#yield && cyield > 0.0{
+        if let Some(cyield) = param.r#yield
+            && cyield > 0.0
+        {
             let dec_yield: Decimal = Decimal::from_f32_retain(cyield).unwrap();
             let dec_yield = dec_yield / Decimal::from(100);
             criteria.add_condition("yield", SearchOp::Gte, SearchValue::Decimal(dec_yield));

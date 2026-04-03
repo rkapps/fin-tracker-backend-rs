@@ -16,7 +16,7 @@ pub struct RfResult {
 }
 
 pub struct MlpResult {
-    pub model_weights: Vec<u8>,  // serialized safetensors bytes
+    pub model_weights: Vec<u8>, // serialized safetensors bytes
     pub metrics: ModelMetrics,
     pub mean_up: f64,
     pub mean_neutral: f64,

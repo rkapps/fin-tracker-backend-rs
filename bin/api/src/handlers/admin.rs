@@ -6,13 +6,10 @@ use fin_services::stocks::StocksService;
 use reqwest::StatusCode;
 use tracing::{error, info};
 
-
-
 pub async fn load_tickers_handler(
     State(stocks_service): State<Arc<StocksService>>,
     Json(ticker_seeds): Json<Vec<TickerSeed>>,
 ) -> StatusCode {
-
     // 1. Clone the Arc so the background task owns a handle to the service
     let service_clone = stocks_service.clone();
 
@@ -26,4 +23,3 @@ pub async fn load_tickers_handler(
 
     StatusCode::ACCEPTED
 }
-

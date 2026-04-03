@@ -10,4 +10,3 @@ impl IndicatorWindow {
         Self { curr, prev }
     }
 }
-

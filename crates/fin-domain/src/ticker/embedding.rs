@@ -1,8 +1,8 @@
+use crate::ticker::deserialize_flexible_datetime;
+use crate::ticker::serialize_as_bson_datetime;
 use chrono::{DateTime, Utc};
 use serde::{Deserialize, Serialize};
 use storage_core::core::{RepoModel, VectorEmbedding};
-use crate::ticker::deserialize_flexible_datetime;
-use crate::ticker::serialize_as_bson_datetime;
 
 use crate::ticker::TICKER_EMBEDDING_COLLECTION_NAME;
 
@@ -14,14 +14,12 @@ pub struct TickerEmbedding {
     #[serde(
         deserialize_with = "deserialize_flexible_datetime",
         serialize_with = "serialize_as_bson_datetime"
-    )]    
+    )]
     pub date: DateTime<Utc>,
     pub sentiment_id: String,
     pub embedding_text: String,
-    pub vector: Vec<f32>
-   
+    pub vector: Vec<f32>,
 }
-
 
 impl RepoModel<String> for TickerEmbedding {
     fn id(&self) -> String {
@@ -34,16 +32,21 @@ impl RepoModel<String> for TickerEmbedding {
 }
 
 impl TickerEmbedding {
-
-    pub fn new(symbol: &str, date: DateTime<Utc>, sentiment_id: &str, embedding_text: &str, vector: Vec<f32>) -> TickerEmbedding{
-        TickerEmbedding{
+    pub fn new(
+        symbol: &str,
+        date: DateTime<Utc>,
+        sentiment_id: &str,
+        embedding_text: &str,
+        vector: Vec<f32>,
+    ) -> TickerEmbedding {
+        TickerEmbedding {
             date,
             embedding_text: embedding_text.to_string(),
             id: TickerEmbedding::embedding_id(symbol, sentiment_id),
             sentiment_id: sentiment_id.to_string(),
             symbol: symbol.to_string(),
-            vector
-       }
+            vector,
+        }
     }
 
     fn embedding_id(symbol: &str, sentiment_id: &str) -> String {
@@ -57,4 +60,3 @@ impl VectorEmbedding for TickerEmbedding {
         &self.vector
     }
 }
-

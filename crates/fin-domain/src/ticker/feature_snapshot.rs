@@ -1,4 +1,7 @@
-use crate::{ticker::IndicatorSnapshot, utils::{dec_utils::decimal_to_float, float_utils::float_round_to_6_decimals}};
+use crate::{
+    ticker::IndicatorSnapshot,
+    utils::{dec_utils::decimal_to_float, float_utils::float_round_to_6_decimals},
+};
 use anyhow::Result;
 use rust_decimal::{Decimal, prelude::ToPrimitive};
 
@@ -10,7 +13,7 @@ pub struct FeatureSnapshot {
 
     // RSI — keep rsi_14 as primary, replace raw rsi_10/rsi_26 with divergence
     pub rsi_14: f64,
-    pub rsi_divergence: f64,       // FIX 1: rsi_10 - rsi_26 (short vs long momentum gap)
+    pub rsi_divergence: f64, // FIX 1: rsi_10 - rsi_26 (short vs long momentum gap)
 
     // Price vs moving averages
     pub pr_sma20_pct: f64,
@@ -27,7 +30,7 @@ pub struct FeatureSnapshot {
 
     // Stochastic — replace raw k/d with primary + divergence
     pub stochastic_k: f64,
-    pub stoch_divergence: f64,     // FIX 1: stoch_k - stoch_d (momentum crossover signal)
+    pub stoch_divergence: f64, // FIX 1: stoch_k - stoch_d (momentum crossover signal)
 
     // Volatility & volume
     pub atr_price_pct: f64,
@@ -72,8 +75,8 @@ impl FeatureSnapshot {
             rsi_14: decimal_to_float(value.rsi_14, RSI_DEFAULT),
             rsi_divergence: rsi_10 - rsi_26,
 
-            pr_sma20_pct:  FeatureSnapshot::price_vs_sma_pct(price, value.sma_20),
-            pr_sma50_pct:  FeatureSnapshot::price_vs_sma_pct(price, value.sma_50),
+            pr_sma20_pct: FeatureSnapshot::price_vs_sma_pct(price, value.sma_20),
+            pr_sma50_pct: FeatureSnapshot::price_vs_sma_pct(price, value.sma_50),
             pr_sma200_pct: FeatureSnapshot::price_vs_sma_pct(price, value.sma_200),
 
             bb_position_pct: FeatureSnapshot::bb_position_pct(
@@ -95,7 +98,7 @@ impl FeatureSnapshot {
             stoch_divergence: stoch_k - stoch_d,
 
             atr_price_pct: FeatureSnapshot::atr_as_price_pct(value.atr, price),
-            volume_ratio:  decimal_to_float(value.volume_ratio, 1.0),
+            volume_ratio: decimal_to_float(value.volume_ratio, 1.0),
         })
     }
 
@@ -182,7 +185,9 @@ impl FeatureSnapshot {
             (p, Some(u), Some(l))
                 if p > Decimal::ZERO && u > Decimal::ZERO && l > Decimal::ZERO =>
             {
-                ((p - l) / (u - l) * Decimal::from(100)).to_f64().unwrap_or(50.0)
+                ((p - l) / (u - l) * Decimal::from(100))
+                    .to_f64()
+                    .unwrap_or(50.0)
             }
             _ => 50.0,
         }

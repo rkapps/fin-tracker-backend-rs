@@ -13,7 +13,7 @@ use rust_decimal_macros::dec;
 use std::collections::HashMap;
 use tracing::{debug, error, info, warn};
 
-use crate::stocks::{StocksService, indicators::IndicatorCalculator};
+use crate::stocks::{BASE_CURRENCY, StocksService, indicators::IndicatorCalculator};
 use anyhow::Result;
 
 impl StocksService {
@@ -64,9 +64,16 @@ impl StocksService {
     ) -> Result<()> {
         let update = true;
         // update single ticker
-        // if self.should_sync_ticker(tc) {
-        self.update_single_ticker(tc, ticker).await?;
-        // }
+
+        match self.update_single_ticker(tc, ticker).await {
+            Ok(c) => c,
+            Err(e) => {
+                let emsg = format!("Ticker update failed for {}: {}", ticker.symbol, e);
+                // error!(emsg);
+                return Err(anyhow::anyhow!(emsg));
+            }
+        };
+
 
         // update history
         if self.should_sync_history(tc) {
@@ -294,14 +301,19 @@ impl StocksService {
                 histories
             }
             AssetType::Crypto => {
-                let thist = self
+                let symbol = format!("{}{}", ticker.symbol, BASE_CURRENCY);
+                let mut thist = self
                     .provider_service
-                    .get_crypto_history(&ticker.symbol, "1day")
+                    .get_crypto_history(&symbol, "1day")
                     .await
                     .inspect_err(|e| {
                         warn!("Crypto Ticker history for '{}' error: {}", ticker.symbol, e)
                     })?;
 
+                // update adj_close
+                for hist in &mut thist {
+                    hist.adj_close = hist.close;
+                }
                 let histories =
                     TickerHistory::from_tiingo_batch(&ticker.symbol, &ticker.exchange, thist)?;
                 histories
@@ -680,9 +692,12 @@ impl StocksService {
 
         info!("Ml Signals: {:?}", ml_signals);
         // Remove any existing LR signals
-        ticker
-            .signals
-            .retain(|s| !s.starts_with("LR") && !s.starts_with("RF") && !s.starts_with("ML") && !s.starts_with("MLP"));
+        ticker.signals.retain(|s| {
+            !s.starts_with("LR")
+                && !s.starts_with("RF")
+                && !s.starts_with("ML")
+                && !s.starts_with("MLP")
+        });
         // Add fresh ones
         ticker.signals.extend(ml_signals);
 

@@ -1,8 +1,17 @@
 use std::fmt::Debug;
 
-use crate::{mongo::manager::MongoStorageManager, service::{StorageService, TickerAlphaStorageService, TickerControlStorageService, TickerEmbeddingStorageService, TickerHistoryStorageService, TickerIndicatorStorageService, TickerSentimentStorageService, TickerStorageService}};
+use crate::{
+    mongo::manager::MongoStorageManager,
+    service::{
+        StorageService, TickerAlphaStorageService, TickerControlStorageService,
+        TickerEmbeddingStorageService, TickerHistoryStorageService, TickerIndicatorStorageService,
+        TickerSentimentStorageService, TickerStorageService,
+    },
+};
 use anyhow::Result;
-use fin_domain::ticker::{Ticker, TickerEmbedding, TickerHistory, TickerIndicator, TickerSentiment};
+use fin_domain::ticker::{
+    Ticker, TickerEmbedding, TickerHistory, TickerIndicator, TickerSentiment,
+};
 use storage_core::core::{Repository as _, search::SearchCriteria};
 
 #[derive(Debug)]
@@ -71,7 +80,6 @@ impl MongoStorageService {
         }
     }
 
-
     pub async fn get_ticker_embeddings_by_criteria(
         &self,
         criteria: &SearchCriteria,
@@ -86,21 +94,19 @@ impl MongoStorageService {
             }
         }
     }
-
-
-
 }
 
-
 // 2. The Blanket Implementation (The "Glue")
-impl<T> StorageService for T 
-where 
+impl<T> StorageService for T where
     T: TickerControlStorageService
-    + TickerStorageService
-    + TickerHistoryStorageService
-    + TickerIndicatorStorageService
-    + TickerSentimentStorageService
-    + TickerEmbeddingStorageService
-    + TickerAlphaStorageService
-    + Send + Sync + Debug
-{}
+        + TickerStorageService
+        + TickerHistoryStorageService
+        + TickerIndicatorStorageService
+        + TickerSentimentStorageService
+        + TickerEmbeddingStorageService
+        + TickerAlphaStorageService
+        + Send
+        + Sync
+        + Debug
+{
+}

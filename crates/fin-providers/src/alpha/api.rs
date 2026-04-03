@@ -2,7 +2,10 @@ use anyhow::Result;
 use chrono::{DateTime, Utc};
 use tracing::debug;
 
-use crate::{HttpClient, alpha::model::{AlphaTicker, AlphaTickerSentiment, AlphaTickerSentimentFeed}};
+use crate::{
+    HttpClient,
+    alpha::model::{AlphaTicker, AlphaTickerSentiment, AlphaTickerSentimentFeed},
+};
 
 const ALPHA_BASE_URL: &str = "https://www.alphavantage.co/";
 const ALPHA_FUNCTION_NEWS_SENTIMENT: &str = "NEWS_SENTIMENT";

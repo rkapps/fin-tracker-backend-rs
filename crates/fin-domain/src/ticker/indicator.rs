@@ -1,12 +1,12 @@
 use std::collections::HashMap;
 
+use crate::ticker::deserialize_flexible_datetime;
+use crate::ticker::indicator_serde;
+use crate::ticker::serialize_as_bson_datetime;
 use chrono::{DateTime, Utc};
 use rust_decimal::Decimal;
 use serde::{Deserialize, Serialize};
 use storage_core::core::RepoModel;
-use crate::ticker::deserialize_flexible_datetime;
-use crate::ticker::{serialize_as_bson_datetime};
-use crate::ticker::indicator_serde;
 
 use crate::ticker::TICKER_INDICATOR_COLLECTION_NAME;
 
@@ -18,7 +18,7 @@ pub struct TickerIndicator {
     #[serde(
         deserialize_with = "deserialize_flexible_datetime",
         serialize_with = "serialize_as_bson_datetime"
-    )]    
+    )]
     pub date: DateTime<Utc>,
 
     #[serde(with = "indicator_serde")]
@@ -45,8 +45,8 @@ pub mod indicator_type {
     pub const BB_MIDDLE: &str = "bb_middle";
     pub const BB_LOWER: &str = "bb_lower";
     pub const ATR: &str = "atr";
-    pub const STOCHASTIC_K: &str = "stochastic_k";  // %K (fast line)
-    pub const STOCHASTIC_D: &str = "stochastic_d";  // %D (slow/signal line)
+    pub const STOCHASTIC_K: &str = "stochastic_k"; // %K (fast line)
+    pub const STOCHASTIC_D: &str = "stochastic_d"; // %D (slow/signal line)
     pub const VOLUME_RATIO: &str = "volume_ratio";
 }
 
@@ -61,13 +61,12 @@ impl RepoModel<String> for TickerIndicator {
 }
 
 impl TickerIndicator {
-
     pub fn new(
         date: DateTime<Utc>,
         symbol: &str,
         // exchange: &str,
         // granularity: &str,
-        values: HashMap<String, Decimal>
+        values: HashMap<String, Decimal>,
     ) -> TickerIndicator {
         Self {
             id: format!("{}_{}", symbol, date.format("%Y%m%d")),
@@ -79,8 +78,7 @@ impl TickerIndicator {
             //     granularity: granularity.to_string(),
             // },
             date,
-            values
+            values,
         }
     }
-
 }

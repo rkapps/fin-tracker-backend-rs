@@ -43,7 +43,7 @@ impl Tool for TickerSimilarityTool {
      Only skip this tool for named ETF families like 'SPDR ETFs' or 'FAANG stocks' \
      where the tickers are universally known. \
      Only analyse tickers returned by this tool — never add from training knowledge."
-        .to_string()
+            .to_string()
     }
 
     fn parameters(&self) -> serde_json::Value {
@@ -54,7 +54,7 @@ impl Tool for TickerSimilarityTool {
                     "type": "integer",
                     "description": "Max number of similar stocks to return. Defaults to 5."
                 }
-            }        
+            }
         })
     }
 
@@ -64,7 +64,9 @@ impl Tool for TickerSimilarityTool {
             #[serde(default = "default_limit")]
             limit: usize,
         }
-        fn default_limit() -> usize { 5 }
+        fn default_limit() -> usize {
+            5
+        }
 
         let params: Params = serde_json::from_value(value.clone())
             .map_err(|e| anyhow::anyhow!("Failed to deserialize params: {:?} — {:?}", value, e))?;

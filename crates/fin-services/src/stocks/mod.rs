@@ -8,11 +8,13 @@ use crate::ml::service::MlService;
 
 // pub mod analyse;
 pub mod eod;
-pub mod load;
-pub mod update;
 pub mod indicators;
-pub mod signals;
+pub mod load;
 pub mod screen;
+pub mod signals;
+pub mod update;
+
+const BASE_CURRENCY: &str = "USD";
 
 #[derive(Debug)]
 pub struct StocksService {
@@ -20,7 +22,7 @@ pub struct StocksService {
     provider_service: ProviderService,
     // agent_service: Arc<AgentService>,
     embedding_client: Arc<dyn EmbeddingClient>,
-    ml_service: MlService
+    ml_service: MlService,
 }
 
 impl StocksService {
@@ -36,8 +38,7 @@ impl StocksService {
             provider_service,
             // agent_service,
             embedding_client,
-            ml_service
+            ml_service,
         }
     }
 }
-

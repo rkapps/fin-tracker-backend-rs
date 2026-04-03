@@ -123,8 +123,7 @@ pub fn train_models_for_linfa(
     })
 }
 
-
-pub fn run_lr_predictions(sa: &TickerAlpha, normalized: &[f64]) -> f64{
+pub fn run_lr_predictions(sa: &TickerAlpha, normalized: &[f64]) -> f64 {
     let raw_return: f64 = sa.intercept
         + normalized
             .iter()

@@ -2,14 +2,16 @@ use async_trait::async_trait;
 use fin_domain::ticker::TickerSentiment;
 use rust_decimal::Decimal;
 use rust_decimal_macros::dec;
-use storage_core::core::{Repository as _, search::{SearchCriteria, SearchOp, SearchValue}};
+use storage_core::core::{
+    Repository as _,
+    search::{SearchCriteria, SearchOp, SearchValue},
+};
 
 use crate::{mongo::MongoStorageService, service::TickerSentimentStorageService};
 use anyhow::Result;
 
 #[async_trait]
 impl TickerSentimentStorageService for MongoStorageService {
-
     async fn get_ticker_sentiments(&self, symbol: &str) -> Result<Vec<TickerSentiment>> {
         let score = dec!(0);
         self.get_ticker_sentiments_with_score(symbol, &score).await
@@ -60,5 +62,4 @@ impl TickerSentimentStorageService for MongoStorageService {
         }
         Ok(())
     }
-
 }

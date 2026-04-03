@@ -1,6 +1,9 @@
 use async_trait::async_trait;
 use fin_domain::ticker::TickerEmbedding;
-use storage_core::core::{Repository as _, search::{SearchCriteria, SearchOp, SearchValue}};
+use storage_core::core::{
+    Repository as _,
+    search::{SearchCriteria, SearchOp, SearchValue},
+};
 use tracing::debug;
 
 use crate::{mongo::MongoStorageService, service::TickerEmbeddingStorageService};
@@ -8,7 +11,6 @@ use anyhow::Result;
 
 #[async_trait]
 impl TickerEmbeddingStorageService for MongoStorageService {
-
     async fn get_ticker_embeddings(&self, symbol: &str) -> Result<Vec<TickerEmbedding>> {
         let mut criteria = SearchCriteria::new();
         criteria.add_condition(
@@ -29,7 +31,6 @@ impl TickerEmbeddingStorageService for MongoStorageService {
         }
     }
 
-    
     async fn save_ticker_embeddings(
         &self,
         symbol: &str,
@@ -47,5 +48,4 @@ impl TickerEmbeddingStorageService for MongoStorageService {
         }
         Ok(())
     }
-
 }

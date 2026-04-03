@@ -3,15 +3,20 @@ use std::collections::HashMap;
 use async_trait::async_trait;
 use chrono::{DateTime, Utc};
 use fin_domain::ticker::{IndicatorSnapshot, IndicatorWindow, TickerIndicator};
-use storage_core::core::{Repository as _, search::{SearchCriteria, SearchOp, SearchValue}};
+use storage_core::core::{
+    Repository as _,
+    search::{SearchCriteria, SearchOp, SearchValue},
+};
 use tracing::debug;
 
-use crate::{mongo::MongoStorageService, service::{TickerIndicatorStorageService, TickerStorageService}};
+use crate::{
+    mongo::MongoStorageService,
+    service::{TickerIndicatorStorageService, TickerStorageService},
+};
 use anyhow::Result;
 
 #[async_trait]
 impl TickerIndicatorStorageService for MongoStorageService {
-
     async fn get_ticker_indicators(&self, symbol: &str) -> Result<Vec<TickerIndicator>> {
         let mut criteria = SearchCriteria::new();
         criteria.add_condition(
@@ -103,7 +108,6 @@ impl TickerIndicatorStorageService for MongoStorageService {
         Ok(window)
     }
 
-
     async fn save_ticker_indicators(
         &self,
         symbol: &str,
@@ -121,5 +125,4 @@ impl TickerIndicatorStorageService for MongoStorageService {
         }
         Ok(())
     }
-
 }
