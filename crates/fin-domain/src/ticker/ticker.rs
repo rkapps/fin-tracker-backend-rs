@@ -243,6 +243,8 @@ impl Ticker {
             self.pr_diff_perc = self.pr_diff_amt / self.pr_prev;
             self.pr_diff_perc = self.pr_diff_perc.round_dp(2);
         }
+        self.pr_diff_amt = self.pr_diff_amt.round_dp(4);
+
         self.pr_diff_perc_search = self
             .pr_diff_perc
             .to_f64()
