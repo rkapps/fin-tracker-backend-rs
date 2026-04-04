@@ -1,0 +1,17 @@
+[package]
+name = "fin-tracker-cli"
+version = "0.1.0"
+edition = "2024"
+
+[dependencies]
+anyhow.workspace = true
+tokio.workspace = true
+tracing.workspace = true
+tracing-subscriber.workspace = true
+
+storage-core.workspace = true
+agentic-core.workspace = true
+fin-storage.workspace=true
+fin-services.workspace = true
+fin-providers.workspace = true
+fin-domain.workspace = true

@@ -904,6 +904,22 @@ dependencies = [
 ]
 
 [[package]]
+name = "fin-tracker-cli"
+version = "0.1.0"
+dependencies = [
+ "agentic-core",
+ "anyhow",
+ "fin-domain",
+ "fin-providers",
+ "fin-services",
+ "fin-storage",
+ "storage-core",
+ "tokio",
+ "tracing",
+ "tracing-subscriber",
+]
+
+[[package]]
 name = "find-msvc-tools"
 version = "0.1.9"
 source = "registry+https://github.com/rust-lang/crates.io-index"
