@@ -11,6 +11,26 @@ use anyhow::Result;
 
 #[async_trait]
 impl TickerHistoryStorageService for MongoStorageService {
+    async fn delete_ticker_history(&self, symbol: &str) -> Result<()> {
+        let mut criteria = SearchCriteria::new();
+        criteria.add_condition(
+            "metadata.symbol",
+            SearchOp::Eq,
+            SearchValue::String(symbol.to_uppercase().to_string()),
+        );
+        let Ok(repo) = self.manager.ticker_history().await else {
+            return Err(anyhow::anyhow!(format!(
+                "Error finding TickerHistory for '{}'",
+                symbol
+            )));
+        };
+
+        let mut repo = repo.lock().await;
+        repo.delete_many(Some(criteria)).await?;
+
+        Ok(())
+    }
+
     async fn get_ticker_history(&self, symbol: &str) -> Result<Vec<TickerHistory>> {
         let mut criteria = SearchCriteria::new();
         criteria.add_condition(

@@ -17,6 +17,27 @@ use anyhow::Result;
 
 #[async_trait]
 impl TickerIndicatorStorageService for MongoStorageService {
+
+    async fn delete_ticker_indicators(&self, symbol: &str) -> Result<()> {
+        let mut criteria = SearchCriteria::new();
+        criteria.add_condition(
+            "symbol",
+            SearchOp::Eq,
+            SearchValue::String(symbol.to_uppercase().to_string()),
+        );
+        let Ok(repo) = self.manager.ticker_indicators().await else {
+            return Err(anyhow::anyhow!(format!(
+                "Error finding TickerIndicator for '{}'",
+                symbol
+            )));
+        };
+
+        let mut repo = repo.lock().await;
+        repo.delete_many(Some(criteria)).await?;
+
+        Ok(())
+    }
+
     async fn get_ticker_indicators(&self, symbol: &str) -> Result<Vec<TickerIndicator>> {
         let mut criteria = SearchCriteria::new();
         criteria.add_condition(

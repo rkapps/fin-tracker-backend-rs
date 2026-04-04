@@ -55,6 +55,8 @@ pub trait TickerStorageService: Send + Sync + Debug {
 
 #[async_trait]
 pub trait TickerHistoryStorageService: Send + Sync + Debug {
+
+    async fn delete_ticker_history(&self, symbol: &str) -> Result<()>;
     async fn get_ticker_history(&self, symbol: &str) -> Result<Vec<TickerHistory>>;
     async fn get_ticker_history_by_date(
         &self,
@@ -67,6 +69,8 @@ pub trait TickerHistoryStorageService: Send + Sync + Debug {
 
 #[async_trait]
 pub trait TickerIndicatorStorageService: Send + Sync + Debug {
+
+    async fn delete_ticker_indicators(&self, symbol: &str) -> Result<()>;
     async fn get_ticker_indicators(&self, symbol: &str) -> Result<Vec<TickerIndicator>>;
     async fn get_ticker_indicators_latest(&self, symbol: &str) -> Result<TickerIndicator>;
 
