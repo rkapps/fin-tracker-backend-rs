@@ -1,6 +1,6 @@
 use anyhow::Result;
 use reqwest::{Client, header::HeaderMap};
-use tracing::{debug, error, info};
+use tracing::{debug, error, trace};
 
 #[derive(Debug, Clone)]
 pub struct HttpClient {
@@ -30,7 +30,7 @@ impl HttpClient {
         url: String,
         headers: Option<reqwest::header::HeaderMap>,
     ) -> Result<T> {
-        info!("Url: {}", url);
+        debug!("Url: {}", url);
         let mut request = self.client.get(url);
 
         if let Some(h) = headers {
@@ -65,7 +65,7 @@ impl HttpClient {
         let response = request.json(&body).send().await?;
 
         let text = response.text().await?;
-        debug!("Raw response: {:#?}", text);
+        trace!("Raw response: {:#?}", text);
 
         let result: T = serde_json::from_str(&text).map_err(|e| {
             anyhow::anyhow!("Failed to deserialize response: {}. Body: {}", e, text)

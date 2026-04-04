@@ -304,7 +304,7 @@ impl StocksService {
                 let symbol = format!("{}{}", ticker.symbol, BASE_CURRENCY);
                 let mut thist = self
                     .provider_service
-                    .get_crypto_history(&symbol, "1day")
+                    .get_crypto_history(&symbol, &hist_start_date, "1day")
                     .await
                     .inspect_err(|e| {
                         warn!("Crypto Ticker history for '{}' error: {}", ticker.symbol, e)

@@ -29,7 +29,6 @@ impl ProviderService {
 
     pub async fn get_stock(&self, symbol: &str) -> Result<AlphaTicker> {
         let raw = alpha::api::get_stock(&self.http_client, symbol, &self.alpha_key).await?;
-        // Ok(AlphaTicker::to_domain(raw))
         Ok(raw)
     }
 
@@ -60,9 +59,10 @@ impl ProviderService {
     pub async fn get_crypto_history(
         &self,
         symbol: &str,
+        start_date: &DateTime<Utc>,
         frequency: &str,
     ) -> Result<Vec<TiingoTickerHistory>> {
-        tiingo::api::get_crypto_history(&self.http_client, symbol, frequency, &self.tiingo_token)
+        tiingo::api::get_crypto_history(&self.http_client, symbol,&self.tiingo_token, start_date, frequency )
             .await
     }
 }

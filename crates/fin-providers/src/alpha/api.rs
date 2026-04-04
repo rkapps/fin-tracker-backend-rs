@@ -1,6 +1,5 @@
 use anyhow::Result;
 use chrono::{DateTime, Utc};
-use tracing::debug;
 
 use crate::{
     HttpClient,
@@ -39,32 +38,10 @@ pub async fn get_stock_sentiments(
         "{}query?function={}&tickers={}&time_from={}&apikey={}&limit=1000&sort=LATEST",
         ALPHA_BASE_URL, ALPHA_FUNCTION_NEWS_SENTIMENT, symbol, date_from, api_key
     );
-    debug!("Ticker Sentiment url: {}", url);
     let headers = reqwest::header::HeaderMap::new();
-
-    // let raw = http_client.get_raw(url, Some(headers)).await?;
-    // debug!("Raw sentiment response for {}: {}", symbol, raw);
-    // let v: serde_json::Value = serde_json::from_str(&raw)?;
-
-    // // Find null fields in the feed array
-    // if let Some(feed) = v["feed"].as_array() {
-    //     for (i, item) in feed.iter().enumerate() {
-    //         if let Some(obj) = item.as_object() {
-    //             for (key, val) in obj {
-    //                 if val.is_null() {
-    //                     debug!("Null field in feed[{}]: {}", i, key);
-    //                 }
-    //             }
-    //         }
-    //     }
-    // }
-    // let tsentiment: AlphaTickerSentiment = serde_json::from_str(&raw)
-    //     .map_err(|e| anyhow::anyhow!("Failed to deserialize sentiment for {}: {}", symbol, e))?;
-
     let tsentiment = http_client
         .get_request::<AlphaTickerSentiment>(url, Some(headers))
         .await?;
-    debug!("Ticker Sentiment");
 
     Ok(tsentiment.feed)
 }
