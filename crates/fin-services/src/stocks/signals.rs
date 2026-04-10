@@ -142,9 +142,11 @@ impl StocksService {
             signals.push("BB Breakout Lower".to_string());
         }
 
-        let width = (bb_upper - bb_lower) / bb_middle * Decimal::from(100);
-        if width < Decimal::from(4) {
-            signals.push("BB Squeeze".to_string());
+        if bb_middle > Decimal::from(0) {
+            let width = (bb_upper - bb_lower) / bb_middle * Decimal::from(100);
+            if width < Decimal::from(4) {
+                signals.push("BB Squeeze".to_string());
+            }
         }
 
         if signals.is_empty() {

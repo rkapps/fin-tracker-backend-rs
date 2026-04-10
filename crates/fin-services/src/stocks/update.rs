@@ -11,7 +11,7 @@ use fin_domain::{
 use rust_decimal::{Decimal, prelude::ToPrimitive};
 use rust_decimal_macros::dec;
 use std::collections::HashMap;
-use tracing::{debug, error, info, warn};
+use tracing::{debug, error, info, trace, warn};
 
 use crate::stocks::{BASE_CURRENCY, StocksService, indicators::IndicatorCalculator};
 use anyhow::Result;
@@ -225,6 +225,8 @@ impl StocksService {
                 prev_history = Some(histories[1].clone());
             }
             // update the price
+            trace!("Last History: {:?}", last_history.date);
+
             ticker.update_price_from_history(last_history, prev_history)?;
         }
 
@@ -556,7 +558,7 @@ impl StocksService {
         let price = Decimal::try_from(ticker.pr_last)?;
 
         let mut signals = Vec::new();
-
+        debug!("Calculating signals...");
         signals.extend(self.calculate_sma_stack(&window));
         signals.extend(self.calculate_sma_50(price, &window).unwrap_or_default());
         signals.extend(self.calculate_sma_crossover(&window));
@@ -617,6 +619,7 @@ impl StocksService {
             Some("Strong Sell") => signals.push("Analyst Strong Sell".to_string()),
             _ => {}
         }
+        debug!("Calculating signals done.");
 
         ticker.signals = signals;
         Ok(())

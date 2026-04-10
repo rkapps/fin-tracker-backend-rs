@@ -16,7 +16,7 @@ use ta::{
         MovingAverageConvergenceDivergence, RelativeStrengthIndex, SimpleMovingAverage,
     },
 };
-use tracing::debug;
+use tracing::{debug, trace};
 
 pub struct IndicatorCalculator {}
 
@@ -72,7 +72,7 @@ impl IndicatorCalculator {
             let mut values = HashMap::new();
             values.insert("price".to_string(), h.close);
 
-            // debug!("Value: {:?}", h);
+            trace!("Value: {:?}", h);
             // Calculate all SMAs
             for (period, sma) in sma_calcs.iter_mut() {
                 let value = sma.next(close_f64);
