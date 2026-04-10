@@ -44,6 +44,7 @@ storage-core = { path = "../libs/storage-core-rs" }
 agentic-core = { path = "../libs/agentic-core-rs" }
 
 # Local app crates
+fin-core = { path = "crates/fin-core" }
 fin-domain = { path = "crates/fin-domain" }
 fin-services = { path = "crates/fin-services" }
 fin-storage = { path = "crates/fin-storage"}
