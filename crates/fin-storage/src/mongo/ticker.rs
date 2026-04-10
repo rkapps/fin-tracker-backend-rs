@@ -189,6 +189,10 @@ impl TickerStorageService for MongoStorageService {
             criteria.add_condition("yield", SearchOp::Gte, SearchValue::Decimal(dec_yield));
         }
 
+        if let Some(limit) = param.limit {
+            criteria.add_limit(limit);
+        }
+        
         criteria.add_sort("market_cap", false);
         debug!("search_tickers criteria: {:#?}", criteria);
 
