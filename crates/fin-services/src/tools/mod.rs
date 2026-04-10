@@ -171,6 +171,19 @@ impl ToolsService {
                 .with_tool(indicator_tool)
                 .with_tool(peers_tool)
                 .build()?,
+            "qwen" => builder
+                .with_local("qwen", "qwen3.5:4b", "http://localhost:11434")?
+                .with_preset_thorough()
+                .with_tool(screening_tool)
+                .with_tool(taxonomy_tool)
+                // .with_tool(simiarity_tool)
+                .with_tool(sentiment_tool)
+                .with_tool(snapshot_tool)
+                .with_tool(history_tool)
+                .with_tool(indicator_tool)
+                .with_tool(peers_tool)
+                .build()?,
+
             _ => return Err(anyhow::anyhow!("Llm {} not recognised", llm)),
         };
 

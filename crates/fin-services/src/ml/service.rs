@@ -1,8 +1,12 @@
 use anyhow::Result;
 use chrono::{DateTime, Months, Utc};
-use fin_domain::ticker::{
-    FeatureSnapshot, IndicatorSnapshot, ModelAlgorithm, ModelType, Ticker, TickerAlpha,
-    TickerIndicator,
+use fin_core::ml::build::build_tickers_models;
+use fin_domain::{
+    dto::screen_param::TickerScreenParam,
+    ticker::{
+        FeatureSnapshot, IndicatorSnapshot, ModelAlgorithm, ModelType, Ticker, TickerAlpha,
+        TickerIndicator,
+    },
 };
 use fin_storage::service::StorageService;
 use linfa_ensemble::EnsembleLearner;
@@ -15,7 +19,7 @@ use std::{
     vec,
 };
 use tokio::sync::RwLock;
-use tracing::{debug, info, warn};
+use tracing::{debug, info, trace, warn};
 
 use crate::ml::{
     labels::{build_labels_for_ticker, compute_normalization_params, normalize_single},
@@ -24,9 +28,9 @@ use crate::ml::{
     mlp::{predict_mlp, train_models_for_mlp},
 };
 
-const PERIODS: [i32; 4] = [5, 10, 20, 60];
-// const PERIODS: [i32; 2] = [10, 60];
-const MIN_SAMPLES: usize = 100;
+// const PERIODS: [i32; 4] = [5, 10, 20, 60];
+const PERIODS: [i32; 1] = [20];
+const MIN_SAMPLES: usize = 20;
 // Don't store alphas below this threshold — useless at prediction time
 // const MIN_DIRECTIONAL_ACCURACY: f64 = 0.40;
 
@@ -59,19 +63,62 @@ impl MlService {
         //     let mut lock = self.rf_models.write().await;
         //     lock.insert(value.0, value.1);
         // }
+        // let tickers = self.storage_service.get_tickers_by_marketcap().await?;
 
-        let from_date = Utc::now().checked_sub_months(Months::new(60)).unwrap();
-        info!("Training sector models...");
+        let from_date = Utc::now().checked_sub_months(Months::new(1)).unwrap();
+        let data = self.build_data_by_tickers(from_date).await?;
+
+        // info!("Training sector models...");
 
         info!("Training per-ticker models...");
-        let result = self.build_and_train_by_ticker(from_date).await?;
-        let _ = self.storage_service.save_ticker_alphas(&result.0).await;
-        for value in result.1 {
-            let mut lock = self.rf_models.write().await;
-            lock.insert(value.0, value.1);
-        }
+        build_tickers_models(&data, &PERIODS).await?;
+        info!("Training per-ticker models done.");
+
+        // let result = self.build_and_train_by_ticker(from_date).await?;
+        // let _ = self.storage_service.save_ticker_alphas(&result.0).await;
+        // for value in result.1 {
+        //     let mut lock = self.rf_models.write().await;
+        //     lock.insert(value.0, value.1);
+        // }
 
         Ok(())
+    }
+
+    pub async fn build_data_by_tickers(&self, from_date: DateTime<Utc>) -> Result<Vec<(String, Vec<TickerIndicator>)>> {
+
+        let asset_type = "CRYPTO";
+        let mut param = TickerScreenParam::new_for_asset_type(asset_type);
+        param.limit = Some(10);
+        let tickers = self.storage_service.search_tickers(param).await?;
+
+        let length = tickers.len();
+        let mut ticker_data: Vec<(String, Vec<TickerIndicator>)> = Vec::new();
+        for (i, ticker) in tickers.iter().enumerate() {
+            if i % 20 == 0 {
+                info!("Fetching Ticker: {} {}/{}", ticker.symbol, i + 1, length);
+            }
+            if ticker.symbol != "BTC" {
+                continue;
+            }
+            let indicators = self
+                .storage_service
+                .get_ticker_indicators_by_symbol(&ticker.symbol, from_date)
+                .await?;
+
+            if indicators.len() < MIN_SAMPLES {
+                warn!(
+                    "Ticker {} insufficient samples: {} rows",
+                    ticker.symbol,
+                    indicators.len()
+                );
+                continue;
+            }
+
+            trace!("key: {} indicators: {}", ticker.symbol, indicators.len());
+            ticker_data.push((ticker.symbol.clone(), indicators));
+        }
+
+        Ok(ticker_data)
     }
 
     pub async fn build_and_train_by_sector(

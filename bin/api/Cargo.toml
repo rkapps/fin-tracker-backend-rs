@@ -19,6 +19,7 @@ tracing-subscriber.workspace = true
 
 storage-core.workspace = true
 agentic-core.workspace = true
+fin-core.workspace = true
 fin-storage.workspace=true
 fin-services.workspace = true
 fin-providers.workspace = true

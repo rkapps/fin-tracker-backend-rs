@@ -31,3 +31,4 @@ storage-core.workspace = true
 fin-domain.workspace = true
 fin-storage.workspace = true
 fin-providers.workspace = true
+fin-core.workspace = true

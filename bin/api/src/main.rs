@@ -42,37 +42,21 @@ use reqwest::Method;
 use tokio::net::TcpListener;
 use tower_http::cors::CorsLayer;
 use tracing::Level;
-use tracing_subscriber::{filter, fmt, prelude::*};
+use tracing_subscriber::FmtSubscriber;
 
 #[tokio::main]
 
 async fn main() -> Result<()> {
-    let filter = filter::Targets::new()
-        .with_target("storage_core::mongo", Level::INFO)
-        // .with_target("storage_core::vector", Level::DEBUG)
-        .with_target("agentic_core::http", Level::INFO)
-        .with_target("agentic_core::agent", Level::INFO)
-        .with_target("agentic_core::providers", Level::INFO)
-        // .with_target("fin_tracker_backend_rs::http", Level::DEBUG)
-        .with_target("fin_tracker_api", Level::INFO)
-        .with_target("fin_services", Level::INFO)
-        .with_target("fin_services::stocks", Level::INFO)
-        .with_target("fin_services::tools", Level::INFO)
-        .with_target("fin_storage", Level::INFO)
-        // .with_target("fin_storage", Level::INFO)
-        .with_target("fin_providers", Level::INFO);
-
-    tracing_subscriber::registry()
-        .with(
-            fmt::layer().event_format(
-                fmt::format()
-                    // .with_file(false)
-                    // .with_line_number(true)
-                    .compact(), // .pretty(),
-            ),
-        ) // Compact format
-        .with(filter)
-        .init();
+    let subscriber = FmtSubscriber::builder()
+        .with_max_level(Level::TRACE)
+        .with_target(true)
+        // .with_target("fin_services::stocks")
+        // .with_env_filter("fin_services=trace,fin_core=trace,agentic_core::agent=debug,agentic_core::providers=info")
+        .with_env_filter("fin_services=trace,fin_core=trace,agentic_core=info")        
+        .with_line_number(true)
+        .compact()
+        .finish();
+    tracing::subscriber::set_global_default(subscriber).expect("setting default subscriber failed");
 
     // StocksService (async)
     // → locks storage: storage.lock().await
