@@ -1,7 +1,5 @@
 use serde::{Deserialize, Serialize};
 
-use crate::ticker::Ticker;
-
 #[derive(Serialize, Deserialize, Debug, Clone)]
 pub struct TickerScreenParam {
     pub query: Option<String>, // semantic: "cloud security", "payments infrastructure"
@@ -14,17 +12,15 @@ pub struct TickerScreenParam {
 }
 
 impl TickerScreenParam {
-
     pub fn new_for_asset_type(asset_type: &str) -> TickerScreenParam {
-        TickerScreenParam{
+        TickerScreenParam {
             asset_type: Some(asset_type.to_string()),
             industry: None,
             limit: None,
             market_cap_range: None,
             query: None,
             signals: None,
-            r#yield: None
+            r#yield: None,
         }
-
     }
 }
