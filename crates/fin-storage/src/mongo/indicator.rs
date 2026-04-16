@@ -2,7 +2,7 @@ use std::collections::HashMap;
 
 use async_trait::async_trait;
 use chrono::{DateTime, Utc};
-use fin_domain::ticker::{IndicatorSnapshot, IndicatorWindow, TickerIndicator};
+use fin_domain::tickers::{IndicatorSnapshot, IndicatorWindow, TickerIndicator};
 use storage_core::core::{
     Repository as _,
     search::{SearchCriteria, SearchOp, SearchValue},
@@ -17,7 +17,6 @@ use anyhow::Result;
 
 #[async_trait]
 impl TickerIndicatorStorageService for MongoStorageService {
-
     async fn delete_ticker_indicators(&self, symbol: &str) -> Result<()> {
         let mut criteria = SearchCriteria::new();
         criteria.add_condition(
@@ -66,8 +65,8 @@ impl TickerIndicatorStorageService for MongoStorageService {
     }
 
     async fn get_ticker_indicators_latest(&self, symbol: &str) -> Result<TickerIndicator> {
-        let indicators = self.get_ticker_indicators_last_n(&symbol, 1).await?;
-        let indicator = indicators.get(0).unwrap();
+        let indicators = self.get_ticker_indicators_last_n(symbol, 1).await?;
+        let indicator = indicators.first().unwrap();
         Ok(indicator.clone())
     }
 
@@ -92,7 +91,7 @@ impl TickerIndicatorStorageService for MongoStorageService {
         sector: &str,
         from_date: DateTime<Utc>,
     ) -> Result<HashMap<String, Vec<TickerIndicator>>> {
-        let tickers = self.get_ticker_by_sector(&sector).await?;
+        let tickers = self.get_ticker_by_sector(sector).await?;
         let symbols: Vec<String> = tickers.iter().map(|t| t.symbol.clone()).collect();
 
         debug!("Tickers for sector: {}-{:?}", sector, symbols);
@@ -122,7 +121,7 @@ impl TickerIndicatorStorageService for MongoStorageService {
         );
         let curr = IndicatorSnapshot::from(
             indicators
-                .get(0)
+                .first()
                 .ok_or(anyhow::anyhow!("Not enough indicators"))?,
         );
         let window = IndicatorWindow::new(curr, prev);
@@ -132,7 +131,7 @@ impl TickerIndicatorStorageService for MongoStorageService {
     async fn save_ticker_indicators(
         &self,
         symbol: &str,
-        indicators: &Vec<TickerIndicator>,
+        indicators: &[TickerIndicator],
     ) -> Result<()> {
         let Ok(repo) = self.manager.ticker_indicators().await else {
             return Err(anyhow::anyhow!(format!(

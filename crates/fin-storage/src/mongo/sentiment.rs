@@ -1,5 +1,5 @@
 use async_trait::async_trait;
-use fin_domain::ticker::TickerSentiment;
+use fin_domain::tickers::TickerSentiment;
 use rust_decimal::Decimal;
 use rust_decimal_macros::dec;
 use storage_core::core::{
@@ -31,7 +31,7 @@ impl TickerSentimentStorageService for MongoStorageService {
         criteria.add_condition(
             "relevance_score",
             SearchOp::Gte,
-            SearchValue::Decimal(score.clone()),
+            SearchValue::Decimal(*score),
         );
 
         match self.manager.ticker_sentiments().await {
@@ -48,7 +48,7 @@ impl TickerSentimentStorageService for MongoStorageService {
     async fn save_ticker_sentiments(
         &self,
         symbol: &str,
-        sentiments: &Vec<TickerSentiment>,
+        sentiments: &[TickerSentiment],
     ) -> Result<()> {
         let Ok(repo) = self.manager.ticker_sentiments().await else {
             return Err(anyhow::anyhow!(format!(

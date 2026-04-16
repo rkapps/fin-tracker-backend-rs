@@ -1,5 +1,5 @@
 use async_trait::async_trait;
-use fin_domain::ticker::TickerAlpha;
+use fin_domain::tickers::TickerAlpha;
 use storage_core::core::{
     Repository as _,
     search::{SearchCriteria, SearchOp, SearchValue},
@@ -26,7 +26,7 @@ impl TickerAlphaStorageService for MongoStorageService {
         repo.find(Some(criteria)).await
     }
 
-    async fn save_ticker_alphas(&self, sas: &Vec<TickerAlpha>) -> Result<()> {
+    async fn save_ticker_alphas(&self, sas: &[TickerAlpha]) -> Result<()> {
         let Ok(repo) = self.manager.ticker_alphas().await else {
             return Err(anyhow::anyhow!("Error saving SectorAlpha"));
         };

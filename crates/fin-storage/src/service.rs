@@ -5,7 +5,7 @@ use async_trait::async_trait;
 use chrono::{DateTime, Utc};
 use fin_domain::{
     dto::screen_param::TickerScreenParam,
-    ticker::{
+    tickers::{
         IndicatorWindow, Ticker, TickerAlpha, TickerControl, TickerEmbedding, TickerHistory,
         TickerIndicator, TickerSentiment,
     },
@@ -55,7 +55,6 @@ pub trait TickerStorageService: Send + Sync + Debug {
 
 #[async_trait]
 pub trait TickerHistoryStorageService: Send + Sync + Debug {
-
     async fn delete_ticker_history(&self, symbol: &str) -> Result<()>;
     async fn get_ticker_history(&self, symbol: &str) -> Result<Vec<TickerHistory>>;
     async fn get_ticker_history_by_date(
@@ -64,12 +63,11 @@ pub trait TickerHistoryStorageService: Send + Sync + Debug {
         from_date: DateTime<Utc>,
     ) -> Result<Vec<TickerHistory>>;
     async fn get_ticker_history_latest(&self, symbol: &str) -> Result<Vec<TickerHistory>>;
-    async fn save_ticker_history(&self, symbol: &str, hist: &Vec<TickerHistory>) -> Result<()>;
+    async fn save_ticker_history(&self, symbol: &str, hist: &[TickerHistory]) -> Result<()>;
 }
 
 #[async_trait]
 pub trait TickerIndicatorStorageService: Send + Sync + Debug {
-
     async fn delete_ticker_indicators(&self, symbol: &str) -> Result<()>;
     async fn get_ticker_indicators(&self, symbol: &str) -> Result<Vec<TickerIndicator>>;
     async fn get_ticker_indicators_latest(&self, symbol: &str) -> Result<TickerIndicator>;
@@ -95,7 +93,7 @@ pub trait TickerIndicatorStorageService: Send + Sync + Debug {
     async fn save_ticker_indicators(
         &self,
         symbol: &str,
-        indicators: &Vec<TickerIndicator>,
+        indicators: &[TickerIndicator],
     ) -> Result<()>;
 }
 
@@ -111,7 +109,7 @@ pub trait TickerSentimentStorageService: Send + Sync + Debug {
     async fn save_ticker_sentiments(
         &self,
         symbol: &str,
-        sentiments: &Vec<TickerSentiment>,
+        sentiments: &[TickerSentiment],
     ) -> Result<()>;
 }
 
@@ -121,12 +119,12 @@ pub trait TickerEmbeddingStorageService: Send + Sync + Debug {
     async fn save_ticker_embeddings(
         &self,
         symbol: &str,
-        sentiments: &Vec<TickerEmbedding>,
+        sentiments: &[TickerEmbedding],
     ) -> Result<()>;
 }
 
 #[async_trait]
 pub trait TickerAlphaStorageService: Send + Sync + Debug {
     async fn get_ticker_alphas_by_key(&self, key: &str) -> Result<Vec<TickerAlpha>>;
-    async fn save_ticker_alphas(&self, sas: &Vec<TickerAlpha>) -> Result<()>;
+    async fn save_ticker_alphas(&self, sas: &[TickerAlpha]) -> Result<()>;
 }

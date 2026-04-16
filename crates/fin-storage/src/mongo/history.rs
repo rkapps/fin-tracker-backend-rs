@@ -1,6 +1,6 @@
 use async_trait::async_trait;
 use chrono::{DateTime, Utc};
-use fin_domain::ticker::TickerHistory;
+use fin_domain::tickers::TickerHistory;
 use storage_core::core::{
     Repository as _,
     search::{SearchCriteria, SearchOp, SearchValue},
@@ -68,7 +68,7 @@ impl TickerHistoryStorageService for MongoStorageService {
         self.get_ticker_history_by_criteria(&criteria).await
     }
 
-    async fn save_ticker_history(&self, symbol: &str, hist: &Vec<TickerHistory>) -> Result<()> {
+    async fn save_ticker_history(&self, symbol: &str, hist: &[TickerHistory]) -> Result<()> {
         let Ok(repo) = self.manager.ticker_history().await else {
             return Err(anyhow::anyhow!(format!(
                 "Error saving TickerHistory for '{}'",

@@ -5,7 +5,7 @@ use anyhow::Result;
 use async_trait::async_trait;
 use fin_domain::{
     dto::screen_param::TickerScreenParam,
-    ticker::Ticker,
+    tickers::Ticker,
     utils::data_utils::{market_cap_label_range, market_cap_range},
 };
 use rust_decimal::Decimal;
@@ -24,7 +24,7 @@ impl TickerStorageService for MongoStorageService {
                 repo.find_by_id(symbol.to_string()).await
             }
             Err(e) => {
-                return Err(anyhow::anyhow!("Error getting Ticker: {}", e));
+                Err(anyhow::anyhow!("Error getting Ticker: {}", e))
             }
         }
     }
@@ -47,7 +47,7 @@ impl TickerStorageService for MongoStorageService {
         let tickers = self.get_tickers().await?;
         for ticker in tickers {
             if let (Some(sector), Some(industry)) = (ticker.sector, ticker.industry) {
-                let industries = groups.entry(sector).or_insert_with(Vec::new);
+                let industries = groups.entry(sector).or_default();
                 if !industries.contains(&industry) {
                     industries.push(industry);
                 }
@@ -101,7 +101,7 @@ impl TickerStorageService for MongoStorageService {
     async fn get_ticker_peers_by_industry(&self, symbol: &str) -> Result<Vec<Ticker>> {
         let ticker = self.get_ticker_by_symbol(symbol).await?;
         let industry = ticker.industry.unwrap_or_default();
-        if industry.len() == 0 {
+        if industry.is_empty() {
             return Ok(Vec::new());
         }
         // Get reference ticker market cap bucket
@@ -118,7 +118,7 @@ impl TickerStorageService for MongoStorageService {
     async fn get_ticker_peers_by_sector(&self, symbol: &str) -> Result<Vec<Ticker>> {
         let ticker = self.get_ticker_by_symbol(symbol).await?;
         let sector = ticker.sector.unwrap_or_default();
-        if sector.len() == 0 {
+        if sector.is_empty() {
             return Ok(Vec::new());
         }
         // Get reference ticker market cap bucket
@@ -192,7 +192,7 @@ impl TickerStorageService for MongoStorageService {
         if let Some(limit) = param.limit {
             criteria.add_limit(limit);
         }
-        
+
         criteria.add_sort("market_cap", false);
         debug!("search_tickers criteria: {:#?}", criteria);
 
@@ -201,7 +201,7 @@ impl TickerStorageService for MongoStorageService {
 
     // save ticker or return error
     async fn save_ticker(&self, ticker: Ticker) -> Result<()> {
-        let result = match self.manager.tickers().await {
+        match self.manager.tickers().await {
             Ok(repo) => {
                 let mut repo = repo.lock().await;
                 repo.update(ticker).await
@@ -212,7 +212,6 @@ impl TickerStorageService for MongoStorageService {
                     ticker.symbol, e
                 )));
             }
-        };
-        result
+        }
     }
 }

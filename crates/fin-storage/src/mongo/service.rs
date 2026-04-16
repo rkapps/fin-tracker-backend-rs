@@ -9,9 +9,7 @@ use crate::{
     },
 };
 use anyhow::Result;
-use fin_domain::ticker::{
-    Ticker, TickerEmbedding, TickerHistory, TickerIndicator, TickerSentiment,
-};
+use fin_domain::tickers::{Ticker, TickerEmbedding, TickerHistory, TickerIndicator, TickerSentiment};
 use storage_core::core::{Repository as _, search::SearchCriteria};
 
 #[derive(Debug)]
@@ -29,9 +27,7 @@ impl MongoStorageService {
                 let mut repo = repo.lock().await;
                 repo.find(Some(criteria.clone())).await
             }
-            Err(e) => {
-                return Err(anyhow::anyhow!("Error getting Ticker: {}", e));
-            }
+            Err(e) => Err(anyhow::anyhow!("Error getting Ticker: {}", e)),
         }
     }
 
@@ -44,9 +40,7 @@ impl MongoStorageService {
                 let mut repo = repo.lock().await;
                 repo.find(Some(criteria.clone())).await
             }
-            Err(e) => {
-                return Err(anyhow::anyhow!("Error getting TickerHistory: {}", e));
-            }
+            Err(e) => Err(anyhow::anyhow!("Error getting TickerHistory: {}", e)),
         }
     }
 
@@ -59,9 +53,7 @@ impl MongoStorageService {
                 let mut repo = repo.lock().await;
                 repo.find(Some(criteria.clone())).await
             }
-            Err(e) => {
-                return Err(anyhow::anyhow!("Error getting TickerIndicator: {}", e));
-            }
+            Err(e) => Err(anyhow::anyhow!("Error getting TickerIndicator: {}", e)),
         }
     }
 
@@ -74,9 +66,7 @@ impl MongoStorageService {
                 let mut repo = repo.lock().await;
                 repo.find(Some(criteria.clone())).await
             }
-            Err(e) => {
-                return Err(anyhow::anyhow!("Error getting TickerSentiment: {}", e));
-            }
+            Err(e) => Err(anyhow::anyhow!("Error getting TickerSentiment: {}", e)),
         }
     }
 
@@ -89,9 +79,7 @@ impl MongoStorageService {
                 let mut repo = repo.lock().await;
                 repo.find(Some(criteria.clone())).await
             }
-            Err(e) => {
-                return Err(anyhow::anyhow!("Error getting TickerEmbedding: {}", e));
-            }
+            Err(e) => Err(anyhow::anyhow!("Error getting TickerEmbedding: {}", e)),
         }
     }
 }

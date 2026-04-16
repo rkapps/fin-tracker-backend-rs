@@ -1,5 +1,5 @@
 use async_trait::async_trait;
-use fin_domain::ticker::TickerControl;
+use fin_domain::tickers::TickerControl;
 use storage_core::core::Repository as _;
 
 use crate::{mongo::MongoStorageService, service::TickerControlStorageService};

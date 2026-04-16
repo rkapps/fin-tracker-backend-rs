@@ -1,5 +1,5 @@
 use async_trait::async_trait;
-use fin_domain::ticker::TickerEmbedding;
+use fin_domain::tickers::TickerEmbedding;
 use storage_core::core::{
     Repository as _,
     search::{SearchCriteria, SearchOp, SearchValue},
@@ -34,7 +34,7 @@ impl TickerEmbeddingStorageService for MongoStorageService {
     async fn save_ticker_embeddings(
         &self,
         symbol: &str,
-        sentiments: &Vec<TickerEmbedding>,
+        sentiments: &[TickerEmbedding],
     ) -> Result<()> {
         let Ok(repo) = self.manager.ticker_embeddings().await else {
             return Err(anyhow::anyhow!(format!(
