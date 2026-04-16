@@ -1,0 +1,14 @@
+FROM rust:1.92-alpine AS builder
+WORKDIR /app
+RUN apk add --no-cache musl-dev openssl-dev openssl-libs-static pkgconfig
+COPY Cargo.toml Cargo.lock ./
+COPY crates/ crates/
+COPY bin/ bin/
+RUN cargo build --release --bin fin-tracker-api
+
+FROM alpine:latest
+WORKDIR /app
+RUN apk add --no-cache openssl ca-certificates
+COPY --from=builder /app/target/release/fin-tracker-api .
+EXPOSE 8080
+CMD ["./fin-tracker-api"]
