@@ -10,6 +10,15 @@ pub struct TiingoTickerPriceData {
 }
 
 #[derive(Debug, Clone, Deserialize)]
+pub struct TiingoTickerRealtime {
+    pub ticker: String,
+    #[serde(rename = "timestamp")]
+    pub date: DateTime<Utc>,
+    #[serde(rename = "tngoLast")]
+    pub tngo_last: f64,
+}
+
+#[derive(Debug, Clone, Deserialize)]
 pub struct TiingoTickerHistory {
     pub date: DateTime<Utc>,
     pub close: Decimal,

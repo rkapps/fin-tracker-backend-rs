@@ -1,10 +1,11 @@
 use crate::{
     HttpClient,
-    tiingo::model::{TiingoTickerHistory, TiingoTickerPriceData},
+    tiingo::model::{TiingoTickerHistory, TiingoTickerPriceData, TiingoTickerRealtime},
 };
 use anyhow::Result;
 use chrono::{DateTime, Utc};
 
+const TIINGO_REALTIME_URL: &str = "https://api.tiingo.com/iex/";
 const TIINGO_EOD_URL: &str = "https://api.tiingo.com/tiingo/daily/";
 const TIINGO_CRYPTO_URL: &str = "https://api.tiingo.com/tiingo/crypto/prices";
 
@@ -53,6 +54,29 @@ pub async fn get_crypto_history(
     }
     let price_data = data.first().unwrap();
     Ok(price_data.clone().price_data)
+}
+
+
+pub async fn get_stock_etf_realtime(
+    http_client: &HttpClient,
+    symbol: &str,
+    api_token: &str,
+) -> Result<TiingoTickerRealtime> {
+    let url = format!(
+        "{}{}?token={}",
+        TIINGO_REALTIME_URL,
+        symbol,
+        api_token,
+    );
+    let headers = reqwest::header::HeaderMap::new();
+    let realtime = http_client
+        .get_request::<Vec<TiingoTickerRealtime>>(url, Some(headers))
+        .await?;
+    if realtime.is_empty() {
+        return Err(anyhow::anyhow!("No ticker realtime available"));
+    }
+    let first = realtime.first().unwrap();
+    Ok(first.clone())
 }
 
 fn convert_datetime_utc_to_ymd(now: &DateTime<Utc>) -> String {

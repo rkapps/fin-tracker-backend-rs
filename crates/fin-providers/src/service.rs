@@ -4,7 +4,11 @@ use crate::{
         self,
         model::{AlphaTicker, AlphaTickerSentimentFeed},
     },
-    tiingo::{self, model::TiingoTickerHistory},
+    tiingo::{
+        self,
+        api::get_stock_etf_realtime,
+        model::{TiingoTickerHistory, TiingoTickerRealtime},
+    },
 };
 use anyhow::Result;
 use chrono::{DateTime, Utc};
@@ -27,6 +31,12 @@ impl ProviderService {
         })
     }
 
+    pub async fn get_stock_etf_realtime(&self, symbol: &str) -> Result<TiingoTickerRealtime> {
+        let realtime = get_stock_etf_realtime(&self.http_client, symbol, &self.tiingo_token).await?;
+        Ok(realtime)
+    }
+
+
     pub async fn get_stock(&self, symbol: &str) -> Result<AlphaTicker> {
         let raw = alpha::api::get_stock(&self.http_client, symbol, &self.alpha_key).await?;
         Ok(raw)
@@ -37,13 +47,9 @@ impl ProviderService {
         symbol: &str,
         date_from: &DateTime<Utc>,
     ) -> Result<Vec<AlphaTickerSentimentFeed>> {
-        let feeds = alpha::api::get_stock_sentiments(
-            &self.http_client,
-            symbol,
-            &self.alpha_key,
-            date_from,
-        )
-        .await?;
+        let feeds =
+            alpha::api::get_stock_sentiments(&self.http_client, symbol, &self.alpha_key, date_from)
+                .await?;
         Ok(feeds)
     }
 
