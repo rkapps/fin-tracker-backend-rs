@@ -2,12 +2,11 @@ use chrono::{DateTime, Utc};
 use rust_decimal::Decimal;
 use serde::Deserialize;
 
-
 #[derive(Debug, Clone, Deserialize)]
 pub struct TiingoTickerPriceData {
     pub ticker: String,
     #[serde(rename = "priceData")]
-    pub price_data: Vec<TiingoTickerHistory>
+    pub price_data: Vec<TiingoTickerHistory>,
 }
 
 #[derive(Debug, Clone, Deserialize)]

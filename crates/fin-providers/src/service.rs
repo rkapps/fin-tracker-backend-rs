@@ -41,7 +41,7 @@ impl ProviderService {
             &self.http_client,
             symbol,
             &self.alpha_key,
-            &date_from,
+            date_from,
         )
         .await?;
         Ok(feeds)
@@ -52,7 +52,7 @@ impl ProviderService {
         symbol: &str,
         start_date: &DateTime<Utc>,
     ) -> Result<Vec<TiingoTickerHistory>> {
-        tiingo::api::get_stock_history(&self.http_client, symbol, &self.tiingo_token, &start_date)
+        tiingo::api::get_stock_history(&self.http_client, symbol, &self.tiingo_token, start_date)
             .await
     }
 
@@ -62,7 +62,13 @@ impl ProviderService {
         start_date: &DateTime<Utc>,
         frequency: &str,
     ) -> Result<Vec<TiingoTickerHistory>> {
-        tiingo::api::get_crypto_history(&self.http_client, symbol,&self.tiingo_token, start_date, frequency )
-            .await
+        tiingo::api::get_crypto_history(
+            &self.http_client,
+            symbol,
+            &self.tiingo_token,
+            start_date,
+            frequency,
+        )
+        .await
     }
 }

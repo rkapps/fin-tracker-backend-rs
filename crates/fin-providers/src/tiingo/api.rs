@@ -48,10 +48,10 @@ pub async fn get_crypto_history(
     let data = http_client
         .get_request::<Vec<TiingoTickerPriceData>>(url, Some(headers))
         .await?;
-    if data.len() == 0 {
+    if data.is_empty() {
         return Err(anyhow::anyhow!("No ticker history available"));
     }
-    let price_data = data.get(0).unwrap();
+    let price_data = data.first().unwrap();
     Ok(price_data.clone().price_data)
 }
 

@@ -48,8 +48,7 @@ pub async fn get_stock_sentiments(
 
 // convert date to format 20220410T0130
 fn convertdatetime_to_format(date: &DateTime<Utc>) -> String {
-    let custom_format = date.format("%Y%m%dT%H%M").to_string();
-    custom_format
+    date.format("%Y%m%dT%H%M").to_string()
 }
 
 #[cfg(test)]
