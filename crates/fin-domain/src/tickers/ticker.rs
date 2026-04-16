@@ -1,19 +1,22 @@
 use crate::{
     tickers::{AssetType, TickerHistory, decimal_serde, performance_serde, seed::TickerSeed},
-    utils::string_utils::{
-        string_to_decimal, string_to_float, string_to_int32, string_to_int64,
-        string_to_utc_datetime,
+    utils::{
+        date_utils::same_date,
+        string_utils::{
+            string_to_decimal, string_to_float, string_to_int32, string_to_int64,
+            string_to_utc_datetime,
+        },
     },
 };
 use anyhow::Result;
 use chrono::{DateTime, Utc};
-use fin_providers::alpha::model::AlphaTicker;
+use fin_providers::{alpha::model::AlphaTicker, tiingo::model::TiingoTickerRealtime};
 use rust_decimal::{Decimal, prelude::ToPrimitive};
 use rust_decimal_macros::dec;
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
 use storage_core::core::RepoModel;
-
+use tracing::info;
 
 #[derive(Serialize, Deserialize, Default, Clone, Debug)]
 pub struct Ticker {
@@ -146,7 +149,6 @@ impl Ticker {
     }
 }
 
-
 impl Ticker {
     pub fn update_from_alpha(&mut self, value: AlphaTicker) {
         self.market_cap = Some(string_to_int64(value.market_capitalization));
@@ -190,6 +192,24 @@ impl Ticker {
 
         self.pr_52_wk_high = string_to_decimal(&value.pr_52_wk_high);
         self.pr_52_wk_low = string_to_decimal(&value.pr_52_wk_low)
+    }
+
+    // update realtime price for stocks and etfs
+    pub fn update_stock_etf_price_realtime(
+        &mut self,
+        realtime: TiingoTickerRealtime,
+    ) -> Result<()> {
+        if let Some(_pr_date) = self.pr_date {
+            if same_date(realtime.date, Utc::now()) {
+                self.pr_last = Decimal::from_f64_retain(realtime.tngo_last).unwrap();
+                self.pr_last = self.pr_last.round_dp(6);
+            }
+        } else {
+            self.pr_date = Some(realtime.date);
+            self.pr_prev = self.pr_last;
+        }
+        self.calculate_price_diff()?;
+        Ok(())
     }
 
     pub fn update_price_from_history(
@@ -238,8 +258,8 @@ impl Ticker {
         let strong_sell = self.analyst_rating_strong_sell.unwrap_or(0);
         let total = strong_buy + buy + hold + sell + strong_sell;
 
-        let score = (strong_buy * 5 + buy * 4 + hold * 3 + sell * 2 + strong_sell) as f32
-            / total as f32;
+        let score =
+            (strong_buy * 5 + buy * 4 + hold * 3 + sell * 2 + strong_sell) as f32 / total as f32;
         match score {
             s if s >= 4.5 => "Strong Buy".to_string(),
             s if s >= 3.5 => "Buy".to_string(),

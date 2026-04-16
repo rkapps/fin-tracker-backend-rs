@@ -2,16 +2,21 @@ use agentic_core::client::embeddings::EmbeddingClient;
 use anyhow::Result;
 use chrono::{Months, Utc};
 use fin_domain::{
-    tickers::{AssetType, TICKER_PERFORMANCE_PERIODS, Ticker, TickerAlpha, TickerControl, TickerEmbedding, TickerHistory, TickerIndicator, TickerSentiment}, utils::data_utils::{
-        calculate_performance, get_period_close, get_period_start, market_cap_label,
-    }
+    tickers::{
+        AssetType, TICKER_PERFORMANCE_PERIODS, Ticker, TickerAlpha, TickerControl, TickerEmbedding,
+        TickerHistory, TickerIndicator, TickerSentiment,
+    },
+    utils::{
+        data_utils::{calculate_performance, get_period_close, get_period_start, market_cap_label},
+        date_utils::same_date,
+    },
 };
 use fin_providers::ProviderService;
 use fin_storage::service::StorageService;
 use rust_decimal::prelude::ToPrimitive;
 use rust_decimal_macros::dec;
 use std::{collections::HashMap, sync::Arc};
-use tracing::{debug, error, trace, warn};
+use tracing::{debug, error, info, trace, warn};
 
 use crate::tickers::{
     BASE_CURRENCY,
@@ -63,7 +68,11 @@ pub async fn update_ticker(
         match update_ticker_sentiments(provider_service, tc, ticker).await {
             Ok(new_sentiments) => {
                 if !new_sentiments.is_empty() {
-                    debug!("Ticker {} New Sentiments: {}", ticker.symbol, new_sentiments.len());
+                    debug!(
+                        "Ticker {} New Sentiments: {}",
+                        ticker.symbol,
+                        new_sentiments.len()
+                    );
                     tc.last_sentiment_sync_at = Some(Utc::now());
                     if update {
                         storage_service.save_ticker_control(tc.clone()).await?;
@@ -88,7 +97,11 @@ pub async fn update_ticker(
         {
             Ok(new_embeddings) => {
                 if !new_embeddings.is_empty() {
-                    debug!("Ticker {} New Embeddings: {}", ticker.symbol, new_embeddings.len());
+                    debug!(
+                        "Ticker {} New Embeddings: {}",
+                        ticker.symbol,
+                        new_embeddings.len()
+                    );
                     tc.last_embedding_sync_at = Some(Utc::now());
                     if update {
                         storage_service.save_ticker_control(tc.clone()).await?;
@@ -112,7 +125,11 @@ pub async fn update_ticker(
         match update_stock_indicators(tc, ticker, &histories).await {
             Ok(new_indicators) => {
                 if !new_indicators.is_empty() {
-                    debug!("Ticker {} New Indicators: {}", ticker.symbol, new_indicators.len());
+                    debug!(
+                        "Ticker {} New Indicators: {}",
+                        ticker.symbol,
+                        new_indicators.len()
+                    );
                     tc.last_indicator_sync_at = Some(Utc::now());
                     if update {
                         storage_service.save_ticker_control(tc.clone()).await?;
@@ -144,6 +161,31 @@ pub async fn update_ticker(
     Ok(())
 }
 
+pub async fn update_ticker_realtime(
+    storage_service: Arc<dyn StorageService>,
+    provider_service: ProviderService,
+    ticker: &mut Ticker,
+) -> Result<()> {
+    match ticker.asset_type {
+        AssetType::Stock | AssetType::Etf => {
+            let raw = provider_service
+                .get_stock_etf_realtime(&ticker.symbol)
+                .await?;
+
+            ticker.update_stock_etf_price_realtime(raw)?;
+            debug!(
+                "pr date: {:?} pr_prev: {:?} pr_last {:?} pr_diff: {:?}",
+                ticker.pr_date, ticker.pr_prev, ticker.pr_last, ticker.pr_diff_amt
+            );
+        }
+        AssetType::Crypto => {}
+
+        _ => {}
+    }
+    storage_service.save_ticker(ticker.clone()).await?;
+
+    Ok(())
+}
 pub(crate) async fn update_ticker_details(
     provider_service: ProviderService,
     ticker: &mut Ticker,
@@ -218,7 +260,11 @@ pub(crate) async fn update_ticker_history(
             }
         };
     }
-    debug!("Ticker {} New History updates: {}", ticker.symbol, new_histories.len());
+    debug!(
+        "Ticker {} New History updates: {}",
+        ticker.symbol,
+        new_histories.len()
+    );
 
     Ok(new_histories)
 }
@@ -483,7 +529,11 @@ pub(crate) async fn update_stock_indicators(
                 indicators
             }
         };
-        debug!("Ticker {} Indicators updates: {}", ticker.symbol, new_indicators.len());
+        debug!(
+            "Ticker {} Indicators updates: {}",
+            ticker.symbol,
+            new_indicators.len()
+        );
     }
 
     Ok(new_indicators)

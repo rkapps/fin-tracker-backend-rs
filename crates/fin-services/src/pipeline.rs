@@ -1,6 +1,9 @@
 use agentic_core::client::embeddings::EmbeddingClient;
 use anyhow::Result;
-use fin_core::tickers::update::{update_ticker, update_ticker_prediction_signals};
+use fin_core::tickers::update::{
+    update_ticker, update_ticker_prediction_signals, update_ticker_realtime,
+};
+use fin_domain::tickers::AssetType;
 use fin_providers::ProviderService;
 use fin_storage::service::StorageService;
 use std::{collections::HashMap, sync::Arc, time::Duration};
@@ -130,7 +133,12 @@ impl PipeLineService {
             // }
 
             if i % 20 == 0 {
-                info!("Updating Ticker Predictions: {} {}/{}", ticker.symbol, i + 1, length);
+                info!(
+                    "Updating Ticker Predictions: {} {}/{}",
+                    ticker.symbol,
+                    i + 1,
+                    length
+                );
             }
 
             let sector = ticker.sector.clone().unwrap();
@@ -164,6 +172,35 @@ impl PipeLineService {
     }
 
     pub async fn update_tickers_realtime_stocks_etfs(&self) -> Result<()> {
+        let mut tickers = self.storage_service.get_tickers_by_marketcap().await?;
+        tickers.retain(|t| t.asset_type == AssetType::Stock || t.asset_type == AssetType::Etf);
+        let symbols = tickers.iter().map(|t| t.symbol.clone());
+
+        let length = tickers.len();
+
+        for (i, symbol) in symbols.enumerate() {
+            let mut ticker = self.storage_service.get_ticker_by_symbol(&symbol).await?;
+
+            if i % 20 == 0 {
+                info!(
+                    "Updating Ticker Realtime: {} {}/{}",
+                    ticker.symbol,
+                    i + 1,
+                    length
+                );
+            }
+            if let Err(e) = update_ticker_realtime(
+                self.storage_service.clone(),
+                self.provider_service.clone(),
+                &mut ticker,
+            )
+            .await
+            {
+                error!("Ticker Realtime error {}: {}", symbol, e);
+                continue;
+            }
+            break;
+        }
         Ok(())
     }
 
