@@ -4,21 +4,21 @@ use fin_domain::{
         screen_param::TickerScreenParam, ticker_chart_entity::TickerChartEntity,
         ticker_entity::TickerEntity,
     },
-    ticker::TickerIndicator,
+    tickers::TickerIndicator,
 };
 use fin_storage::service::StorageService;
 use rust_decimal::{Decimal, prelude::ToPrimitive};
 use std::{collections::HashMap, sync::Arc};
-use tracing::debug;
+use tracing::{debug};
 
 #[derive(Debug)]
-pub struct TickerService {
+pub struct TickersService {
     pub storage_service: Arc<dyn StorageService>,
 }
 
-impl TickerService {
-    pub fn new(storage_service: Arc<dyn StorageService>) -> TickerService {
-        TickerService { storage_service }
+impl TickersService {
+    pub fn new(storage_service: Arc<dyn StorageService>) -> TickersService {
+        TickersService { storage_service }
     }
 
     pub async fn get_tickers_by_symbols(&self, symbols: Vec<String>) -> Result<Vec<TickerEntity>> {
@@ -88,7 +88,7 @@ impl TickerService {
             _ => {
                 let tickers = self
                     .storage_service
-                    .get_tickers_by_movers(&function)
+                    .get_tickers_by_movers(function)
                     .await
                     .unwrap();
                 tickers
@@ -104,7 +104,7 @@ impl TickerService {
     pub async fn get_ticker_charts(&self, symbol: &str) -> Result<Vec<TickerChartEntity>> {
         let indicators = self
             .storage_service
-            .get_ticker_indicators(&symbol)
+            .get_ticker_indicators(symbol)
             .await
             .map_err(|e| anyhow::anyhow!(format!("Get Ticker error: {}", e)))?;
 
@@ -115,7 +115,7 @@ impl TickerService {
 
         let history = self
             .storage_service
-            .get_ticker_history(&symbol)
+            .get_ticker_history(symbol)
             .await
             .map_err(|e| anyhow::anyhow!(format!("Get Ticker error: {}", e)))?;
 
@@ -123,16 +123,18 @@ impl TickerService {
             .into_iter()
             .filter_map(|b| {
                 indicator_map.get(&b.id).map(|val_a| {
+
                     let sma_50 = val_a
                         .values
                         .get("sma_50")
-                        .unwrap_or_else(|| &Decimal::ZERO)
+                        .unwrap_or( &Decimal::ZERO)
                         .to_f64()
                         .unwrap_or_default();
+
                     let sma_200 = val_a
                         .values
                         .get("sma_200")
-                        .unwrap_or_else(|| &Decimal::ZERO)
+                        .unwrap_or(&Decimal::ZERO)
                         .to_f64()
                         .unwrap_or_default();
 
