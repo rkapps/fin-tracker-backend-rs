@@ -1,5 +1,5 @@
 use crate::{
-    ticker::{TickerHistory, decimal_serde, performance_serde},
+    tickers::{AssetType, TickerHistory, decimal_serde, performance_serde, seed::TickerSeed},
     utils::string_utils::{
         string_to_decimal, string_to_float, string_to_int32, string_to_int64,
         string_to_utc_datetime,
@@ -14,14 +14,6 @@ use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
 use storage_core::core::RepoModel;
 
-#[derive(Debug, Serialize, Deserialize, Clone, PartialEq, Default)]
-#[serde(rename_all = "UPPERCASE")]
-pub enum AssetType {
-    #[default]
-    Stock,
-    Etf,
-    Crypto,
-}
 
 #[derive(Serialize, Deserialize, Default, Clone, Debug)]
 pub struct Ticker {
@@ -154,19 +146,6 @@ impl Ticker {
     }
 }
 
-#[derive(Serialize, Deserialize, Clone, Debug)]
-pub struct TickerSeed {
-    pub asset_type: AssetType,
-    // pub active: bool,
-    pub symbol: String,
-    pub exchange: String,
-    pub name: String,
-    pub sector: String,
-    pub industry: String,
-    pub overview: String,
-    // pub country: String,
-    // pub currency: String,
-}
 
 impl Ticker {
     pub fn update_from_alpha(&mut self, value: AlphaTicker) {
@@ -232,8 +211,6 @@ impl Ticker {
         Ok(())
     }
 
-    
-
     fn calculate_price_diff(&mut self) -> Result<()> {
         if self.pr_prev == Decimal::ZERO {
             self.pr_diff_amt = self.pr_last;
@@ -261,7 +238,7 @@ impl Ticker {
         let strong_sell = self.analyst_rating_strong_sell.unwrap_or(0);
         let total = strong_buy + buy + hold + sell + strong_sell;
 
-        let score = (strong_buy * 5 + buy * 4 + hold * 3 + sell * 2 + strong_sell * 1) as f32
+        let score = (strong_buy * 5 + buy * 4 + hold * 3 + sell * 2 + strong_sell) as f32
             / total as f32;
         match score {
             s if s >= 4.5 => "Strong Buy".to_string(),

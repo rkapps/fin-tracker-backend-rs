@@ -2,7 +2,7 @@ use chrono::{DateTime, Utc};
 use serde::Serialize;
 use storage_core::core::RepoModel;
 
-use crate::ticker::{TICKER_CONTROL_COLLECTION_NAME, TickerSeed};
+use crate::tickers::{TICKER_CONTROL_COLLECTION_NAME, seed::TickerSeed};
 
 #[derive(Serialize, serde::Deserialize, Clone, Debug)]
 pub struct TickerControl {

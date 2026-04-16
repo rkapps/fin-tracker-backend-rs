@@ -8,6 +8,9 @@ mod indicator_snapshot;
 mod indicator_window;
 mod sentiment;
 mod ticker;
+mod seed;
+
+use std::str::FromStr;
 
 use chrono::DateTime;
 use chrono::Utc;
@@ -26,11 +29,12 @@ pub use indicator::indicator_type;
 pub use indicator_snapshot::IndicatorSnapshot;
 pub use indicator_window::IndicatorWindow;
 pub use sentiment::TickerSentiment;
+pub use seed::TickerSeed;
 
 use serde::Serialize;
-pub use ticker::AssetType;
+// pub use ticker::AssetType;
 pub use ticker::Ticker;
-pub use ticker::TickerSeed;
+// pub use ticker::TickerSeed;
 
 pub const TICKER_COLLECTION_NAME: &str = "ticker";
 pub const TICKER_CONTROL_COLLECTION_NAME: &str = "ticker_control";
@@ -41,6 +45,30 @@ pub const TICKER_EMBEDDING_COLLECTION_NAME: &str = "ticker_embedding";
 pub const TICKER_ALPHA_COLLECTION_NAME: &str = "ticker_alpha";
 
 pub const TICKER_PERFORMANCE_PERIODS: [&str; 8] = ["1W", "1M", "3M", "6M", "1Y", "Ytd", "2Y", "5Y"];
+
+
+#[derive(Debug, Serialize, Deserialize, Clone, PartialEq, Default)]
+#[serde(rename_all = "UPPERCASE")]
+pub enum AssetType {
+    #[default]
+    Stock,
+    Etf,
+    Crypto,
+}
+
+impl FromStr for AssetType {
+    type Err = String;
+
+    fn from_str(s: &str) -> Result<Self, Self::Err> {
+        match s.to_uppercase().as_str() {
+            "STOCK" => Ok(AssetType::Stock),
+            "ETF" => Ok(AssetType::Etf),
+            "CRYPTO" => Ok(AssetType::Crypto),
+            _ => Err(format!("Unknown asset type: {}", s)),
+        }
+    }
+}
+
 
 pub mod decimal_serde {
     use bson::Decimal128;

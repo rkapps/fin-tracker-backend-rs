@@ -4,7 +4,7 @@ use chrono::{DateTime, Utc};
 use rust_decimal::prelude::ToPrimitive;
 use serde::{Deserialize, Serialize};
 
-use crate::ticker::{AssetType, Ticker};
+use crate::tickers::{AssetType, Ticker};
 
 #[derive(Serialize, Deserialize, Default, Clone, Debug)]
 pub struct TickerEntity {

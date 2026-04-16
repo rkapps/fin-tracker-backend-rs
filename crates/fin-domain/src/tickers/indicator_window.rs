@@ -1,4 +1,4 @@
-use crate::ticker::IndicatorSnapshot;
+use crate::tickers::IndicatorSnapshot;
 
 pub struct IndicatorWindow {
     pub curr: IndicatorSnapshot,

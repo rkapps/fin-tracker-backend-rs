@@ -1,14 +1,14 @@
 use std::collections::HashMap;
 
-use crate::ticker::deserialize_flexible_datetime;
-use crate::ticker::indicator_serde;
-use crate::ticker::serialize_as_bson_datetime;
+use crate::tickers::deserialize_flexible_datetime;
+use crate::tickers::indicator_serde;
+use crate::tickers::serialize_as_bson_datetime;
 use chrono::{DateTime, Utc};
 use rust_decimal::Decimal;
 use serde::{Deserialize, Serialize};
 use storage_core::core::RepoModel;
 
-use crate::ticker::TICKER_INDICATOR_COLLECTION_NAME;
+use crate::tickers::TICKER_INDICATOR_COLLECTION_NAME;
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct TickerIndicator {

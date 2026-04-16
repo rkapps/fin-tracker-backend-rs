@@ -1,6 +1,6 @@
-use crate::ticker::decimal_serde;
-use crate::ticker::deserialize_flexible_datetime;
-use crate::ticker::serialize_as_bson_datetime;
+use crate::tickers::decimal_serde;
+use crate::tickers::deserialize_flexible_datetime;
+use crate::tickers::serialize_as_bson_datetime;
 use anyhow::Result;
 use chrono::{DateTime, Utc};
 use fin_providers::tiingo::model::TiingoTickerHistory;
@@ -8,7 +8,7 @@ use rust_decimal::Decimal;
 use serde::{Deserialize, Serialize};
 use storage_core::core::RepoModel;
 
-use crate::ticker::TICKER_HISTORY_COLLECTION_NAME;
+use crate::tickers::TICKER_HISTORY_COLLECTION_NAME;
 
 #[derive(Serialize, Deserialize, Clone, Debug)]
 pub struct TickerHistory {

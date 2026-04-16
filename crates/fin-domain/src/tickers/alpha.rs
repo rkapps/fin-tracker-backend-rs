@@ -2,7 +2,7 @@ use chrono::{DateTime, Utc};
 use serde::{Deserialize, Serialize};
 use storage_core::core::RepoModel;
 
-use crate::ticker::TICKER_ALPHA_COLLECTION_NAME;
+use crate::tickers::TICKER_ALPHA_COLLECTION_NAME;
 
 #[derive(Serialize, Deserialize, Debug, Clone)]
 pub enum ModelType {

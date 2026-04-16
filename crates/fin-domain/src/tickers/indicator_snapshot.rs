@@ -1,6 +1,6 @@
 use rust_decimal::Decimal;
 
-use crate::ticker::TickerIndicator;
+use crate::tickers::TickerIndicator;
 
 #[derive(Debug, Clone)]
 pub struct IndicatorSnapshot {

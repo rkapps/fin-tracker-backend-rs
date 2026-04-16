@@ -1,5 +1,5 @@
 use crate::{
-    ticker::IndicatorSnapshot,
+    tickers::IndicatorSnapshot,
     utils::{dec_utils::decimal_to_float, float_utils::float_round_to_6_decimals},
 };
 use anyhow::Result;

@@ -1,3 +1,3 @@
 pub mod dto;
-pub mod ticker;
+pub mod tickers;
 pub mod utils;
