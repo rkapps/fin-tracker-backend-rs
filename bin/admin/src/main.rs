@@ -3,7 +3,7 @@ use std::path::PathBuf;
 use anyhow::Result;
 use bin_shared::{logger::set_logger, services::get_load_service};
 use clap::{Parser, Subcommand};
-use fin_tracker_admin::load_from_file::load_tickers_from_file;
+use fin_tracker_admin::{seed::load_ticker_seeds_from_file, ticker::check_update_ticker};
 use tracing::{error, info};
 
 #[derive(Parser)]
@@ -19,8 +19,11 @@ enum AdminCommands {
         #[arg(short, long)]
         file: PathBuf,
     },
-    // LoadExchanges,
-    // FixData,
+    CheckUpdateTicker {
+        #[arg(short, long)]
+        symbol: String,
+    }, // LoadExchanges,
+       // FixData,
 }
 
 #[tokio::main]
@@ -32,7 +35,7 @@ async fn main() -> Result<()> {
 
     match cli.command {
         AdminCommands::LoadTickers { file } => {
-            let ticker_seeds = load_tickers_from_file(file)?;
+            let ticker_seeds = load_ticker_seeds_from_file(file)?;
 
             info!("Load Tickers PipeLine started...");
 
@@ -46,6 +49,9 @@ async fn main() -> Result<()> {
                 Err(e) => error!("Background Tickers EOD Update failed: {:?}", e),
             }
             info!("Load Tickers PipeLine done.");
+        }
+        AdminCommands::CheckUpdateTicker { symbol } => {
+            check_update_ticker(&symbol).await?;
         }
     }
 

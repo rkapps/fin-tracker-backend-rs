@@ -1059,6 +1059,7 @@ dependencies = [
  "bin-shared",
  "calamine",
  "clap",
+ "fin-core",
  "fin-domain",
  "fin-providers",
  "fin-services",

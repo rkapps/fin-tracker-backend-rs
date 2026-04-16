@@ -3,7 +3,7 @@ use calamine::{Reader, Xlsx, open_workbook};
 use fin_domain::tickers::TickerSeed;
 use std::path::PathBuf;
 
-pub fn load_tickers_from_file(file: PathBuf) -> Result<Vec<TickerSeed>> {
+pub fn load_ticker_seeds_from_file(file: PathBuf) -> Result<Vec<TickerSeed>> {
     let mut workbook: Xlsx<_> =
         open_workbook(&file).with_context(|| format!("Failed to open file: {:?}", file))?;
 
