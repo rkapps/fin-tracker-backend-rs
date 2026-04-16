@@ -1,5 +1,5 @@
 use anyhow::Result;
-use fin_domain::ticker::{FeatureSnapshot, IndicatorSnapshot, TickerIndicator};
+use fin_domain::tickers::{FeatureSnapshot, IndicatorSnapshot, TickerIndicator};
 use rust_decimal::prelude::ToPrimitive;
 use tracing::trace;
 
@@ -50,15 +50,13 @@ pub fn build_labels(indicators: &[TickerIndicator], period: usize) -> Result<Vec
             // fsnapshot.values().get(2).unwrap(),
             fsnapshot.values().get(3).unwrap(),
             fsnapshot.values().get(4).unwrap()
-
         );
 
-        let mut tvalues = Vec::new();
-        tvalues.push(fsnapshot.values().get(1).unwrap().clone());
-        tvalues.push(fsnapshot.values().get(3).unwrap().clone());
+        let tvalues = vec![*fsnapshot.values().get(1).unwrap(), *fsnapshot.values().get(3).unwrap() ];
+        // tvalues.push();
+        // tvalues.push(*fsnapshot.values().get(3).unwrap());
 
         labels.push((return_pct, tvalues));
-
     }
 
     Ok(labels)

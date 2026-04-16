@@ -1,10 +1,9 @@
 use anyhow::Result;
-use fin_domain::ticker::TickerIndicator;
+use fin_domain::tickers::TickerIndicator;
 use rayon::iter::{IntoParallelRefIterator, ParallelIterator};
 use tracing::{debug, info, warn};
 
 use crate::ml::common::labels::build_labels;
-
 
 pub async fn build_tickers_models(
     data: &[(String, Vec<TickerIndicator>)],

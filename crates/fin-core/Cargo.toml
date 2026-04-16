@@ -6,9 +6,29 @@ edition = "2024"
 
 [dependencies]
 anyhow.workspace = true
+async-trait.workspace = true
+bincode.workspace = true
+candle-core.workspace = true
+candle-nn.workspace = true
+chrono.workspace = true
+linfa.workspace=true
+linfa-linear.workspace=true
+linfa-ensemble.workspace=true
+linfa-trees.workspace=true
+ndarray.workspace=true
+
+rand.workspace = true
 rayon.workspace = true
 rust_decimal.workspace = true
+rust_decimal_macros.workspace = true
+serde.workspace=true
+serde_json.workspace=true
+ta.workspace=true
 tracing.workspace = true
 
 fin-domain.workspace = true
+fin-providers.workspace = true
 fin-storage.workspace = true
+
+agentic-core.workspace = true
+storage-core.workspace = true
