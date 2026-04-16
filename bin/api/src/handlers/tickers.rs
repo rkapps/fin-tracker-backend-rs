@@ -7,7 +7,7 @@ use fin_domain::dto::{
     screen_param::TickerScreenParam, ticker_chart_entity::TickerChartEntity,
     ticker_entity::TickerEntity,
 };
-use fin_services::ticker_service::TickerService;
+use fin_services::ticker::TickersService;
 use reqwest::StatusCode;
 use serde::Deserialize;
 use serde_with::{StringWithSeparator, formats::CommaSeparator, serde_as};
@@ -22,7 +22,7 @@ pub struct TickerQueryParam {
 }
 
 pub async fn get_tickers_handler(
-    State(ticker_service): State<Arc<TickerService>>,
+    State(ticker_service): State<Arc<TickersService>>,
     Query(param): Query<TickerQueryParam>,
 ) -> Result<Json<Vec<TickerEntity>>, (StatusCode, String)> {
     let tickers: Vec<TickerEntity> = match (param.symbols, param.function) {
@@ -52,7 +52,7 @@ pub async fn get_tickers_handler(
 }
 
 pub async fn get_ticker_charts_handler(
-    State(ticker_service): State<Arc<TickerService>>,
+    State(ticker_service): State<Arc<TickersService>>,
     Path(symbol): Path<String>,
 ) -> Result<Json<Vec<TickerChartEntity>>, (StatusCode, String)> {
     let charts = ticker_service
@@ -68,7 +68,7 @@ pub async fn get_ticker_charts_handler(
 }
 
 pub async fn get_ticker_groups_handler(
-    State(ticker_service): State<Arc<TickerService>>,
+    State(ticker_service): State<Arc<TickersService>>,
 ) -> Result<Json<HashMap<String, Vec<String>>>, (StatusCode, String)> {
     let groups = ticker_service
         .get_ticker_groups()
@@ -79,7 +79,7 @@ pub async fn get_ticker_groups_handler(
 }
 
 pub async fn search_tickers_handler(
-    State(ticker_service): State<Arc<TickerService>>,
+    State(ticker_service): State<Arc<TickersService>>,
     Json(param): Json<TickerScreenParam>,
 ) -> Result<Json<Vec<TickerEntity>>, (StatusCode, String)> {
     let tickers = ticker_service

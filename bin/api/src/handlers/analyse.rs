@@ -6,21 +6,33 @@ use axum::{
     extract::State,
     response::{IntoResponse, Sse, sse::Event},
 };
-use fin_services::tools::ToolsService;
+use fin_services::analyse::AnalyseService;
 use futures::StreamExt;
 use reqwest::StatusCode;
+use serde::{Deserialize, Serialize};
 use tracing::debug;
 
-use crate::handlers::stocks::{TickerAnalyseParam, TickerAnalyseResponse};
+#[derive(Deserialize, Debug)]
+pub struct TickerAnalyseParam {
+    pub llm: String,
+    pub prompt: String,
+    pub prev_response_id: Option<String>,
+}
+
+#[derive(Serialize, Debug)]
+pub struct TickerAnalyseResponse {
+    pub content: String,
+    pub response_id: String,
+}
 
 pub async fn analyse_tickers_handler(
-    State(tools_service): State<Arc<ToolsService>>,
+    State(analyse_service): State<Arc<AnalyseService>>,
     Json(param): Json<TickerAnalyseParam>,
 ) -> Result<Json<TickerAnalyseResponse>, (StatusCode, String)> {
     debug!("analyse params: {:?}", param);
     let response_id = param.prev_response_id;
 
-    let response = tools_service
+    let response = analyse_service
         .analyse_tickers(&param.llm, &param.prompt, response_id)
         .await
         .map_err(|e| {
@@ -51,14 +63,14 @@ pub async fn analyse_tickers_handler(
 }
 
 pub async fn analyse_tickers_streaming_handler(
-    State(tools_service): State<Arc<ToolsService>>,
+    State(analyse_service): State<Arc<AnalyseService>>,
     Json(param): Json<TickerAnalyseParam>,
 ) -> impl IntoResponse {
     debug!("started analyse_tickers_streaming_handler");
 
     let response_id = param.prev_response_id;
 
-    let stream = match tools_service
+    let stream = match analyse_service
         .analyse_tickers_streaming(&param.llm, &param.prompt, response_id)
         .await
     {
