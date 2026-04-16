@@ -1,0 +1,17 @@
+[package]
+name = "bin-shared"
+version = "0.1.0"
+edition = "2021"
+
+[lib]
+
+[dependencies]
+anyhow.workspace = true
+tracing.workspace = true
+tracing-subscriber.workspace = true
+
+agentic-core.workspace = true
+fin-providers.workspace = true
+fin-services.workspace = true
+fin-storage.workspace=true
+
