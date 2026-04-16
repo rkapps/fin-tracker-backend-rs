@@ -4,10 +4,8 @@ use std::sync::Arc;
 
 #[derive(Clone)]
 pub struct AppState {
-    // pub stocks_service: Arc<StocksService>,
     pub ticker_service: Arc<TickersService>,
     pub analyse_service: Arc<AnalyseService>,
-    // pub ml_service: Arc<MlService>,
 }
 
 #[derive(Clone)]
@@ -30,15 +28,3 @@ impl FromRef<AppState> for Arc<AnalyseService> {
         state.analyse_service.clone()
     }
 }
-
-// impl FromRef<AppState> for Arc<StocksService> {
-//     fn from_ref(state: &AppState) -> Self {
-//         state.stocks_service.clone()
-//     }
-// }
-
-// impl FromRef<AppState> for Arc<MlService> {
-//     fn from_ref(state: &AppState) -> Self {
-//         state.ml_service.clone()
-//     }
-// }

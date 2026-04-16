@@ -59,7 +59,6 @@ pub async fn analyse_tickers_handler(
         response_id: response.response_id,
     };
     Ok(Json(aresponse))
-    // Ok(Json(response))
 }
 
 pub async fn analyse_tickers_streaming_handler(
