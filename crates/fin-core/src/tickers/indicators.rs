@@ -16,7 +16,7 @@ use ta::{
         MovingAverageConvergenceDivergence, RelativeStrengthIndex, SimpleMovingAverage,
     },
 };
-use tracing::{debug, trace};
+use tracing::trace;
 
 pub struct IndicatorCalculator {}
 
@@ -72,13 +72,13 @@ impl IndicatorCalculator {
             let mut values = HashMap::new();
             values.insert("price".to_string(), h.close);
 
-            trace!("Value: {:?}", h);
+            trace!("History: {:?}", h);
             // Calculate all SMAs
             for (period, sma) in sma_calcs.iter_mut() {
                 let value = sma.next(close_f64);
                 if idx >= *period - 1 {
                     if idx == sorted_history.len() - 1 {
-                        debug!(
+                        trace!(
                             "sma value for date: {} period: {} - {}",
                             h.date, period, value
                         )

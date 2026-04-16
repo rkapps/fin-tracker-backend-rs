@@ -130,7 +130,7 @@ impl PipeLineService {
             // }
 
             if i % 20 == 0 {
-                info!("Updating Ticker: {} {}/{}", ticker.symbol, i + 1, length);
+                info!("Updating Ticker Predictions: {} {}/{}", ticker.symbol, i + 1, length);
             }
 
             let sector = ticker.sector.clone().unwrap();

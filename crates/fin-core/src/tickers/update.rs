@@ -63,7 +63,7 @@ pub async fn update_ticker(
         match update_ticker_sentiments(provider_service, tc, ticker).await {
             Ok(new_sentiments) => {
                 if !new_sentiments.is_empty() {
-                    debug!("Ticker New Sentiments: {}", new_sentiments.len());
+                    debug!("Ticker {} New Sentiments: {}", ticker.symbol, new_sentiments.len());
                     tc.last_sentiment_sync_at = Some(Utc::now());
                     if update {
                         storage_service.save_ticker_control(tc.clone()).await?;
@@ -88,7 +88,7 @@ pub async fn update_ticker(
         {
             Ok(new_embeddings) => {
                 if !new_embeddings.is_empty() {
-                    debug!("Ticker New Embeddings: {}", new_embeddings.len());
+                    debug!("Ticker {} New Embeddings: {}", ticker.symbol, new_embeddings.len());
                     tc.last_embedding_sync_at = Some(Utc::now());
                     if update {
                         storage_service.save_ticker_control(tc.clone()).await?;
@@ -112,7 +112,7 @@ pub async fn update_ticker(
         match update_stock_indicators(tc, ticker, &histories).await {
             Ok(new_indicators) => {
                 if !new_indicators.is_empty() {
-                    debug!("Ticker New Indicators: {}", new_indicators.len());
+                    debug!("Ticker {} New Indicators: {}", ticker.symbol, new_indicators.len());
                     tc.last_indicator_sync_at = Some(Utc::now());
                     if update {
                         storage_service.save_ticker_control(tc.clone()).await?;
@@ -218,7 +218,7 @@ pub(crate) async fn update_ticker_history(
             }
         };
     }
-    debug!("Ticker New History updates: {}", new_histories.len());
+    debug!("Ticker {} New History updates: {}", ticker.symbol, new_histories.len());
 
     Ok(new_histories)
 }
@@ -304,7 +304,8 @@ pub(crate) async fn update_ticker_sentiments(
         AssetType::Etf => {}
     }
     debug!(
-        "Ticker Feeds: {} Sentiments: {}",
+        "Ticker {} Feeds: {} Sentiments: {}",
+        ticker.symbol,
         feeds_len,
         sentiments.len()
     );
@@ -342,7 +343,8 @@ pub(crate) async fn update_ticker_sentiment_embeddings(
     }
 
     debug!(
-        "Ticker Sentiments with score: {} - {}",
+        "Ticker {} Sentiments with score: {} - {}",
+        ticker.symbol,
         cmp_score,
         sentiments.len()
     );
@@ -442,7 +444,7 @@ pub async fn update_ticker_embedding(
 
 pub(crate) async fn update_stock_indicators(
     tc: &mut TickerControl,
-    _ticker: &mut Ticker,
+    ticker: &mut Ticker,
     histories: &[TickerHistory],
 ) -> Result<Vec<TickerIndicator>> {
     let mut new_indicators = Vec::new();
@@ -481,7 +483,7 @@ pub(crate) async fn update_stock_indicators(
                 indicators
             }
         };
-        debug!("Ticker Indicators updates: {}", new_indicators.len());
+        debug!("Ticker {} Indicators updates: {}", ticker.symbol, new_indicators.len());
     }
 
     Ok(new_indicators)
@@ -499,7 +501,6 @@ pub(crate) async fn update_ticker_signals(
     let signalsc = SignalsCalculator {};
 
     let mut signals = Vec::new();
-    debug!("Calculating signals...");
     signals.extend(signalsc.calculate_sma_stack(&window));
     signals.extend(
         signalsc
@@ -566,8 +567,8 @@ pub(crate) async fn update_ticker_signals(
         Some("Strong Sell") => signals.push("Analyst Strong Sell".to_string()),
         _ => {}
     }
-    debug!("Calculating signals done.");
 
+    debug!("Ticker {} signals: {}", ticker.symbol, signals.len());
     ticker.signals = signals;
     Ok(())
 }
