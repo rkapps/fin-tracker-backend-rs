@@ -1,0 +1,34 @@
+use anyhow::{Context, Result};
+use calamine::{Reader, Xlsx, open_workbook};
+use fin_domain::tickers::TickerSeed;
+use std::path::PathBuf;
+
+pub fn load_tickers_from_file(file: PathBuf) -> Result<Vec<TickerSeed>> {
+    let mut workbook: Xlsx<_> =
+        open_workbook(&file).with_context(|| format!("Failed to open file: {:?}", file))?;
+
+    let sheet = workbook
+        .worksheet_range_at(0)
+        .ok_or_else(|| anyhow::anyhow!("No sheet found"))??;
+
+    let mut tickers = Vec::new();
+
+    for row in sheet.rows() {
+        // skip header row
+        let ticker = TickerSeed {
+            asset_type: row[0]
+                .to_string()
+                .parse()
+                .map_err(|e| anyhow::anyhow!("Invalid asset type: {}", e))?,
+            exchange: row[1].to_string(),
+            symbol: row[2].to_string(),
+            name: row[3].to_string(),
+            sector: row[4].to_string(),
+            industry: row[5].to_string(),
+            overview: row[6].to_string(),
+        };
+        tickers.push(ticker);
+    }
+
+    Ok(tickers)
+}
