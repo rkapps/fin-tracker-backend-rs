@@ -171,7 +171,7 @@ impl PipeLineService {
         Ok(())
     }
 
-    pub async fn update_tickers_realtime_stocks_etfs(&self) -> Result<()> {
+    pub async fn update_realtime_stocks_etfs(&self) -> Result<()> {
         let mut tickers = self.storage_service.get_tickers_by_marketcap().await?;
         tickers.retain(|t| t.asset_type == AssetType::Stock || t.asset_type == AssetType::Etf);
         let symbols = tickers.iter().map(|t| t.symbol.clone());
@@ -204,7 +204,7 @@ impl PipeLineService {
         Ok(())
     }
 
-    pub async fn update_tickers_realtime_crypto(&self) -> Result<()> {
+    pub async fn update_realtime_crypto(&self) -> Result<()> {
         Ok(())
     }
 }

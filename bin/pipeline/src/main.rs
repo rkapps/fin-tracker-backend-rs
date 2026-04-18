@@ -16,8 +16,8 @@ struct Cli {
 #[derive(Subcommand)]
 enum PipelineCommands {
     TickersEod,
-    TickersRealtimeStocksEtfs,
-    TickersRealtimeCrypto,
+    RealtimeStocksEtfs,
+    RealtimeCrypto,
     TrainModel,
 }
 
@@ -45,16 +45,16 @@ async fn main() -> Result<()> {
             }
             info!("Tickers EOD PipeLine done.");
         }
-        PipelineCommands::TickersRealtimeStocksEtfs => {
+        PipelineCommands::RealtimeStocksEtfs => {
             info!("Tickers Stocks and Etfs Realtime started...");
-            match pipeline_service.update_tickers_realtime_stocks_etfs().await {
+            match pipeline_service.update_realtime_stocks_etfs().await {
                 Ok(_) => info!("Tickers Stocks and Etfs Realtime completed successfully."),
                 Err(e) => error!("Tickers Stocks and Etfs Realtime failed: {:?}", e),
             }
         }
-        PipelineCommands::TickersRealtimeCrypto => {
+        PipelineCommands::RealtimeCrypto => {
             info!("Tickers Crypto Realtime started...");
-            match pipeline_service.update_tickers_realtime_stocks_etfs().await {
+            match pipeline_service.update_realtime_crypto().await {
                 Ok(_) => info!("Tickers Crypto Realtime completed successfully."),
                 Err(e) => error!("Tickers Crypto Realtime failed: {:?}", e),
             }
