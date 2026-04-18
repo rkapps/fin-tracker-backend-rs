@@ -1,6 +1,6 @@
 use agentic_core::client::embeddings::EmbeddingClient;
 use anyhow::Result;
-use fin_core::tickers::update::{update_ticker, update_ticker_embedding};
+use fin_core::tickers::update::{update_ticker, update_ticker_overview_embedding};
 use fin_domain::tickers::{Ticker, TickerControl, TickerSeed};
 use fin_providers::ProviderService;
 use fin_storage::service::StorageService;
@@ -70,7 +70,7 @@ impl LoadService {
             }
 
             if let Err(e) =
-                update_ticker_embedding(storage_service, embedding_client, &mut ticker).await
+                update_ticker_overview_embedding(storage_service, embedding_client, &mut ticker).await
             {
                 error!("Ticker overview embedding {}: {}", seed.symbol, e);
                 continue;
@@ -85,30 +85,4 @@ impl LoadService {
         Ok(())
     }
 
-    pub async fn load_ticker_embeddings(&self, ticker_seeds: &[TickerSeed]) -> Result<()> {
-        let length = ticker_seeds.len();
-        for (i, seed) in ticker_seeds.iter().enumerate() {
-            let mut ticker = self.storage_service.get_ticker_by_symbol(&seed.symbol).await?;
-            if i % 20 == 0 {
-                info!(
-                    "Loading Ticker Embeddings: {} {}/{}",
-                    ticker.symbol,
-                    i + 1,
-                    length
-                );
-            }
-            if let Err(e) = update_ticker_embedding(
-                self.storage_service.clone(),
-                self.embedding_client.clone(),
-                &mut ticker,
-            )
-            .await
-            {
-                error!("Ticker Embeddings {}: {}", seed.symbol, e);
-                continue;
-            } // break;
-        }
-        info!("Loading Ticker Embeddings done");
-        Ok(())
-    }
 }

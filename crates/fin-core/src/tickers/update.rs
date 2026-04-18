@@ -382,7 +382,7 @@ pub(crate) async fn update_ticker_sentiment_embeddings(
     ticker: &mut Ticker,
 ) -> Result<Vec<TickerEmbedding>> {
     let mut new_embeddings = Vec::new();
-    let cmp_score = dec!(0.30);
+    let cmp_score = dec!(0.8);
 
     let sentiments = storage_service
         .get_ticker_sentiments_with_score(&ticker.symbol, &cmp_score)

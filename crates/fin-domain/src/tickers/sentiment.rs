@@ -1,14 +1,14 @@
 use crate::tickers::deserialize_flexible_datetime;
 use crate::tickers::serialize_as_bson_datetime;
+use crate::utils::string_utils::string_to_float;
 use chrono::{DateTime, Utc};
 use fin_providers::alpha::model::AlphaTickerSentimentFeed;
-use rust_decimal::Decimal;
 use serde::{Deserialize, Serialize};
 use storage_core::core::RepoModel;
 
 use crate::{
     tickers::TICKER_SENTIMENT_COLLECTION_NAME,
-    utils::string_utils::{alpha_string_to_utc_datetime, string_to_decimal},
+    utils::string_utils::alpha_string_to_utc_datetime,
 };
 
 #[derive(Serialize, Deserialize, Clone, Debug)]
@@ -27,8 +27,8 @@ pub struct TickerSentiment {
     pub source: String,
     pub source_category: String,
     pub source_domain: String,
-    pub relevance_score: Decimal,
-    pub score: Decimal,
+    pub relevance_score: f64,
+    pub score: f64,
     pub label: String,
 }
 
@@ -57,8 +57,8 @@ impl TickerSentiment {
                 id: TickerSentiment::sentiment_id(symbol, feed),
                 date: date_published,
                 label: sentiment.ticker_sentiment_label.clone(),
-                relevance_score: string_to_decimal(&sentiment.relevance_score),
-                score: string_to_decimal(&sentiment.ticker_sentiment_score),
+                relevance_score: string_to_float(&sentiment.relevance_score),
+                score: string_to_float(&sentiment.ticker_sentiment_score),
                 source: feed.source.to_string(),
                 source_category: feed.category_within_source.to_string(),
                 source_domain: feed.source_domain.to_string(),

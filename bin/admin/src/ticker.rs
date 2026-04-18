@@ -1,7 +1,8 @@
 use anyhow::Result;
 use bin_shared::services::get_pipeline_service;
 use fin_core::tickers::update::update_ticker;
-use tracing::error;
+use rust_decimal_macros::dec;
+use tracing::{debug, error};
 
 pub async fn check_update_ticker(symbol: &str) -> Result<()> {
     let pipeline_service = get_pipeline_service().await?;
@@ -44,6 +45,17 @@ pub async fn check_update_ticker(symbol: &str) -> Result<()> {
         error!("Ticker {}: {}", symbol, e);
         return Err(e);
     }
+
+    Ok(())
+}
+
+
+pub async fn check_ticker_sentiment(symbol: &str) -> Result<()> {
+    let pipeline_service = get_pipeline_service().await?;
+    let score = dec!(0.9);
+
+    let sentiments = pipeline_service.storage_service.get_ticker_sentiments_with_score(symbol, &score).await?;
+    debug!("Sentiments: {}", sentiments.len());
 
     Ok(())
 }
