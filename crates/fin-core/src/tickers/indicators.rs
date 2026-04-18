@@ -74,6 +74,7 @@ impl IndicatorCalculator {
 
             trace!("History: {:?}", h);
             // Calculate all SMAs
+            trace!("Calculating SMAs");
             for (period, sma) in sma_calcs.iter_mut() {
                 let value = sma.next(close_f64);
                 if idx >= *period - 1 {
@@ -88,6 +89,8 @@ impl IndicatorCalculator {
                 }
             }
 
+
+            trace!("Calculating EMAs");
             // Calculate all EMAs
             for (period, ema) in ema_calcs.iter_mut() {
                 let value = ema.next(close_f64);
@@ -100,6 +103,8 @@ impl IndicatorCalculator {
                 }
             }
 
+
+            trace!("Calculating RSIs");
             // Calculate all RSIs
             for (period, rsi) in rsi_calcs.iter_mut() {
                 let value = rsi.next(close_f64);
@@ -112,6 +117,8 @@ impl IndicatorCalculator {
                 }
             }
 
+
+            trace!("Calculating Stochastic Oscillator");
             //Stochastic Oscillator
             let open_f64 = h.open.to_string().parse::<f64>()?;
             let high_f64 = h.high.to_string().parse::<f64>()?;
@@ -148,6 +155,8 @@ impl IndicatorCalculator {
                 }
             }
 
+
+            trace!("Calculating MACD");
             //Calculate MACD
             let output = macd.next(close_f64);
             if idx >= 26 {
@@ -164,6 +173,8 @@ impl IndicatorCalculator {
                 values.insert(MACD_HISTOGRAM.to_string(), dec);
             }
 
+
+            trace!("Calculating Bollinger Bands");
             //Bollinger Bands
             let output = bb.next(close_f64);
             if idx >= bb_period - 1 {
@@ -180,6 +191,8 @@ impl IndicatorCalculator {
                 values.insert(BB_LOWER.to_string(), dec);
             }
 
+
+            trace!("Calculating ATR");
             //ATR
             let atr_value = atr.next(&bar);
             if idx >= atr_period {
@@ -190,6 +203,7 @@ impl IndicatorCalculator {
                 values.insert(ATR.to_string(), dec);
             }
 
+            trace!("Calculating Volume Ratio");
             //Volume ratio
             if idx > volume_ratio_period {
                 let mut total_volume = Decimal::ZERO;
@@ -200,8 +214,10 @@ impl IndicatorCalculator {
                     // debug!("total volume: {}", total_volume);
                     total_volume = total_volume.div(Decimal::from(volume_ratio_period));
                     // debug!("total volume average: {}", total_volume);
-                    total_volume = (h.volume / total_volume).round_dp(2);
-                    total_volume = cmp::min(total_volume, Decimal::from(10));
+                    if total_volume > Decimal::ZERO {
+                        total_volume = (h.volume / total_volume).round_dp(2);
+                        total_volume = cmp::min(total_volume, Decimal::from(10));
+                    }
                 }
                 // debug!("total volume ratio: {}", total_volume);
                 values.insert(VOLUME_RATIO.to_string(), total_volume);
