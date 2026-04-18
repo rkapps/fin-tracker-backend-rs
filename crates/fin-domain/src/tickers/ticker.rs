@@ -237,7 +237,7 @@ impl Ticker {
             self.pr_diff_perc = dec!(100);
         } else {
             self.pr_diff_amt = self.pr_last - self.pr_prev;
-            self.pr_diff_perc = self.pr_diff_amt / self.pr_prev;
+            self.pr_diff_perc = self.pr_diff_amt / self.pr_prev * dec!(100);
             self.pr_diff_perc = self.pr_diff_perc.round_dp(2);
         }
         self.pr_diff_amt = self.pr_diff_amt.round_dp(4);

@@ -281,7 +281,7 @@ pub(crate) async fn update_ticker_price_history(
             prev_history = Some(histories[1].clone());
         }
         // update the price
-        trace!("Last History: {:?}", last_history.date);
+        trace!("Last History: {:?} Prev history: {:?}", last_history.date, prev_history);
 
         ticker.update_price_from_history(last_history, prev_history)?;
     }
