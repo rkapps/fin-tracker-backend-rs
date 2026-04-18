@@ -39,12 +39,12 @@ async fn main() -> Result<()> {
 
             info!("Load Tickers PipeLine started...");
 
-            match load_service.load_tickers(ticker_seeds).await {
+            match load_service.load_tickers(&ticker_seeds).await {
                 Ok(_) => info!("Background Tickers EOD Update completed successfully."),
                 Err(e) => error!("Background Tickers EOD Update failed: {:?}", e),
             }
 
-            match load_service.load_ticker_embeddings().await {
+            match load_service.load_ticker_embeddings(&ticker_seeds).await {
                 Ok(_) => info!("Background Tickers EOD Update completed successfully."),
                 Err(e) => error!("Background Tickers EOD Update failed: {:?}", e),
             }

@@ -28,7 +28,7 @@ impl LoadService {
         }
     }
 
-    pub async fn load_tickers(&self, ticker_seeds: Vec<TickerSeed>) -> Result<()> {
+    pub async fn load_tickers(&self, ticker_seeds: &[TickerSeed]) -> Result<()> {
         info!("Loading tickers: {}", ticker_seeds.len());
 
         let delay = Duration::from_millis(500); // Sleep for 0 milliseconds
@@ -85,14 +85,10 @@ impl LoadService {
         Ok(())
     }
 
-    pub async fn load_ticker_embeddings(&self) -> Result<()> {
-        let tickers = self.storage_service.get_tickers().await?;
-        let symbols = tickers.iter().map(|t| t.symbol.clone());
-        info!("Loading Ticker Embeddings: {}", tickers.len());
-
-        let length = tickers.len();
-        for (i, symbol) in symbols.enumerate() {
-            let mut ticker = self.storage_service.get_ticker_by_symbol(&symbol).await?;
+    pub async fn load_ticker_embeddings(&self, ticker_seeds: &[TickerSeed]) -> Result<()> {
+        let length = ticker_seeds.len();
+        for (i, seed) in ticker_seeds.iter().enumerate() {
+            let mut ticker = self.storage_service.get_ticker_by_symbol(&seed.symbol).await?;
             if i % 20 == 0 {
                 info!(
                     "Loading Ticker Embeddings: {} {}/{}",
@@ -108,7 +104,7 @@ impl LoadService {
             )
             .await
             {
-                error!("Ticker overview embedding {}: {}", symbol, e);
+                error!("Ticker Embeddings {}: {}", seed.symbol, e);
                 continue;
             } // break;
         }
