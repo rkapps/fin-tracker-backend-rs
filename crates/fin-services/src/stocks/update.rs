@@ -5,7 +5,7 @@ use fin_domain::{
         TickerEmbedding, TickerHistory, TickerIndicator, TickerSentiment,
     },
     utils::data_utils::{
-        calculate_performance, get_period_close, get_period_start, market_cap_label,
+        calculate_performance, get_period_close, get_period_start, assets_cap_label,
     },
 };
 use rust_decimal::{Decimal, prelude::ToPrimitive};
@@ -517,13 +517,13 @@ impl StocksService {
     pub(crate) async fn update_single_ticker_embedding(&self, ticker: &mut Ticker) -> Result<()> {
         // adding the industry twice to increase the weight.
 
-        let market_cap_label = market_cap_label(ticker.market_cap);
+        let assets_cap_label = assets_cap_label(ticker.market_cap);
         let overview_text = format!(
             "{} {} {} {} {}",
             ticker.name,
             ticker.sector.as_deref().unwrap_or(""),
             ticker.industry.as_deref().unwrap_or(""),
-            market_cap_label,
+            assets_cap_label,
             ticker.overview
         );
 

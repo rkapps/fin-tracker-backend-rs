@@ -9,7 +9,7 @@ pub struct TickerFilter {
     pub query: Option<String>,            // semantic: "cloud security", "payments infrastructure"
     pub signals: Option<Vec<String>>,     // ["RSI Oversold", "MACD Bullish Crossover"]
     pub industry: Option<String>,         // regex match
-    pub market_cap_range: Option<String>, // "mega", "large", "mid", "small"
+    pub assets_cap_range: Option<String>, // "mega", "large", "mid", "small"
     pub r#yield: Option<f32>,
 
     // sorting
@@ -27,7 +27,7 @@ impl From<TickerSearchParam> for TickerFilter {
             query: param.query,
             signals: param.signals,
             industry: param.industry,
-            market_cap_range: param.market_cap_range,
+            assets_cap_range: param.assets_cap_range,
             r#yield: param.r#yield,
             sort_by: param.sort_by,
             sort_dir: param.sort_dir,

@@ -72,8 +72,8 @@ impl Tool for TickerSnapshotTool {
 
         // In get_ticker_snapshot execute()
         let mut fundamentals = json!({});
-        if let Some(mc) = ticker.market_cap {
-            fundamentals["market_cap"] = json!(mc);
+        if let Some(mc) = ticker.total_assets {
+            fundamentals["total_assets"] = json!(mc);
         }
         if ticker.r#yield > 0.0 {
             fundamentals["yield"] = json!(ticker.r#yield);

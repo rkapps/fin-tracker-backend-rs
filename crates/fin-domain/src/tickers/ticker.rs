@@ -10,7 +10,7 @@ use crate::{
 };
 use anyhow::Result;
 use chrono::{DateTime, Utc};
-use fin_providers::{alpha::model::AlphaTicker, tiingo::model::TiingoTickerRealtime};
+use fin_providers::{alpha::model::{AlphaEtf, AlphaTicker}, cmc::model::CmcCryptoData, tiingo::model::TiingoTickerRealtime};
 use rust_decimal::{Decimal, prelude::ToPrimitive};
 use rust_decimal_macros::dec;
 use serde::{Deserialize, Serialize};
@@ -33,7 +33,9 @@ pub struct Ticker {
     pub country: String,
     pub currency: String,
 
-    pub market_cap: Option<i64>,
+    // pub market_cap: Option<i64>,
+    pub total_assets: Option<i64>,
+    pub expense_ratio: Option<f64>, // etfs
     pub eps: Option<f64>,
     pub pe_ratio: Option<f64>,
     pub peg_ratio: Option<f64>,
@@ -151,7 +153,7 @@ impl Ticker {
 
 impl Ticker {
     pub fn update_from_alpha(&mut self, value: AlphaTicker) {
-        self.market_cap = Some(string_to_int64(value.market_capitalization));
+        self.total_assets = Some(string_to_int64(value.market_capitalization));
         self.eps = Some(string_to_float(&value.eps));
         self.pe_ratio = Some(string_to_float(&value.peratio));
         self.peg_ratio = Some(string_to_float(&value.pegratio));
@@ -192,6 +194,33 @@ impl Ticker {
 
         self.pr_52_wk_high = string_to_decimal(&value.pr_52_wk_high);
         self.pr_52_wk_low = string_to_decimal(&value.pr_52_wk_low)
+    }
+
+
+    pub fn update_etf_from_alpha(&mut self, value: AlphaEtf) {
+        info!("value: {:?}", value);
+        self.total_assets = Some(string_to_int64(value.net_assets));
+        self.expense_ratio = Some(string_to_float(&value.net_expense_ratio) * 100.0);
+        if !value.dividend_yield.is_empty() {
+            self.r#yield = string_to_float(&value.dividend_yield) * 100.0;
+        } else {
+            self.r#yield = 0.0;
+        }
+    }
+
+    pub fn update_crypto_from_cmc(&mut self, value: CmcCryptoData) {
+        // info!("value: {:?}", value.data.get(&self.symbol).unwrap().first());
+
+        self.total_assets = Some(0);
+        if let Some(data) = value.data.get(&self.symbol) {
+            if let Some(sdata) = data.first() {
+                if let Some(quote) = sdata.quote.get("USD") {
+                    if let Some(market_cap) = quote.market_cap {
+                        self.total_assets = Some(market_cap as i64);
+                    }
+                };
+            };
+        } 
     }
 
     // update realtime price for stocks and etfs

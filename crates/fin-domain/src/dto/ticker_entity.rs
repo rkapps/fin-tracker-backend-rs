@@ -16,7 +16,7 @@ pub struct TickerEntity {
     pub industry: Option<String>,
     pub overview: String,
 
-    pub market_cap: Option<i64>,
+    pub total_assets: Option<i64>,
     pub eps: Option<f64>,
     pub pe_ratio: Option<f64>,
     pub peg_ratio: Option<f64>,
@@ -81,7 +81,7 @@ impl From<Ticker> for TickerEntity {
             sector: value.sector,
             industry: value.industry,
             overview: value.overview,
-            market_cap: value.market_cap,
+            total_assets: value.total_assets,
             eps: value.eps,
             pe_ratio: value.pe_ratio,
             peg_ratio: value.peg_ratio,

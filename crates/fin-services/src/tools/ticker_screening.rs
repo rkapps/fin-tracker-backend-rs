@@ -33,11 +33,11 @@ impl Tool for TickerScreeningTool {
         \
             Query guidelines: \
                 - Pass the user's original query text unchanged. Never replace with generic terms like 'find stocks'. \
-                - Only include market_cap_range if the user explicitly mentions a market cap size. Never infer it. \
+                - Only include assets_cap_range if the user explicitly mentions a assets cap size. Never infer it. \
                 - When the query implies a specific industry, populate both query and industry fields. \
         \
         Examples: \
-            'software infrastructure mid cap stocks' → query: 'software infrastructure', industry: 'Software - Infrastructure', market_cap_range: 'mid' \
+            'software infrastructure mid cap stocks' → query: 'software infrastructure', industry: 'Software - Infrastructure', assets_cap_range: 'mid' \
             'find oversold cloud security companies' → query: 'cloud security', signals: ['RSI Oversold'] \
             'mostly oversold' or 'heavily oversold'  → signals: ['Deeply Oversold']\
             'defensive buy rated stocks' → signals: ['Low Beta', 'Analyst Buy'] \
@@ -120,10 +120,10 @@ impl Tool for TickerScreeningTool {
                     "type": "string",
                     "description": "Filter by industry, partial match. Example: 'semiconductors', 'medical devices'."
                 },
-                "market_cap_range": {
+                "assets_cap_range": {
                     "type": "string",
                     "enum": ["mega", "large", "mid", "small"],
-                    "description": "Filter by market cap. mega: >$1T, large: $100B-$1T, mid: $2B-$100B, small: <$2B. \
+                    "description": "Filter by assets cap. mega: >$1T, large: $100B-$1T, mid: $2B-$100B, small: <$2B. \
                             Map: 'mid cap' → 'mid', 'large cap' → 'large', 'small cap' → 'small', 'mega cap' → 'mega'."
                 },
                 "asset_type": {

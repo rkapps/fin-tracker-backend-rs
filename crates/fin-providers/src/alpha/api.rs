@@ -3,12 +3,13 @@ use chrono::{DateTime, Utc};
 
 use crate::{
     HttpClient,
-    alpha::model::{AlphaTicker, AlphaTickerSentiment, AlphaTickerSentimentFeed},
+    alpha::model::{AlphaEtf, AlphaTicker, AlphaTickerSentiment, AlphaTickerSentimentFeed},
 };
 
 const ALPHA_BASE_URL: &str = "https://www.alphavantage.co/";
 const ALPHA_FUNCTION_NEWS_SENTIMENT: &str = "NEWS_SENTIMENT";
 const ALPHA_FUNCTION_OVERVIEW: &str = "OVERVIEW";
+const ALPHA_FUNCTION_ETF_PROFILE: &str = "ETF_PROFILE";
 
 pub async fn get_stock(
     http_client: &HttpClient,
@@ -25,6 +26,23 @@ pub async fn get_stock(
         .await?;
 
     Ok(ticker)
+}
+
+pub async fn get_etf(
+    http_client: &HttpClient,
+    symbol: &str,
+    api_key: &str,
+) -> Result<AlphaEtf> {
+    let url = format!(
+        "{}query?function={}&symbol={}&apikey={}",
+        ALPHA_BASE_URL, ALPHA_FUNCTION_ETF_PROFILE, symbol, api_key
+    );
+    let headers = reqwest::header::HeaderMap::new();
+    let etf = http_client
+        .get_request::<AlphaEtf>(url, Some(headers))
+        .await?;
+
+    Ok(etf)
 }
 
 pub async fn get_stock_sentiments(

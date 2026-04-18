@@ -12,7 +12,7 @@ pub struct TickerSearchParam {
     pub query: Option<String>, // semantic: "cloud security", "payments infrastructure"
     pub signals: Option<Vec<String>>, // ["RSI Oversold", "MACD Bullish Crossover"]
     pub industry: Option<String>, // regex match
-    pub market_cap_range: Option<String>, // "mega", "large", "mid", "small"
+    pub assets_cap_range: Option<String>, // "mega", "large", "mid", "small"
     pub r#yield: Option<f32>,
 
     // sorting
@@ -23,17 +23,3 @@ pub struct TickerSearchParam {
     pub limit: Option<usize>,
 
 }
-
-// impl TickerSearchParam {
-//     pub fn new_for_asset_type(asset_type: &str) -> TickerSearchParam {
-//         TickerSearchParam {
-//             asset_type: Some(asset_type.to_string()),
-//             industry: None,
-//             limit: None,
-//             market_cap_range: None,
-//             query: None,
-//             signals: None,
-//             r#yield: None,
-//         }
-//     }
-// }

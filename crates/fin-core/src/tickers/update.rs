@@ -6,9 +6,8 @@ use fin_domain::{
         AssetType, TICKER_PERFORMANCE_PERIODS, Ticker, TickerAlpha, TickerControl, TickerEmbedding,
         TickerHistory, TickerIndicator, TickerSentiment,
     },
-    utils::{
-        data_utils::{calculate_performance, get_period_close, get_period_start, market_cap_label},
-        date_utils::same_date,
+    utils::data_utils::{
+        assets_cap_label, calculate_performance, get_period_close, get_period_start,
     },
 };
 use fin_providers::ProviderService;
@@ -16,7 +15,7 @@ use fin_storage::service::StorageService;
 use rust_decimal::prelude::ToPrimitive;
 use rust_decimal_macros::dec;
 use std::{collections::HashMap, sync::Arc};
-use tracing::{debug, error, info, trace, warn};
+use tracing::{debug, error, trace, warn};
 
 use crate::tickers::{
     BASE_CURRENCY,
@@ -179,8 +178,6 @@ pub async fn update_ticker_realtime(
             );
         }
         AssetType::Crypto => {}
-
-        _ => {}
     }
     storage_service.save_ticker(ticker.clone()).await?;
 
@@ -195,12 +192,16 @@ pub(crate) async fn update_ticker_details(
             let raw = provider_service.get_stock(&ticker.symbol).await?;
             ticker.update_from_alpha(raw);
         }
-        // AssetType::Etf => {
-        //     hists = Vec::new();
-        // }
-        AssetType::Crypto => {}
-
-        _ => {}
+        AssetType::Etf => {
+            let raw = provider_service.get_etf(&ticker.symbol).await?;
+            ticker.update_etf_from_alpha(raw);
+        }
+        AssetType::Crypto => {
+            let raw = provider_service
+                .get_crypto(vec![ticker.symbol.clone()])
+                .await?;
+            ticker.update_crypto_from_cmc(raw);
+        }
     }
 
     Ok(())
@@ -281,7 +282,10 @@ pub(crate) async fn update_ticker_price_history(
             prev_history = Some(histories[1].clone());
         }
         // update the price
-        trace!("Last History: {:?} Prev history: {:?}", last_history.date, prev_history);
+        trace!(
+            "Last History: {:?} Prev history: {:?}",
+            last_history.date, prev_history
+        );
 
         ticker.update_price_from_history(last_history, prev_history)?;
     }
@@ -336,19 +340,19 @@ pub(crate) async fn update_ticker_sentiments(
     let Some(date_from) = Utc::now().checked_sub_months(Months::new(6)) else {
         return Err(anyhow::anyhow!("Error with DateTime"));
     };
-    let mut sentiments = Vec::new();
-    let mut feeds_len = 0;
-    match ticker.asset_type {
-        AssetType::Stock => {
-            let feeds = provider_service
-                .get_ticker_sentiment(&ticker.symbol, &date_from)
-                .await?;
-            feeds_len = feeds.len();
-            sentiments = TickerSentiment::new_from_alpha_batch(&ticker.symbol, feeds);
-        }
-        AssetType::Crypto => {}
-        AssetType::Etf => {}
-    }
+    // let mut sentiments = Vec::new();
+    // let mut feeds_len = 0;
+    // match ticker.asset_type {
+    //     AssetType::Stock => {
+    let feeds = provider_service
+        .get_ticker_sentiment(&ticker.symbol, &date_from)
+        .await?;
+    let feeds_len = feeds.len();
+    let sentiments = TickerSentiment::new_from_alpha_batch(&ticker.symbol, feeds);
+    //     }
+    //     AssetType::Crypto => {}
+    //     AssetType::Etf => {}
+    // }
     debug!(
         "Ticker {} Feeds: {} Sentiments: {}",
         ticker.symbol,
@@ -356,7 +360,7 @@ pub(crate) async fn update_ticker_sentiments(
         sentiments.len()
     );
 
-    if sentiments.is_empty() {
+    if !sentiments.is_empty() {
         new_sentiments = match tc.last_sentiment_sync_at {
             Some(last_sync) => sentiments
                 .into_iter()
@@ -378,7 +382,7 @@ pub(crate) async fn update_ticker_sentiment_embeddings(
     ticker: &mut Ticker,
 ) -> Result<Vec<TickerEmbedding>> {
     let mut new_embeddings = Vec::new();
-    let cmp_score = dec!(0.8);
+    let cmp_score = dec!(0.30);
 
     let sentiments = storage_service
         .get_ticker_sentiments_with_score(&ticker.symbol, &cmp_score)
@@ -450,19 +454,19 @@ pub(crate) async fn update_ticker_sentiment_embeddings(
     Ok(new_embeddings)
 }
 
-pub async fn update_ticker_embedding(
+pub async fn update_ticker_overview_embedding(
     storage_service: Arc<dyn StorageService>,
     embedding_client: Arc<dyn EmbeddingClient>,
     ticker: &mut Ticker,
 ) -> Result<()> {
-    let market_cap_label = market_cap_label(ticker.market_cap);
+    let assets_cap_label = assets_cap_label(ticker.total_assets);
     // adding the industry twice to increase the weight.
     let overview_text = format!(
         "{} {} {} {} {}",
         ticker.name,
         ticker.sector.as_deref().unwrap_or(""),
         ticker.industry.as_deref().unwrap_or(""),
-        market_cap_label,
+        assets_cap_label,
         ticker.overview
     );
 

@@ -5,7 +5,7 @@ use anyhow::Result;
 use async_trait::async_trait;
 use fin_domain::{
     tickers::{Ticker, TickerFilter},
-    utils::data_utils::{market_cap_label_range, market_cap_range},
+    utils::data_utils::{assets_cap_label_range, assets_cap_range},
 };
 use rust_decimal::Decimal;
 use storage_core::core::{
@@ -62,13 +62,13 @@ impl TickerStorageService for MongoStorageService {
             SearchOp::Eq,
             SearchValue::String(sector.to_string()),
         );
-        criteria.add_sort("market_cap", false);
+        criteria.add_sort("total_assets", false);
         self.get_ticker_by_criteria(&criteria).await
     }
 
     async fn get_tickers_by_marketcap(&self) -> Result<Vec<Ticker>> {
         let mut criteria = SearchCriteria::new();
-        criteria.add_sort("market_cap", false);
+        criteria.add_sort("total_assets", false);
         self.get_ticker_by_criteria(&criteria).await
     }
 
@@ -118,13 +118,13 @@ impl TickerStorageService for MongoStorageService {
             return Ok(Vec::new());
         }
         // Get reference ticker market cap bucket
-        let (min_cap, max_cap) = market_cap_range(ticker.market_cap);
+        let (min_cap, max_cap) = assets_cap_range(ticker.total_assets);
 
         let mut criteria = SearchCriteria::new();
         criteria.add_condition("industry", SearchOp::Eq, SearchValue::String(industry));
-        criteria.add_condition("market_cap", SearchOp::Gte, SearchValue::Int(min_cap));
-        criteria.add_condition("market_cap", SearchOp::Lte, SearchValue::Int(max_cap));
-        criteria.add_sort("market_cap", false);
+        criteria.add_condition("total_assets", SearchOp::Gte, SearchValue::Int(min_cap));
+        criteria.add_condition("total_assets", SearchOp::Lte, SearchValue::Int(max_cap));
+        criteria.add_sort("total_assets", false);
         self.get_ticker_by_criteria(&criteria).await
     }
 
@@ -135,13 +135,13 @@ impl TickerStorageService for MongoStorageService {
             return Ok(Vec::new());
         }
         // Get reference ticker market cap bucket
-        let (min_cap, max_cap) = market_cap_range(ticker.market_cap);
+        let (min_cap, max_cap) = assets_cap_range(ticker.total_assets);
 
         let mut criteria = SearchCriteria::new();
         criteria.add_condition("sector", SearchOp::Eq, SearchValue::String(sector));
-        criteria.add_condition("market_cap", SearchOp::Gte, SearchValue::Int(min_cap));
-        criteria.add_condition("market_cap", SearchOp::Lte, SearchValue::Int(max_cap));
-        criteria.add_sort("market_cap", false);
+        criteria.add_condition("total_assets", SearchOp::Gte, SearchValue::Int(min_cap));
+        criteria.add_condition("total_assets", SearchOp::Lte, SearchValue::Int(max_cap));
+        criteria.add_sort("total_assets", false);
 
         self.get_ticker_by_criteria(&criteria).await
     }
@@ -185,10 +185,11 @@ impl TickerStorageService for MongoStorageService {
             SearchOp::Eq,
             SearchValue::String(new_asset_type),
         );
-        if let Some(range) = filter.market_cap_range {
-            let (min_cap, max_cap) = market_cap_label_range(Some(range));
-            criteria.add_condition("market_cap", SearchOp::Gte, SearchValue::Int(min_cap));
-            criteria.add_condition("market_cap", SearchOp::Lte, SearchValue::Int(max_cap));
+        if let Some(range) = filter.assets_cap_range {
+            let (min_cap, max_cap) = assets_cap_label_range(Some(range));
+            criteria.add_condition("total_assets", SearchOp::Gte, SearchValue::Int(min_cap));
+            criteria.add_condition("total_assets", SearchOp::Lte, SearchValue::Int(max_cap));
+    
         }
         if let Some(signals) = filter.signals {
             criteria.add_condition("signals", SearchOp::All, SearchValue::Array(signals));
@@ -206,7 +207,7 @@ impl TickerStorageService for MongoStorageService {
             criteria.add_limit(limit);
         }
 
-        criteria.add_sort("market_cap", false);
+        criteria.add_sort("total_assets", false);
         debug!("search_tickers criteria: {:#?}", criteria);
 
         self.get_ticker_by_criteria(&criteria).await

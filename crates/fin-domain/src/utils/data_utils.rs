@@ -6,7 +6,7 @@ use crate::{
     utils::date_utils::same_date,
 };
 
-pub fn format_market_cap(mcap: Option<i64>) -> String {
+pub fn format_total_assets_cap(mcap: Option<i64>) -> String {
     if let Some(cap) = mcap {
         if cap >= 1_000_000_000_000 {
             format!("${:.2}T", cap as f64 / 1_000_000_000_000.0)
@@ -22,8 +22,8 @@ pub fn format_market_cap(mcap: Option<i64>) -> String {
     }
 }
 
-pub fn market_cap_range(market_cap: Option<i64>) -> (i64, i64) {
-    match market_cap.unwrap_or(0) {
+pub fn assets_cap_range(total_assets: Option<i64>) -> (i64, i64) {
+    match total_assets.unwrap_or(0) {
         c if c >= 200_000_000_000 => (1_000_000_000_000, i64::MAX), // Mega: >$200B
         c if c >= 10_000_000_000 => (10_000_000_000, 200_000_000_000), // Large: $10B-$200B
         c if c >= 2_000_000_000 => (2_000_000_000, 10_000_000_000), // Mid: $2B-$10B
@@ -32,8 +32,8 @@ pub fn market_cap_range(market_cap: Option<i64>) -> (i64, i64) {
     }
 }
 
-pub fn market_cap_label_range(market_cap_label: Option<String>) -> (i64, i64) {
-    match market_cap_label.unwrap_or("".to_string()) {
+pub fn assets_cap_label_range(assets_cap_label: Option<String>) -> (i64, i64) {
+    match assets_cap_label.unwrap_or("".to_string()) {
         val if val == "mega" => (200_000_000_000, i64::MAX), // Mega: >$200B
         val if val == "large" => (10_000_000_000, 200_000_000_000), // Large: $10B-$200B
         val if val == "mid" => (2_000_000_000, 10_000_000_000), // Mid: $2B-$10B
@@ -42,7 +42,7 @@ pub fn market_cap_label_range(market_cap_label: Option<String>) -> (i64, i64) {
     }
 }
 
-pub fn market_cap_label(cap: Option<i64>) -> String {
+pub fn assets_cap_label(cap: Option<i64>) -> String {
     let cap_str = match cap {
         Some(cap) if cap > 1_000_000_000_000 => "mega cap",
         Some(cap) if cap > 10_000_000_000 => "large cap",
