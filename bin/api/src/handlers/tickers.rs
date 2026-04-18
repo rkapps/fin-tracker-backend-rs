@@ -1,11 +1,11 @@
 use anyhow::Result;
 use axum::{
     Json,
-    extract::{Path, Query, State},
+    extract::{Path, State},
 };
 use fin_domain::dto::{
-    screen_param::TickerScreenParam, ticker_chart_entity::TickerChartEntity,
-    ticker_entity::TickerEntity,
+    ticker_chart_entity::TickerChartEntity,
+    ticker_entity::TickerEntity, ticker_search_param::TickerSearchParam,
 };
 use fin_services::ticker::TickersService;
 use reqwest::StatusCode;
@@ -21,35 +21,35 @@ pub struct TickerQueryParam {
     pub function: Option<String>,
 }
 
-pub async fn get_tickers_handler(
-    State(ticker_service): State<Arc<TickersService>>,
-    Query(param): Query<TickerQueryParam>,
-) -> Result<Json<Vec<TickerEntity>>, (StatusCode, String)> {
-    let tickers: Vec<TickerEntity> = match (param.symbols, param.function) {
-        (Some(s), None) if !s.is_empty() => ticker_service
-            .get_tickers_by_symbols(s)
-            .await
-            .map_err(|e| (StatusCode::BAD_REQUEST, format!("Get Ticker error: {}", e)))?,
-        (_, Some(f)) => ticker_service
-            .get_tickers_by_function(&f)
-            .await
-            .map_err(|e| (StatusCode::BAD_REQUEST, format!("Get Ticker error: {}", e)))?,
-        (_, None) => {
-            // Return error if both are present
-            return Err((
-                StatusCode::BAD_REQUEST,
-                "Cannot use 'symbols' and 'function' together".to_string(),
-            ));
-        } // _ => {
-          //     return Err((
-          //         StatusCode::BAD_REQUEST,
-          //         "Must provide 'symbols' or 'function'".to_string(),
-          //     ));
-          // }
-    };
+// pub async fn get_tickers_handler(
+//     State(ticker_service): State<Arc<TickersService>>,
+//     Query(param): Query<TickerQueryParam>,
+// ) -> Result<Json<Vec<TickerEntity>>, (StatusCode, String)> {
+//     let tickers: Vec<TickerEntity> = match (param.symbols, param.function) {
+//         (Some(s), None) if !s.is_empty() => ticker_service
+//             .get_tickers_by_symbols(s)
+//             .await
+//             .map_err(|e| (StatusCode::BAD_REQUEST, format!("Get Ticker error: {}", e)))?,
+//         (_, Some(f)) => ticker_service
+//             .get_tickers_by_function(&f)
+//             .await
+//             .map_err(|e| (StatusCode::BAD_REQUEST, format!("Get Ticker error: {}", e)))?,
+//         (_, None) => {
+//             // Return error if both are present
+//             return Err((
+//                 StatusCode::BAD_REQUEST,
+//                 "Cannot use 'symbols' and 'function' together".to_string(),
+//             ));
+//         } // _ => {
+//           //     return Err((
+//           //         StatusCode::BAD_REQUEST,
+//           //         "Must provide 'symbols' or 'function'".to_string(),
+//           //     ));
+//           // }
+//     };
 
-    Ok(Json(tickers))
-}
+//     Ok(Json(tickers))
+// }
 
 pub async fn get_ticker_charts_handler(
     State(ticker_service): State<Arc<TickersService>>,
@@ -80,7 +80,7 @@ pub async fn get_ticker_groups_handler(
 
 pub async fn search_tickers_handler(
     State(ticker_service): State<Arc<TickersService>>,
-    Json(param): Json<TickerScreenParam>,
+    Json(param): Json<TickerSearchParam>,
 ) -> Result<Json<Vec<TickerEntity>>, (StatusCode, String)> {
     let tickers = ticker_service
         .search_tickers(param)
@@ -89,26 +89,3 @@ pub async fn search_tickers_handler(
 
     Ok(Json(tickers))
 }
-// pub async fn get_tickers_by_symbols(
-//     State(ticker_service): State<Arc<TickerService>>,
-//     Query(param): Query<TickerQueryParam>,
-// ) -> Result<Json<Vec<TickerEntity>>, (StatusCode, String)> {
-//     let tickers = ticker_service
-//         .get_tickers_by_symbols(param.symbols)
-//         .await
-//         .map_err(|e| (StatusCode::BAD_REQUEST, format!("Get Ticker error: {}", e)))?;
-
-//     Ok(Json(tickers))
-// }
-
-// pub async fn get_tickers_by_function(
-//     State(ticker_service): State<Arc<TickerService>>,
-//     Query(param): Query<TickerQueryParam>,
-// ) -> Result<Json<Vec<TickerEntity>>, (StatusCode, String)> {
-//     let tickers = ticker_service
-//         .get_tickers_by_symbols(param.symbols)
-//         .await
-//         .map_err(|e| (StatusCode::BAD_REQUEST, format!("Get Ticker error: {}", e)))?;
-
-//     Ok(Json(tickers))
-// }

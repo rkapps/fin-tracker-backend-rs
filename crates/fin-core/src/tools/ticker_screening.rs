@@ -1,7 +1,7 @@
 use agentic_core::client::{embeddings::EmbeddingClient, tools::Tool};
 use anyhow::Result;
 use async_trait::async_trait;
-use fin_domain::dto::screen_param::TickerScreenParam;
+use fin_domain::tickers::TickerFilter;
 use fin_storage::service::StorageService;
 use serde_json::{Value, json};
 use std::sync::Arc;
@@ -148,14 +148,14 @@ impl Tool for TickerScreeningTool {
     }
 
     async fn execute(&self, value: serde_json::Value) -> Result<Value> {
-        let param: TickerScreenParam = serde_json::from_value(value.clone())
+        let filter: TickerFilter = serde_json::from_value(value.clone())
             .map_err(|e| anyhow::anyhow!("Failed to deserialize params: {:?} — {:?}", value, e))?;
-        info!("Screening Tools param: {:#?}", param);
+        info!("Screening Tools param: {:#?}", filter);
 
         let symbols = screen_tickers(
             self.storage_service.clone(),
             self.embedding_client.clone(),
-            param,
+            filter,
         )
         .await?;
 

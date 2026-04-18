@@ -4,8 +4,7 @@ use crate::{mongo::service::MongoStorageService, service::TickerStorageService};
 use anyhow::Result;
 use async_trait::async_trait;
 use fin_domain::{
-    dto::screen_param::TickerScreenParam,
-    tickers::Ticker,
+    tickers::{Ticker, TickerFilter},
     utils::data_utils::{market_cap_label_range, market_cap_range},
 };
 use rust_decimal::Decimal;
@@ -73,30 +72,44 @@ impl TickerStorageService for MongoStorageService {
         self.get_ticker_by_criteria(&criteria).await
     }
 
-    async fn get_tickers_by_movers(&self, function: &str) -> Result<Vec<Ticker>> {
+    async fn get_tickers_by_top_gainers(&self, asset_type: Option<String>) -> Result<Vec<Ticker>> {
         let mut criteria = SearchCriteria::new();
-        match function {
-            "top_gainers" => {
-                criteria.add_sort("pr_diff_perc", false);
-                criteria.add_limit(20);
-            }
-            "top_gainers_ytd" => {
-                criteria.add_sort("performance_search.Ytd.perc", false);
-                criteria.add_limit(20);
-            }
-
-            "top_losers" => {
-                criteria.add_sort("pr_diff_perc", true);
-                criteria.add_limit(20);
-            }
-            "top_losers_ytd" => {
-                criteria.add_sort("performance_search.Ytd.perc", true);
-                criteria.add_limit(20);
-            }
-            _ => {}
+        if let Some(asset_type) = asset_type {
+            criteria.add_condition("asset_type", SearchOp::Eq, SearchValue::String(asset_type.to_uppercase()));
         }
+        criteria.add_sort("pr_diff_perc", false);
+        criteria.add_limit(20);
         self.get_ticker_by_criteria(&criteria).await
     }
+    async fn get_tickers_by_top_gainers_ytd(&self, asset_type: Option<String>) -> Result<Vec<Ticker>> {
+        let mut criteria = SearchCriteria::new();
+        if let Some(asset_type) = asset_type {
+            criteria.add_condition("asset_type", SearchOp::Eq, SearchValue::String(asset_type.to_uppercase()));
+        }
+        criteria.add_sort("performance_search.Ytd.perc", false);
+        criteria.add_limit(20);
+        self.get_ticker_by_criteria(&criteria).await
+    }
+
+    async fn get_tickers_by_top_losers(&self, asset_type: Option<String>) -> Result<Vec<Ticker>> {
+        let mut criteria = SearchCriteria::new();
+        if let Some(asset_type) = asset_type {
+            criteria.add_condition("asset_type", SearchOp::Eq, SearchValue::String(asset_type.to_uppercase()));
+        }
+        criteria.add_sort("pr_diff_perc", true);
+        criteria.add_limit(20);
+        self.get_ticker_by_criteria(&criteria).await
+    }
+    async fn get_tickers_by_top_losers_ytd(&self, asset_type: Option<String>) -> Result<Vec<Ticker>> {
+        let mut criteria = SearchCriteria::new();
+        if let Some(asset_type) = asset_type {
+            criteria.add_condition("asset_type", SearchOp::Eq, SearchValue::String(asset_type.to_uppercase()));
+        }
+        criteria.add_sort("performance_search.Ytd.perc", true);
+        criteria.add_limit(20);
+        self.get_ticker_by_criteria(&criteria).await
+    }
+
 
     async fn get_ticker_peers_by_industry(&self, symbol: &str) -> Result<Vec<Ticker>> {
         let ticker = self.get_ticker_by_symbol(symbol).await?;
@@ -153,9 +166,9 @@ impl TickerStorageService for MongoStorageService {
         Ok(candidates)
     }
 
-    async fn search_tickers(&self, param: TickerScreenParam) -> Result<Vec<Ticker>> {
+    async fn search_tickers(&self, filter: TickerFilter) -> Result<Vec<Ticker>> {
         let mut criteria = SearchCriteria::new();
-        if let Some(industry) = param.industry {
+        if let Some(industry) = filter.industry {
             criteria.add_condition(
                 "industry",
                 SearchOp::Contains,
@@ -163,7 +176,7 @@ impl TickerStorageService for MongoStorageService {
             );
         }
 
-        let new_asset_type = param
+        let new_asset_type = filter
             .asset_type
             .unwrap_or_else(|| "stock".to_string())
             .to_uppercase();
@@ -172,16 +185,16 @@ impl TickerStorageService for MongoStorageService {
             SearchOp::Eq,
             SearchValue::String(new_asset_type),
         );
-        if let Some(range) = param.market_cap_range {
+        if let Some(range) = filter.market_cap_range {
             let (min_cap, max_cap) = market_cap_label_range(Some(range));
             criteria.add_condition("market_cap", SearchOp::Gte, SearchValue::Int(min_cap));
             criteria.add_condition("market_cap", SearchOp::Lte, SearchValue::Int(max_cap));
         }
-        if let Some(signals) = param.signals {
+        if let Some(signals) = filter.signals {
             criteria.add_condition("signals", SearchOp::All, SearchValue::Array(signals));
         }
 
-        if let Some(cyield) = param.r#yield
+        if let Some(cyield) = filter.r#yield
             && cyield > 0.0
         {
             let dec_yield: Decimal = Decimal::from_f32_retain(cyield).unwrap();
@@ -189,7 +202,7 @@ impl TickerStorageService for MongoStorageService {
             criteria.add_condition("yield", SearchOp::Gte, SearchValue::Decimal(dec_yield));
         }
 
-        if let Some(limit) = param.limit {
+        if let Some(limit) = filter.limit {
             criteria.add_limit(limit);
         }
 

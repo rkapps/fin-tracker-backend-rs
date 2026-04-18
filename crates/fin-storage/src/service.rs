@@ -3,12 +3,9 @@ use std::{collections::HashMap, fmt::Debug};
 use anyhow::Result;
 use async_trait::async_trait;
 use chrono::{DateTime, Utc};
-use fin_domain::{
-    dto::screen_param::TickerScreenParam,
-    tickers::{
-        IndicatorWindow, Ticker, TickerAlpha, TickerControl, TickerEmbedding, TickerHistory,
-        TickerIndicator, TickerSentiment,
-    },
+use fin_domain::tickers::{
+    IndicatorWindow, Ticker, TickerAlpha, TickerControl, TickerEmbedding, TickerFilter,
+    TickerHistory, TickerIndicator, TickerSentiment,
 };
 use rust_decimal::Decimal;
 // use std::collections::HashMap;
@@ -42,13 +39,17 @@ pub trait TickerStorageService: Send + Sync + Debug {
     async fn get_ticker_peers_by_sector(&self, symbol: &str) -> Result<Vec<Ticker>>;
     async fn get_tickers(&self) -> Result<Vec<Ticker>>;
     async fn get_tickers_by_symbols(&self, symbols: Vec<String>) -> Result<Vec<Ticker>>;
-    async fn get_tickers_by_movers(&self, function: &str) -> Result<Vec<Ticker>>;
+    async fn get_tickers_by_top_gainers(&self, asset_type: Option<String>) -> Result<Vec<Ticker>>;
+    async fn get_tickers_by_top_gainers_ytd(&self, asset_type: Option<String> ) -> Result<Vec<Ticker>>;
+    async fn get_tickers_by_top_losers(&self, asset_type: Option<String>) -> Result<Vec<Ticker>>;
+    async fn get_tickers_by_top_losers_ytd(&self, asset_type: Option<String>) -> Result<Vec<Ticker>>;
+    // async fn get_tickers_by_movers(&self, function: &str) -> Result<Vec<Ticker>>;
     async fn get_ticker_by_sector(&self, sector: &str) -> Result<Vec<Ticker>>;
     async fn get_tickers_by_marketcap(&self) -> Result<Vec<Ticker>>;
     async fn get_ticker_industry_embeddings(&self) -> Result<Vec<(Ticker, Vec<f32>)>>;
     async fn get_ticker_overview_embeddings(&self) -> Result<Vec<(Ticker, Vec<f32>)>>;
 
-    async fn search_tickers(&self, param: TickerScreenParam) -> Result<Vec<Ticker>>;
+    async fn search_tickers(&self, param: TickerFilter) -> Result<Vec<Ticker>>;
 
     async fn save_ticker(&self, ticker: Ticker) -> Result<()>;
 }

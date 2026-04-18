@@ -2,9 +2,9 @@ use std::sync::Arc;
 
 use agentic_core::client::embeddings::EmbeddingClient;
 use anyhow::Result;
-use fin_domain::tickers::Ticker;
+use fin_domain::tickers::{Ticker, TickerFilter};
 use fin_domain::{
-    dto::screen_param::TickerScreenParam, utils::data_utils::get_overview_embeddings,
+    utils::data_utils::get_overview_embeddings,
 };
 use fin_storage::service::StorageService;
 use storage_core::vector::search;
@@ -13,16 +13,16 @@ use tracing::debug;
 pub async fn screen_tickers(
     storage_service: Arc<dyn StorageService>,
     embedding_client: Arc<dyn EmbeddingClient>,
-    param: TickerScreenParam,
+    filter: TickerFilter
 ) -> Result<Vec<String>> {
-    let tickers = storage_service.search_tickers(param.clone()).await?;
+    let tickers = storage_service.search_tickers(filter.clone()).await?;
     debug!("Screened stocks from initial search: {}", tickers.len());
 
     let overview_candidates: Vec<(Ticker, Vec<f32>)> = get_overview_embeddings(&tickers);
     debug!("Overview candidates: {}", overview_candidates.len());
-    let limit = param.limit.unwrap_or(10);
+    let limit = filter.limit.unwrap_or(10);
 
-    let symbols: Vec<String> = if let Some(query) = param.query {
+    let symbols: Vec<String> = if let Some(query) = filter.query {
         let vectors = embedding_client.embed_text(&query).await?.into_vec();
 
         let candidates: Vec<(String, Vec<f32>)> = overview_candidates

@@ -1,15 +1,15 @@
 use anyhow::Result;
 use fin_domain::{
     dto::{
-        screen_param::TickerScreenParam, ticker_chart_entity::TickerChartEntity,
-        ticker_entity::TickerEntity,
+        ticker_chart_entity::TickerChartEntity, ticker_entity::TickerEntity,
+        ticker_search_param::TickerSearchParam,
     },
-    tickers::TickerIndicator,
+    tickers::{Ticker, TickerFilter, TickerIndicator},
 };
 use fin_storage::service::StorageService;
 use rust_decimal::{Decimal, prelude::ToPrimitive};
 use std::{collections::HashMap, sync::Arc};
-use tracing::{debug};
+use tracing::debug;
 
 #[derive(Debug)]
 pub struct TickersService {
@@ -21,19 +21,19 @@ impl TickersService {
         TickersService { storage_service }
     }
 
-    pub async fn get_tickers_by_symbols(&self, symbols: Vec<String>) -> Result<Vec<TickerEntity>> {
-        let tickers = self
-            .storage_service
-            .get_tickers_by_symbols(symbols)
-            .await
-            .map_err(|e| anyhow::anyhow!(format!("Get Ticker error: {}", e)))?;
+    // pub async fn get_tickers_by_symbols(&self, symbols: Vec<String>) -> Result<Vec<TickerEntity>> {
+    //     let tickers = self
+    //         .storage_service
+    //         .get_tickers_by_symbols(symbols)
+    //         .await
+    //         .map_err(|e| anyhow::anyhow!(format!("Get Ticker error: {}", e)))?;
 
-        let tentities = tickers
-            .iter()
-            .map(|t| TickerEntity::from(t.clone()))
-            .collect();
-        Ok(tentities)
-    }
+    //     let tentities = tickers
+    //         .iter()
+    //         .map(|t| TickerEntity::from(t.clone()))
+    //         .collect();
+    //     Ok(tentities)
+    // }
 
     pub async fn get_ticker_groups(&self) -> Result<HashMap<String, Vec<String>>> {
         let groups = self
@@ -44,62 +44,62 @@ impl TickersService {
         Ok(groups)
     }
 
-    pub async fn get_tickers_by_function(&self, function: &str) -> Result<Vec<TickerEntity>> {
-        let tentities: Vec<TickerEntity> = match function {
-            "etfs" => {
-                let symbols = vec![
-                    "DIA".into(),
-                    "SPY".into(),
-                    "IWM".into(),
-                    "GLD".into(),
-                    "GBTC".into(),
-                    "ETHE".into(),
-                    "QQQ".into(),
-                    "VIX".into(),
-                ];
-                self.get_tickers_by_symbols(symbols).await.unwrap()
-            }
-            "spiders" => {
-                let symbols = vec![
-                    "XLY".into(),
-                    "XLP".into(),
-                    "XLE".into(),
-                    "XLF".into(),
-                    "XLK".into(),
-                    "XLU".into(),
-                    "XHB".into(),
-                ];
-                self.get_tickers_by_symbols(symbols).await.unwrap()
-            }
-            "international" => {
-                let symbols = vec![
-                    "VWO".into(),
-                    "VGK".into(),
-                    "VXUS".into(),
-                    "VEU".into(),
-                    "VSGX".into(),
-                    "VWOB".into(),
-                    "VIGI".into(),
-                    "EWZ".into(),
-                    "EWJ".into(),
-                ];
-                self.get_tickers_by_symbols(symbols).await.unwrap()
-            }
-            _ => {
-                let tickers = self
-                    .storage_service
-                    .get_tickers_by_movers(function)
-                    .await
-                    .unwrap();
-                tickers
-                    .iter()
-                    .map(|t| TickerEntity::from(t.clone()))
-                    .collect()
-            }
-        };
+    // pub async fn get_tickers_by_function(&self, function: &str) -> Result<Vec<TickerEntity>> {
+    //     let tentities: Vec<TickerEntity> = match function {
+    //         "etfs" => {
+    //             let symbols = vec![
+    //                 "DIA".into(),
+    //                 "SPY".into(),
+    //                 "IWM".into(),
+    //                 "GLD".into(),
+    //                 "GBTC".into(),
+    //                 "ETHE".into(),
+    //                 "QQQ".into(),
+    //                 "VIX".into(),
+    //             ];
+    //             self.get_tickers_by_symbols(symbols).await.unwrap()
+    //         }
+    //         "spiders" => {
+    //             let symbols = vec![
+    //                 "XLY".into(),
+    //                 "XLP".into(),
+    //                 "XLE".into(),
+    //                 "XLF".into(),
+    //                 "XLK".into(),
+    //                 "XLU".into(),
+    //                 "XHB".into(),
+    //             ];
+    //             self.get_tickers_by_symbols(symbols).await.unwrap()
+    //         }
+    //         "international" => {
+    //             let symbols = vec![
+    //                 "VWO".into(),
+    //                 "VGK".into(),
+    //                 "VXUS".into(),
+    //                 "VEU".into(),
+    //                 "VSGX".into(),
+    //                 "VWOB".into(),
+    //                 "VIGI".into(),
+    //                 "EWZ".into(),
+    //                 "EWJ".into(),
+    //             ];
+    //             self.get_tickers_by_symbols(symbols).await.unwrap()
+    //         }
+    //         _ => {
+    //             let tickers = self
+    //                 .storage_service
+    //                 .get_tickers_by_movers(function)
+    //                 .await
+    //                 .unwrap();
+    //             tickers
+    //                 .iter()
+    //                 .map(|t| TickerEntity::from(t.clone()))
+    //                 .collect()
+    //         }
+    //     };
 
-        Ok(tentities)
-    }
+    //     Ok(tentities)
+    // }
 
     pub async fn get_ticker_charts(&self, symbol: &str) -> Result<Vec<TickerChartEntity>> {
         let indicators = self
@@ -123,11 +123,10 @@ impl TickersService {
             .into_iter()
             .filter_map(|b| {
                 indicator_map.get(&b.id).map(|val_a| {
-
                     let sma_50 = val_a
                         .values
                         .get("sma_50")
-                        .unwrap_or( &Decimal::ZERO)
+                        .unwrap_or(&Decimal::ZERO)
                         .to_f64()
                         .unwrap_or_default();
 
@@ -152,12 +151,32 @@ impl TickersService {
         Ok(charts)
     }
 
-    pub async fn search_tickers(&self, param: TickerScreenParam) -> Result<Vec<TickerEntity>> {
-        let tickers = self
-            .storage_service
-            .search_tickers(param)
-            .await
-            .map_err(|e| anyhow::anyhow!(format!("Get Ticker error: {}", e)))?;
+    pub async fn search_tickers(&self, param: TickerSearchParam) -> Result<Vec<TickerEntity>> {
+        // let mut tickers = Vec::new();
+        let tickers: Vec<Ticker> = if let Some(symbols) = param.symbols {
+            let list: Vec<String> = symbols.split(',').map(|s| s.to_string()).collect();
+            self.storage_service.get_tickers_by_symbols(list).await?
+        } else if let Some(function) = param.function {
+            match function.as_str() {
+                "top_gainers" => self.storage_service.get_tickers_by_top_gainers(param.asset_type).await?,
+                "top_gainers_ytd" => {
+                    self.storage_service
+                        .get_tickers_by_top_gainers_ytd(param.asset_type)
+                        .await?
+                }
+                "top_losers" => self.storage_service.get_tickers_by_top_losers(param.asset_type).await?,
+                "top_losers_ytd" => self.storage_service.get_tickers_by_top_losers_ytd(param.asset_type).await?,
+                // "oversold"    => self.storage.find_oversold().await,
+                // "overbought"  => self.storage.find_overbought().await,
+                _ => Vec::new(),
+            }
+        } else {
+            let filter = TickerFilter::from(param);
+            self.storage_service
+                .search_tickers(filter)
+                .await
+                .map_err(|e| anyhow::anyhow!(format!("Get Ticker error: {}", e)))?
+        };
 
         debug!("Tickers: {}", tickers.len());
         let tentities = tickers

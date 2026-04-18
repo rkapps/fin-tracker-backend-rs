@@ -15,8 +15,7 @@ use fin_tracker_api::{
     handlers::{
         analyse::{analyse_tickers_handler, analyse_tickers_streaming_handler},
         tickers::{
-            get_ticker_charts_handler, get_ticker_groups_handler, get_tickers_handler,
-            search_tickers_handler,
+            get_ticker_charts_handler, get_ticker_groups_handler, search_tickers_handler,
         },
     },
     state::AppState,
@@ -60,7 +59,7 @@ async fn main() -> Result<()> {
         
     // Router
     let app = Router::new()
-        .route("/tickers", get(get_tickers_handler))
+        // .route("/tickers", get(get_tickers_handler))
         .route("/tickers/groups", get(get_ticker_groups_handler))
         // .route("/tickers/{symbol}/history", get(get_ticker_history))
         .route("/tickers/{symbol}/charts", get(get_ticker_charts_handler))

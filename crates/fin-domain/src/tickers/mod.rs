@@ -9,6 +9,8 @@ mod indicator_window;
 mod sentiment;
 mod ticker;
 mod seed;
+mod ticker_filter;
+
 
 use std::str::FromStr;
 
@@ -30,6 +32,7 @@ pub use indicator_snapshot::IndicatorSnapshot;
 pub use indicator_window::IndicatorWindow;
 pub use sentiment::TickerSentiment;
 pub use seed::TickerSeed;
+pub use ticker_filter::TickerFilter;
 
 use serde::Serialize;
 // pub use ticker::AssetType;
