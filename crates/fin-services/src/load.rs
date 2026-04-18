@@ -66,7 +66,7 @@ impl LoadService {
             .await
             {
                 error!("Ticker {}: {}", seed.symbol, e);
-                return Err(e);
+                continue;
             }
 
             if let Err(e) =
