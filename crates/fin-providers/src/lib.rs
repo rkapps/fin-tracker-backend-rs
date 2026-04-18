@@ -1,4 +1,5 @@
 pub mod alpha;
+pub mod cmc;
 pub mod http;
 pub mod tiingo;
 
