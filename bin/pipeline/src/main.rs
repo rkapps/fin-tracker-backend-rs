@@ -15,10 +15,7 @@ struct Cli {
 
 #[derive(Subcommand)]
 enum PipelineCommands {
-    TickersEod {
-        #[arg(short, long)]
-        symbols: String,
-    },
+    TickersEod, 
     RealtimeStocksEtfs,
     RealtimeCrypto,
     BuildTickerPredictionModels,
@@ -32,15 +29,15 @@ async fn main() -> Result<()> {
     let pipeline_service = get_pipeline_service().await?;
 
     match cli.command {
-        PipelineCommands::TickersEod { symbols } => {
+        PipelineCommands::TickersEod => {
             info!("Tickers EOD PipeLine started...");
-            match pipeline_service.update_tickers_eod(&symbols).await {
+            match pipeline_service.update_tickers_eod("").await {
                 Ok(_) => info!("Tickers EOD update completed successfully."),
                 Err(e) => error!("Tickers EOD update failed: {:?}", e),
             }
 
             match pipeline_service
-                .update_ticker_eod_prediction_signals(&symbols)
+                .update_ticker_eod_prediction_signals("")
                 .await
             {
                 Ok(_) => info!("Tickers EOD prediction signals completed successfully."),
