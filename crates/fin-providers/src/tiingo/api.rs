@@ -56,18 +56,12 @@ pub async fn get_crypto_history(
     Ok(price_data.clone().price_data)
 }
 
-
 pub async fn get_stock_etf_realtime(
     http_client: &HttpClient,
     symbol: &str,
     api_token: &str,
 ) -> Result<TiingoTickerRealtime> {
-    let url = format!(
-        "{}{}?token={}",
-        TIINGO_REALTIME_URL,
-        symbol,
-        api_token,
-    );
+    let url = format!("{}{}?token={}", TIINGO_REALTIME_URL, symbol, api_token,);
     let headers = reqwest::header::HeaderMap::new();
     let realtime = http_client
         .get_request::<Vec<TiingoTickerRealtime>>(url, Some(headers))

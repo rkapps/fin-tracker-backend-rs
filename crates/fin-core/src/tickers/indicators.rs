@@ -21,6 +21,7 @@ use tracing::trace;
 pub struct IndicatorCalculator {}
 
 impl IndicatorCalculator {
+    #[allow(clippy::too_many_arguments)]
     // calculate technical indicators while looping through the history once.
     pub(crate) fn calculate_all_in_one_pass(
         history: &[TickerHistory],
@@ -89,7 +90,6 @@ impl IndicatorCalculator {
                 }
             }
 
-
             trace!("Calculating EMAs");
             // Calculate all EMAs
             for (period, ema) in ema_calcs.iter_mut() {
@@ -103,7 +103,6 @@ impl IndicatorCalculator {
                 }
             }
 
-
             trace!("Calculating RSIs");
             // Calculate all RSIs
             for (period, rsi) in rsi_calcs.iter_mut() {
@@ -116,7 +115,6 @@ impl IndicatorCalculator {
                     values.insert(format!("{}_{}", RSI, period), dec);
                 }
             }
-
 
             trace!("Calculating Stochastic Oscillator");
             //Stochastic Oscillator
@@ -155,7 +153,6 @@ impl IndicatorCalculator {
                 }
             }
 
-
             trace!("Calculating MACD");
             //Calculate MACD
             let output = macd.next(close_f64);
@@ -173,7 +170,6 @@ impl IndicatorCalculator {
                 values.insert(MACD_HISTOGRAM.to_string(), dec);
             }
 
-
             trace!("Calculating Bollinger Bands");
             //Bollinger Bands
             let output = bb.next(close_f64);
@@ -190,7 +186,6 @@ impl IndicatorCalculator {
                 let dec = Decimal::try_from(output.lower)?.round_dp(2);
                 values.insert(BB_LOWER.to_string(), dec);
             }
-
 
             trace!("Calculating ATR");
             //ATR

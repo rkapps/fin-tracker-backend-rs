@@ -38,7 +38,7 @@ pub fn assets_cap_label_range(assets_cap_label: Option<String>) -> (i64, i64) {
         val if val == "large" => (10_000_000_000, 200_000_000_000), // Large: $10B-$200B
         val if val == "mid" => (2_000_000_000, 10_000_000_000), // Mid: $2B-$10B
         val if val == "small" => (250_000_000, 2_000_000_000), // Small: $250M-$2B
-        _ => (0, 250_000_000),                                           // micro: <$200M
+        _ => (0, 250_000_000),                               // micro: <$200M
     }
 }
 

@@ -10,7 +10,7 @@ pub async fn check_update_ticker(symbol: &str) -> Result<()> {
     // Get ticker data
     let mut tc = match pipeline_service
         .storage_service
-        .get_ticker_control(&symbol)
+        .get_ticker_control(symbol)
         .await
     {
         Ok(tc) => tc,
@@ -22,7 +22,7 @@ pub async fn check_update_ticker(symbol: &str) -> Result<()> {
 
     let mut ticker = match pipeline_service
         .storage_service
-        .get_ticker_by_symbol(&symbol)
+        .get_ticker_by_symbol(symbol)
         .await
     {
         Ok(t) => t,
@@ -49,12 +49,14 @@ pub async fn check_update_ticker(symbol: &str) -> Result<()> {
     Ok(())
 }
 
-
 pub async fn check_ticker_sentiment(symbol: &str) -> Result<()> {
     let pipeline_service = get_pipeline_service().await?;
     let score = dec!(0.9);
 
-    let sentiments = pipeline_service.storage_service.get_ticker_sentiments_with_score(symbol, &score).await?;
+    let sentiments = pipeline_service
+        .storage_service
+        .get_ticker_sentiments_with_score(symbol, &score)
+        .await?;
     debug!("Sentiments: {}", sentiments.len());
 
     Ok(())

@@ -3,9 +3,7 @@ use std::sync::Arc;
 use agentic_core::client::embeddings::EmbeddingClient;
 use anyhow::Result;
 use fin_domain::tickers::{Ticker, TickerFilter};
-use fin_domain::{
-    utils::data_utils::get_overview_embeddings,
-};
+use fin_domain::utils::data_utils::get_overview_embeddings;
 use fin_storage::service::StorageService;
 use storage_core::vector::search;
 use tracing::debug;
@@ -13,7 +11,7 @@ use tracing::debug;
 pub async fn screen_tickers(
     storage_service: Arc<dyn StorageService>,
     embedding_client: Arc<dyn EmbeddingClient>,
-    filter: TickerFilter
+    filter: TickerFilter,
 ) -> Result<Vec<String>> {
     let tickers = storage_service.search_tickers(filter.clone()).await?;
     debug!("Screened stocks from initial search: {}", tickers.len());

@@ -1,9 +1,8 @@
+use crate::{HttpClient, cmc::model::CmcCryptoData};
 use anyhow::Result;
 use reqwest::header::HeaderValue;
-use crate::{HttpClient, cmc::model::CmcCryptoData};
 
 const COINMARKETCAP_BASE_URL: &str = "https://pro-api.coinmarketcap.com/";
-
 
 pub async fn get_crypto(
     http_client: &HttpClient,
@@ -12,7 +11,8 @@ pub async fn get_crypto(
 ) -> Result<CmcCryptoData> {
     let url = format!(
         "{}v2/cryptocurrency/quotes/latest?symbol={}",
-        COINMARKETCAP_BASE_URL, symbols.join(",")
+        COINMARKETCAP_BASE_URL,
+        symbols.join(",")
     );
     let mut headers = reqwest::header::HeaderMap::new();
     headers.insert("X-CMC_PRO_API_KEY", HeaderValue::from_str(api_key)?);

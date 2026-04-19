@@ -28,11 +28,7 @@ pub async fn get_stock(
     Ok(ticker)
 }
 
-pub async fn get_etf(
-    http_client: &HttpClient,
-    symbol: &str,
-    api_key: &str,
-) -> Result<AlphaEtf> {
+pub async fn get_etf(http_client: &HttpClient, symbol: &str, api_key: &str) -> Result<AlphaEtf> {
     let url = format!(
         "{}query?function={}&symbol={}&apikey={}",
         ALPHA_BASE_URL, ALPHA_FUNCTION_ETF_PROFILE, symbol, api_key

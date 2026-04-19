@@ -7,8 +7,7 @@ use serde::{Deserialize, Serialize};
 use storage_core::core::RepoModel;
 
 use crate::{
-    tickers::TICKER_SENTIMENT_COLLECTION_NAME,
-    utils::string_utils::alpha_string_to_utc_datetime,
+    tickers::TICKER_SENTIMENT_COLLECTION_NAME, utils::string_utils::alpha_string_to_utc_datetime,
 };
 
 #[derive(Serialize, Deserialize, Clone, Debug)]

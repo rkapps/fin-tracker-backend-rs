@@ -231,7 +231,6 @@ fn normalize_single(features: &[f64], means: &[f64], stds: &[f64]) -> Vec<f32> {
 //     } // Neutral
 // }
 
-
 // to_tensors
 pub fn to_tensors(
     data: &[(f64, Vec<f64>)],

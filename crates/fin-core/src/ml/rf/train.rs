@@ -144,7 +144,7 @@ pub fn train_models_for_randomforest(
     };
 
     Ok(RfResult {
-        model: model,
+        model,
         metrics,
         mean_down,
         mean_neutral,

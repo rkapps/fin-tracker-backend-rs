@@ -1,13 +1,13 @@
 use std::sync::Arc;
 
 use anyhow::Result;
-use fin_domain::tickers::{
-    TICKER_COLLECTION_NAME, TICKER_CONTROL_COLLECTION_NAME,
-    TICKER_EMBEDDING_COLLECTION_NAME, TICKER_HISTORY_COLLECTION_NAME,
-    TICKER_INDICATOR_COLLECTION_NAME, TICKER_SENTIMENT_COLLECTION_NAME, Ticker, TickerAlpha,
-    TickerControl, TickerEmbedding, TickerHistory, TickerIndicator, TickerSentiment,
-};
 use fin_domain::tickers::TICKER_ALPHA_COLLECTION_NAME;
+use fin_domain::tickers::{
+    TICKER_COLLECTION_NAME, TICKER_CONTROL_COLLECTION_NAME, TICKER_EMBEDDING_COLLECTION_NAME,
+    TICKER_HISTORY_COLLECTION_NAME, TICKER_INDICATOR_COLLECTION_NAME,
+    TICKER_SENTIMENT_COLLECTION_NAME, Ticker, TickerAlpha, TickerControl, TickerEmbedding,
+    TickerHistory, TickerIndicator, TickerSentiment,
+};
 use storage_core::mongo::{database::MongoDatabase, repository::MongoRepository};
 use tokio::sync::Mutex;
 

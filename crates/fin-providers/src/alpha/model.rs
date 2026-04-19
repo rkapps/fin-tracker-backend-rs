@@ -67,15 +67,13 @@ pub struct AlphaTicker {
     pub pr_52_wk_low: String,
 }
 
-
 #[derive(Debug, Deserialize)]
 pub struct AlphaEtf {
     pub net_assets: String,
     pub net_expense_ratio: String,
     pub dividend_yield: String,
-    pub inception_date: String
+    pub inception_date: String,
 }
-
 
 #[derive(Debug, Deserialize)]
 pub struct AlphaTickerSentiment {

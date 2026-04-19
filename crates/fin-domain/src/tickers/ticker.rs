@@ -10,7 +10,11 @@ use crate::{
 };
 use anyhow::Result;
 use chrono::{DateTime, Utc};
-use fin_providers::{alpha::model::{AlphaEtf, AlphaTicker}, cmc::model::CmcCryptoData, tiingo::model::TiingoTickerRealtime};
+use fin_providers::{
+    alpha::model::{AlphaEtf, AlphaTicker},
+    cmc::model::CmcCryptoData,
+    tiingo::model::TiingoTickerRealtime,
+};
 use rust_decimal::{Decimal, prelude::ToPrimitive};
 use rust_decimal_macros::dec;
 use serde::{Deserialize, Serialize};
@@ -196,7 +200,6 @@ impl Ticker {
         self.pr_52_wk_low = string_to_decimal(&value.pr_52_wk_low)
     }
 
-
     pub fn update_etf_from_alpha(&mut self, value: AlphaEtf) {
         info!("value: {:?}", value);
         self.total_assets = Some(string_to_int64(value.net_assets));
@@ -212,15 +215,13 @@ impl Ticker {
         // info!("value: {:?}", value.data.get(&self.symbol).unwrap().first());
 
         self.total_assets = Some(0);
-        if let Some(data) = value.data.get(&self.symbol) {
-            if let Some(sdata) = data.first() {
-                if let Some(quote) = sdata.quote.get("USD") {
-                    if let Some(market_cap) = quote.market_cap {
-                        self.total_assets = Some(market_cap as i64);
-                    }
-                };
-            };
-        } 
+        if let Some(data) = value.data.get(&self.symbol)
+            && let Some(sdata) = data.first()
+            && let Some(quote) = sdata.quote.get("USD")
+            && let Some(market_cap) = quote.market_cap
+        {
+            self.total_assets = Some(market_cap as i64);
+        };
     }
 
     // update realtime price for stocks and etfs

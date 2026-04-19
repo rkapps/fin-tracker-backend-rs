@@ -4,8 +4,8 @@ use axum::{
     extract::{Path, State},
 };
 use fin_domain::dto::{
-    ticker_chart_entity::TickerChartEntity,
-    ticker_entity::TickerEntity, ticker_search_param::TickerSearchParam,
+    ticker_chart_entity::TickerChartEntity, ticker_entity::TickerEntity,
+    ticker_search_param::TickerSearchParam,
 };
 use fin_services::ticker::TickersService;
 use reqwest::StatusCode;

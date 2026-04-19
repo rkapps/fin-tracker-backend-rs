@@ -8,7 +8,6 @@ use fin_storage::service::StorageService;
 use tokio::sync::RwLock;
 use tracing::{debug, info, trace, warn};
 
-
 // const PERIODS: [i32; 1] = [20];
 const PERIODS: [i32; 4] = [5, 10, 20, 60];
 const MIN_SAMPLES: usize = 20;
@@ -86,6 +85,4 @@ impl MlService {
 
         Ok(ticker_data)
     }
-
-    
 }

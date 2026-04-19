@@ -6,11 +6,10 @@ mod history;
 mod indicator;
 mod indicator_snapshot;
 mod indicator_window;
+mod seed;
 mod sentiment;
 mod ticker;
-mod seed;
 mod ticker_filter;
-
 
 use std::str::FromStr;
 
@@ -30,8 +29,8 @@ pub use indicator::TickerIndicator;
 pub use indicator::indicator_type;
 pub use indicator_snapshot::IndicatorSnapshot;
 pub use indicator_window::IndicatorWindow;
-pub use sentiment::TickerSentiment;
 pub use seed::TickerSeed;
+pub use sentiment::TickerSentiment;
 pub use ticker_filter::TickerFilter;
 
 use serde::Serialize;
@@ -48,7 +47,6 @@ pub const TICKER_EMBEDDING_COLLECTION_NAME: &str = "ticker_embedding";
 pub const TICKER_ALPHA_COLLECTION_NAME: &str = "ticker_alpha";
 
 pub const TICKER_PERFORMANCE_PERIODS: [&str; 8] = ["1W", "1M", "3M", "6M", "1Y", "Ytd", "2Y", "5Y"];
-
 
 #[derive(Debug, Serialize, Deserialize, Clone, PartialEq, Default)]
 #[serde(rename_all = "UPPERCASE")]
@@ -71,7 +69,6 @@ impl FromStr for AssetType {
         }
     }
 }
-
 
 pub mod decimal_serde {
     use bson::Decimal128;

@@ -160,14 +160,26 @@ impl TickersService {
             self.storage_service.get_tickers_by_symbols(list).await?
         } else if let Some(function) = param.function {
             match function.as_str() {
-                "top_gainers" => self.storage_service.get_tickers_by_top_gainers(param.asset_type).await?,
+                "top_gainers" => {
+                    self.storage_service
+                        .get_tickers_by_top_gainers(param.asset_type)
+                        .await?
+                }
                 "top_gainers_ytd" => {
                     self.storage_service
                         .get_tickers_by_top_gainers_ytd(param.asset_type)
                         .await?
                 }
-                "top_losers" => self.storage_service.get_tickers_by_top_losers(param.asset_type).await?,
-                "top_losers_ytd" => self.storage_service.get_tickers_by_top_losers_ytd(param.asset_type).await?,
+                "top_losers" => {
+                    self.storage_service
+                        .get_tickers_by_top_losers(param.asset_type)
+                        .await?
+                }
+                "top_losers_ytd" => {
+                    self.storage_service
+                        .get_tickers_by_top_losers_ytd(param.asset_type)
+                        .await?
+                }
                 // "oversold"    => self.storage.find_oversold().await,
                 // "overbought"  => self.storage.find_overbought().await,
                 _ => Vec::new(),

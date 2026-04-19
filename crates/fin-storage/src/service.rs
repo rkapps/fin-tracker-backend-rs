@@ -40,9 +40,15 @@ pub trait TickerStorageService: Send + Sync + Debug {
     async fn get_tickers(&self) -> Result<Vec<Ticker>>;
     async fn get_tickers_by_symbols(&self, symbols: Vec<String>) -> Result<Vec<Ticker>>;
     async fn get_tickers_by_top_gainers(&self, asset_type: Option<String>) -> Result<Vec<Ticker>>;
-    async fn get_tickers_by_top_gainers_ytd(&self, asset_type: Option<String> ) -> Result<Vec<Ticker>>;
+    async fn get_tickers_by_top_gainers_ytd(
+        &self,
+        asset_type: Option<String>,
+    ) -> Result<Vec<Ticker>>;
     async fn get_tickers_by_top_losers(&self, asset_type: Option<String>) -> Result<Vec<Ticker>>;
-    async fn get_tickers_by_top_losers_ytd(&self, asset_type: Option<String>) -> Result<Vec<Ticker>>;
+    async fn get_tickers_by_top_losers_ytd(
+        &self,
+        asset_type: Option<String>,
+    ) -> Result<Vec<Ticker>>;
     // async fn get_tickers_by_movers(&self, function: &str) -> Result<Vec<Ticker>>;
     async fn get_ticker_by_sector(&self, sector: &str) -> Result<Vec<Ticker>>;
     async fn get_tickers_by_marketcap(&self) -> Result<Vec<Ticker>>;

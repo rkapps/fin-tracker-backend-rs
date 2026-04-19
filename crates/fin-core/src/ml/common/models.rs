@@ -36,4 +36,3 @@ pub struct ModelMetrics {
     pub mae: f64,
     pub r2: f64,
 }
-

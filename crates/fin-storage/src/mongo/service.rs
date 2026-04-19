@@ -9,7 +9,9 @@ use crate::{
     },
 };
 use anyhow::Result;
-use fin_domain::tickers::{Ticker, TickerEmbedding, TickerHistory, TickerIndicator, TickerSentiment};
+use fin_domain::tickers::{
+    Ticker, TickerEmbedding, TickerHistory, TickerIndicator, TickerSentiment,
+};
 use storage_core::core::{Repository as _, search::SearchCriteria};
 
 #[derive(Debug)]

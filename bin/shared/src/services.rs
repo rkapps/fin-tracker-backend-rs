@@ -86,8 +86,8 @@ pub fn get_provider_service() -> Result<ProviderService> {
         env::var("ALPHA_API_KEY").expect("ALPHA_API_KEY not found in environment variables.");
     let tiingo_token =
         env::var("TIINGO_API_TOKEN").expect("TIINGO_API_TOKEN not found in environment variables.");
-    let coinmarketcap_key =
-        env::var("COINMARKETCAP_API_KEY").expect("COINMARKETCAP_API_KEY not found in environment variables.");
+    let coinmarketcap_key = env::var("COINMARKETCAP_API_KEY")
+        .expect("COINMARKETCAP_API_KEY not found in environment variables.");
 
     fin_providers::ProviderService::new(&alpha_key, &tiingo_token, &coinmarketcap_key)
 }

@@ -1,12 +1,15 @@
 use crate::{
-    HttpClient, alpha::{
+    HttpClient,
+    alpha::{
         self,
         model::{AlphaEtf, AlphaTicker, AlphaTickerSentimentFeed},
-    }, cmc::{self, model::CmcCryptoData}, tiingo::{
+    },
+    cmc::{self, model::CmcCryptoData},
+    tiingo::{
         self,
         api::get_stock_etf_realtime,
         model::{TiingoTickerHistory, TiingoTickerRealtime},
-    }
+    },
 };
 use anyhow::Result;
 use chrono::{DateTime, Utc};
@@ -27,21 +30,20 @@ impl ProviderService {
             http_client,
             alpha_key: alpha_key.to_string(),
             tiingo_token: tiingo_token.to_string(),
-            coinmarketcap_key: coinmarketcap_key.to_string()
+            coinmarketcap_key: coinmarketcap_key.to_string(),
         })
     }
 
     pub async fn get_stock_etf_realtime(&self, symbol: &str) -> Result<TiingoTickerRealtime> {
-        let realtime = get_stock_etf_realtime(&self.http_client, symbol, &self.tiingo_token).await?;
+        let realtime =
+            get_stock_etf_realtime(&self.http_client, symbol, &self.tiingo_token).await?;
         Ok(realtime)
     }
-
 
     pub async fn get_stock(&self, symbol: &str) -> Result<AlphaTicker> {
         let raw = alpha::api::get_stock(&self.http_client, symbol, &self.alpha_key).await?;
         Ok(raw)
     }
-
 
     pub async fn get_etf(&self, symbol: &str) -> Result<AlphaEtf> {
         let raw = alpha::api::get_etf(&self.http_client, symbol, &self.alpha_key).await?;

@@ -8,7 +8,8 @@ use fin_domain::tickers::{
 use tracing::{debug, warn};
 
 use crate::ml::{
-    common::models::RandomForestModelCache, lr::linfa::run_lr_predictions, mlp::train::predict_mlp, rf::train::run_rf_predictions
+    common::models::RandomForestModelCache, lr::linfa::run_lr_predictions, mlp::train::predict_mlp,
+    rf::train::run_rf_predictions,
 };
 
 pub async fn run_predictions(
@@ -22,7 +23,8 @@ pub async fn run_predictions(
     HashMap<String, f64>,
 )> {
     let isnapshot = IndicatorSnapshot::from(indicator);
-    let prev_snapshot = prev_indicator.map(|p| IndicatorSnapshot::from(p));
+    // Function as value
+    let prev_snapshot = prev_indicator.map(IndicatorSnapshot::from);
 
     let fsnapshot = match panic::catch_unwind(|| {
         FeatureSnapshot::from_indicator_with_prev(&isnapshot, prev_snapshot.as_ref())
@@ -90,7 +92,10 @@ pub async fn run_predictions(
                 Ok(c) => {
                     mlp_returns.insert(sa.n.to_string(), c);
 
-                    debug!("      Period:{} alogrithn: {:?} predicted {:.2}", sa.id, sa.model_algorithm, c);
+                    debug!(
+                        "      Period:{} alogrithn: {:?} predicted {:.2}",
+                        sa.id, sa.model_algorithm, c
+                    );
                 }
                 Err(e) => {
                     return Err(anyhow::anyhow!("MLP Prediction error: {}", e));

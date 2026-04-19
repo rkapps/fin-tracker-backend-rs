@@ -260,6 +260,5 @@ impl AnalyseService {
              End your response after the SYNOPSIS. Nothing else."
             .to_string()
         )
-        
     }
 }

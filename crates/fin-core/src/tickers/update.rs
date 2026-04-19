@@ -683,7 +683,7 @@ pub async fn update_ticker_prediction_signals(
         .collect();
 
     debug!("    Returns: {:?}", returns);
-    
+
     let signalsc = SignalsCalculator {};
 
     let ml_signals = signalsc.calculate_ml_signals(
@@ -729,7 +729,10 @@ pub async fn run_ticker_predictions(
         info!("  Falling back to sector model for {}", indicator.symbol);
         &sector_alphas
     } else {
-        return Err(anyhow::anyhow!("Ticker alphs not found for symbol: {}", indicator.symbol));
+        return Err(anyhow::anyhow!(
+            "Ticker alphs not found for symbol: {}",
+            indicator.symbol
+        ));
     };
 
     let rf_models = Arc::new(RwLock::new(HashMap::new()));

@@ -149,7 +149,10 @@ impl PipeLineService {
                         sasm.insert(sector.clone(), c);
                     }
                     Err(e) => {
-                        error!("       Error getting SectorAlphas for {}-{}", ticker.symbol, e);
+                        error!(
+                            "       Error getting SectorAlphas for {}-{}",
+                            ticker.symbol, e
+                        );
                         sasm.insert(sector.clone(), Vec::new());
                     }
                 };

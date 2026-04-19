@@ -70,7 +70,8 @@ impl LoadService {
             }
 
             if let Err(e) =
-                update_ticker_overview_embedding(storage_service, embedding_client, &mut ticker).await
+                update_ticker_overview_embedding(storage_service, embedding_client, &mut ticker)
+                    .await
             {
                 error!("Ticker overview embedding {}: {}", seed.symbol, e);
                 continue;
@@ -84,5 +85,4 @@ impl LoadService {
         info!("Loaded {} Tickers.", count);
         Ok(())
     }
-
 }

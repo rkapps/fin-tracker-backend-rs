@@ -44,11 +44,14 @@ pub fn train_ticker_models(
                 ticker_labels.len()
             );
 
-            if ticker_labels.len() < *period as usize{
-                warn!("           Labels {} less than the period {}. Skipping... ", ticker_labels.len(), period);
+            if ticker_labels.len() < *period as usize {
+                warn!(
+                    "           Labels {} less than the period {}. Skipping... ",
+                    ticker_labels.len(),
+                    period
+                );
                 continue;
             }
-
 
             match train_labels_for_all_algorithms(
                 key,
@@ -109,7 +112,10 @@ pub fn train_labels_for_all_algorithms(
 
     let train_size = train_data.len() as i32;
     let test_size = test_data.len() as i32;
-    debug!("          Training data: {} Test data: {}", train_size, test_size);
+    debug!(
+        "          Training data: {} Test data: {}",
+        train_size, test_size
+    );
     // Normalization params from training set only
     // Stored in TickerAlpha and reused at inference via normalize_single
     let (means, stds) = compute_normalization_params(train_data);
