@@ -54,8 +54,12 @@ impl MlService {
         symbols: &str,
     ) -> Result<Vec<(String, Vec<TickerIndicator>)>> {
         // param.limit = Some(10);
-        let list: Vec<String> = symbols.split(',').map(|s| s.to_string()).collect();
-        let tickers = self.storage_service.get_tickers_by_symbols(list).await?;
+        let tickers = if !symbols.is_empty() {
+            let list: Vec<String> = symbols.split(',').map(|s| s.to_string()).collect();
+            self.storage_service.get_tickers_by_symbols(list).await?
+        } else {
+            self.storage_service.get_tickers_by_marketcap().await?
+        };
 
         let length = tickers.len();
         debug!("Tickers: {}", tickers.len());
