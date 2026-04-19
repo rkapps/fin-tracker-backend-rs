@@ -52,11 +52,11 @@ pub fn build_labels(indicators: &[TickerIndicator], period: usize) -> Result<Vec
             fsnapshot.values().get(4).unwrap()
         );
 
-        let tvalues = vec![*fsnapshot.values().get(1).unwrap(), *fsnapshot.values().get(3).unwrap() ];
+        // let tvalues = vec![*fsnapshot.values().get(1).unwrap(), *fsnapshot.values().get(3).unwrap() ];
         // tvalues.push();
-        // tvalues.push(*fsnapshot.values().get(3).unwrap());
+        // tvalues.push(*fsnapshot.values());
 
-        labels.push((return_pct, tvalues));
+        labels.push((return_pct, fsnapshot.values()));
     }
 
     Ok(labels)

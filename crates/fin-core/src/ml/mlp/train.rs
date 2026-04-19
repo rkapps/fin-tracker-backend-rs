@@ -3,7 +3,7 @@ use candle_core::{DType, Device, Tensor, Var};
 use candle_nn::{Linear, Module, Optimizer, VarBuilder, VarMap, linear};
 use fin_domain::tickers::TickerAlpha;
 use rand::{seq::SliceRandom, thread_rng};
-use tracing::debug;
+use tracing::{debug, trace, warn};
 
 use crate::ml::common::{metrics::log_metrics_from_vecs, models::ModelMetrics};
 
@@ -53,7 +53,7 @@ pub fn train_models_for_mlp(
         var.sqrt().max(1e-8)
     };
     debug!(
-        "        Label mean: {:.2}%  std: {:.2}%",
+        "          Label mean: {:.2}%  std: {:.2}%",
         label_mean, label_std
     );
 
@@ -87,7 +87,7 @@ pub fn train_models_for_mlp(
         optimizer.backward_step(&loss)?;
 
         if epoch % 50 == 0 {
-            debug!("  Epoch {}: loss = {:.6}", epoch, loss.to_scalar::<f32>()?);
+            trace!("  Epoch {}: loss = {:.6}", epoch, loss.to_scalar::<f32>()?);
         }
     }
 
@@ -107,7 +107,7 @@ pub fn train_models_for_mlp(
     let down_preds = pred_vals.iter().filter(|&&v| v < 0.0).count();
 
     debug!(
-        "       Pred UP: {}  Pred DOWN: {}  Actual UP: {}  Actual DOWN: {}",
+        "         Pred UP: {}  Pred DOWN: {}  Actual UP: {}  Actual DOWN: {}",
         up_preds,
         down_preds,
         actuals.iter().filter(|&&v| v > 0.0).count(),
@@ -159,7 +159,7 @@ fn balance_labels(data: &[(f64, Vec<f64>)]) -> Vec<(f64, Vec<f64>)> {
     let mean_down_abs = down.iter().map(|(l, _)| l.abs()).sum::<f64>() / down.len() as f64;
 
     debug!(
-        "        Mean UP magnitude: {:.2}%  Mean DOWN magnitude: {:.2}%",
+        "         Mean UP magnitude: {:.2}%  Mean DOWN magnitude: {:.2}%",
         mean_up_abs, mean_down_abs
     );
 
@@ -167,7 +167,7 @@ fn balance_labels(data: &[(f64, Vec<f64>)]) -> Vec<(f64, Vec<f64>)> {
     // so MSE treats both directions equally
     let scale = mean_down_abs / mean_up_abs.max(1e-8);
 
-    debug!("        UP magnitude scale factor: {:.4}", scale);
+    debug!("         UP magnitude scale factor: {:.4}", scale);
 
     let mut balanced = Vec::new();
     balanced.extend(up.into_iter().map(|(l, feats)| (l * scale, feats)));
@@ -376,8 +376,8 @@ pub fn predict_mlp(alpha: &TickerAlpha, normalized: Vec<f64>) -> Result<f64> {
     let predicted_pct = (scaled * alpha.label_std) + alpha.label_mean;
     // If bearish precision was low in training, suppress weak DOWN signals
     if predicted_pct < 0.0 && alpha.bearish_precision < 0.50 {
-        debug!(
-            "  Suppressing weak DOWN signal for {}:{} (bearish precision: {:.1}%)",
+        warn!(
+            "        Suppressing weak DOWN signal for {}:{} (bearish precision: {:.1}%)",
             alpha.key,
             alpha.n,
             alpha.bearish_precision * 100.0
@@ -385,7 +385,7 @@ pub fn predict_mlp(alpha: &TickerAlpha, normalized: Vec<f64>) -> Result<f64> {
         return Ok(0.0); // treat as neutral
     }
     debug!(
-        "  MLP {}:{} — predicted: {:.2}%",
+        "     MLP {}:{} — predicted: {:.2}%",
         alpha.key, alpha.n, predicted_pct
     );
 

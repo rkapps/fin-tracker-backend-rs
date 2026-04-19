@@ -3,8 +3,8 @@ use anyhow::Result;
 use chrono::{Months, Utc};
 use fin_domain::{
     tickers::{
-        AssetType, TICKER_PERFORMANCE_PERIODS, Ticker, TickerAlpha, TickerControl, TickerEmbedding,
-        TickerHistory, TickerIndicator, TickerSentiment,
+        AssetType, ModelAlgorithm, TICKER_PERFORMANCE_PERIODS, Ticker, TickerAlpha, TickerControl,
+        TickerEmbedding, TickerHistory, TickerIndicator, TickerSentiment,
     },
     utils::data_utils::{
         assets_cap_label, calculate_performance, get_period_close, get_period_start,
@@ -15,14 +15,19 @@ use fin_storage::service::StorageService;
 use rust_decimal::prelude::ToPrimitive;
 use rust_decimal_macros::dec;
 use std::{collections::HashMap, sync::Arc};
-use tracing::{debug, error, trace, warn};
+use tokio::sync::RwLock;
+use tracing::{debug, error, info, trace, warn};
 
-use crate::tickers::{
-    BASE_CURRENCY,
-    indicators::IndicatorCalculator,
-    signals::SignalsCalculator,
-    sync::{
-        should_sync_embeddings, should_sync_history, should_sync_indicators, should_sync_sentiments,
+use crate::{
+    ml::prediction::run_predictions,
+    tickers::{
+        BASE_CURRENCY,
+        indicators::IndicatorCalculator,
+        signals::SignalsCalculator,
+        sync::{
+            should_sync_embeddings, should_sync_history, should_sync_indicators,
+            should_sync_sentiments,
+        },
     },
 };
 
@@ -628,80 +633,105 @@ pub(crate) async fn update_ticker_signals(
 }
 
 pub async fn update_ticker_prediction_signals(
-    _storage_service: Arc<dyn StorageService>,
-    _ticker: &mut Ticker,
-    _sas: &[TickerAlpha],
+    storage_service: Arc<dyn StorageService>,
+    ticker: &mut Ticker,
+    sas: &[TickerAlpha],
 ) -> Result<()> {
-    // let indicators = storage_service
-    //     .get_ticker_indicators_last_n(&ticker.symbol, 2)
-    //     .await?;
+    let indicators = storage_service
+        .get_ticker_indicators_last_n(&ticker.symbol, 2)
+        .await?;
 
-    // // get() returns Option — convert to Result with ok_or_else
-    // let indicator = indicators
-    //     .get(1)
-    //     .ok_or_else(|| anyhow::anyhow!("No current indicator for {}", ticker.symbol))?;
+    // get() returns Option — convert to Result with ok_or_else
+    let indicator = indicators
+        .get(1)
+        .ok_or_else(|| anyhow::anyhow!("No current indicator for {}", ticker.symbol))?;
 
-    // let prev_indicator = indicators.first(); // Option<&TickerIndicator> — None is fine
+    let prev_indicator = indicators.first(); // Option<&TickerIndicator> — None is fine
 
-    // // Try ticker model first, fall back to sector
-    // let ticker_alphas = storage_service
-    //     .get_ticker_alphas_by_key(&ticker.symbol)
-    //     .await
-    //     .unwrap_or_default();
+    // Try ticker model first, fall back to sector
+    let ticker_alphas = storage_service
+        .get_ticker_alphas_by_key(&ticker.symbol)
+        .await
+        .unwrap_or_default();
 
-    // info!(
-    //     "Ticker: {} Sector alphas: {} Ticker alphas: {}",
-    //     ticker.symbol,
-    //     sas.len(),
-    //     ticker_alphas.len(),
-    // );
+    info!(
+        "  Ticker: {} Sector alphas: {} Ticker alphas: {}",
+        ticker.symbol,
+        sas.len(),
+        ticker_alphas.len(),
+    );
 
-    // // if we do not have data for 4 periods and 2 algos, use the sector alphas
-    // let alphas = if ticker_alphas.is_empty() || ticker_alphas.len() < 2 {
-    //     sas.to_vec()
-    // } else {
-    //     ticker_alphas
-    // };
+    // if we do not have data for 4 periods and 2 algos, use the sector alphas
+    let alphas = if ticker_alphas.is_empty() || ticker_alphas.len() < 2 {
+        sas.to_vec()
+    } else {
+        ticker_alphas
+    };
 
-    // let directional_accuracies: Vec<f64> = alphas.iter().map(|f| f.directional_accuracy).collect();
-    // let min_accuracy = directional_accuracies
-    //     .iter()
-    //     .copied()
-    //     .fold(f64::INFINITY, f64::min);
+    let directional_accuracies: Vec<f64> = alphas.iter().map(|f| f.directional_accuracy).collect();
+    let min_accuracy = directional_accuracies
+        .iter()
+        .copied()
+        .fold(f64::INFINITY, f64::min);
 
-    // let returns = self
-    //     .ml_service
-    //     .run_ticker_predictions(indicator, prev_indicator, &alphas, sas.to_vec())
-    //     .await?;
+    let returns = run_ticker_predictions(indicator, prev_indicator, &alphas, sas.to_vec()).await?;
 
-    // let mlp_alphas: HashMap<String, &TickerAlpha> = alphas
-    //     .iter()
-    //     .filter(|a| matches!(a.model_algorithm, ModelAlgorithm::MLP))
-    //     .map(|a| (a.n.to_string(), a))
-    //     .collect();
+    let mlp_alphas: HashMap<String, &TickerAlpha> = alphas
+        .iter()
+        .filter(|a| matches!(a.model_algorithm, ModelAlgorithm::MLP))
+        .map(|a| (a.n.to_string(), a))
+        .collect();
 
-    // debug!("Returns: {:?}", returns);
-    // let ml_signals = self.calculate_ml_signals(
-    //     &returns.0,
-    //     Some(&returns.1),
-    //     &returns.2,
-    //     &mlp_alphas,
-    //     min_accuracy,
-    // );
-    // ticker.lr_returns = returns.0;
-    // ticker.rf_returns = returns.1;
-    // ticker.mlp_returns = returns.2;
+    debug!("    Returns: {:?}", returns);
+    
+    let signalsc = SignalsCalculator {};
 
-    // info!("Ml Signals: {:?}", ml_signals);
-    // // Remove any existing LR signals
-    // ticker.signals.retain(|s| {
-    //     !s.starts_with("LR")
-    //         && !s.starts_with("RF")
-    //         && !s.starts_with("ML")
-    //         && !s.starts_with("MLP")
-    // });
-    // // Add fresh ones
-    // ticker.signals.extend(ml_signals);
+    let ml_signals = signalsc.calculate_ml_signals(
+        &returns.0,
+        Some(&returns.1),
+        &returns.2,
+        &mlp_alphas,
+        min_accuracy,
+    );
+    ticker.lr_returns = returns.0;
+    ticker.rf_returns = returns.1;
+    ticker.mlp_returns = returns.2;
+
+    info!("    Ml Signals: {:?}", ml_signals);
+    // Remove any existing LR signals
+    ticker.signals.retain(|s| {
+        !s.starts_with("LR")
+            && !s.starts_with("RF")
+            && !s.starts_with("ML")
+            && !s.starts_with("MLP")
+    });
+    // Add fresh ones
+    ticker.signals.extend(ml_signals);
 
     Ok(())
+}
+
+/// Prefer ticker model, fall back to sector model
+pub async fn run_ticker_predictions(
+    indicator: &TickerIndicator,
+    prev_indicator: Option<&TickerIndicator>,
+    ticker_alphas: &Vec<TickerAlpha>,
+    sector_alphas: Vec<TickerAlpha>,
+) -> Result<(
+    HashMap<String, f64>,
+    HashMap<String, f64>,
+    HashMap<String, f64>,
+)> {
+    let sas = if !ticker_alphas.is_empty() {
+        info!("    Using ticker model for {}", indicator.symbol);
+        ticker_alphas
+    } else if !sector_alphas.is_empty() {
+        info!("  Falling back to sector model for {}", indicator.symbol);
+        &sector_alphas
+    } else {
+        return Err(anyhow::anyhow!("Ticker alphs not found for symbol: {}", indicator.symbol));
+    };
+
+    let rf_models = Arc::new(RwLock::new(HashMap::new()));
+    run_predictions(rf_models, indicator, prev_indicator, sas.to_vec()).await
 }

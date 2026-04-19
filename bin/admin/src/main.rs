@@ -1,7 +1,7 @@
 use std::path::PathBuf;
 
 use anyhow::Result;
-use bin_shared::{logger::set_logger, services::get_load_service};
+use bin_shared::{logger::set_logger, services::{get_load_service, get_ml_service}};
 use clap::{Parser, Subcommand};
 use fin_tracker_admin::{seed::load_ticker_seeds_from_file, ticker::{check_ticker_sentiment, check_update_ticker}};
 use tracing::{error, info};
@@ -27,6 +27,10 @@ enum AdminCommands {
         #[arg(short, long)]
         symbol: String,
     }, // LoadExchanges,
+    BuildTickerPredictionModels {
+        #[arg(short, long)]
+        symbols: String,
+    }
        // FixData,
 }
 
@@ -62,6 +66,14 @@ async fn main() -> Result<()> {
             info!("Checking Ticker sentiment {}...", symbol);
             check_ticker_sentiment(&symbol).await?;
         }
+
+        AdminCommands::BuildTickerPredictionModels { symbols } => {
+            info!("Building Ticker Prediction Models {}...", symbols);
+            let ml_service = get_ml_service().await?;
+            let _ = ml_service.build_ticker_prediction_models(symbols.as_str()).await;
+            info!("Building Ticker Prediction Models done.");
+        }
+        
     }
 
     Ok(())

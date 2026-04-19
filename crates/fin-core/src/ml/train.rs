@@ -1,16 +1,100 @@
-use std::collections::HashMap;
+use std::{collections::HashMap, sync::Mutex};
 
 use anyhow::Result;
 use chrono::Utc;
-use fin_domain::tickers::{ModelAlgorithm, ModelType, TickerAlpha};
-use linfa_ensemble::EnsembleLearner;
-use linfa_trees::DecisionTree;
+use fin_domain::tickers::{ModelAlgorithm, ModelType, TickerAlpha, TickerIndicator};
+use rayon::iter::{IntoParallelRefIterator, ParallelIterator};
 use tracing::{debug, info, warn};
 
 use crate::ml::{
-    lr::linfa::train_models_for_linfa, mlp::train::train_models_for_mlp,
+    common::{labels::build_labels, models::RandomForestModel},
+    lr::linfa::train_models_for_linfa,
+    mlp::train::train_models_for_mlp,
     rf::train::train_models_for_randomforest,
 };
+
+pub fn train_ticker_models(
+    data: &[(String, Vec<TickerIndicator>)],
+    periods: &[i32],
+) -> Result<(Vec<TickerAlpha>, HashMap<String, RandomForestModel>)> {
+    let all_alphas = Mutex::new(Vec::new());
+    let all_rf_models = Mutex::new(HashMap::new());
+
+    debug!("Training ticker models: {}", data.len());
+    data.par_iter().for_each(|(key, indicators)| {
+        let mut ticker_alphas = Vec::new();
+        let mut ticker_rf_models = HashMap::new();
+        let mut success_count = 0;
+
+        for period in periods {
+            // build_labels(indicators, *period as usize).await?;
+            let ticker_labels = match build_labels(indicators, *period as usize) {
+                Ok(labels) => labels,
+                Err(e) => {
+                    warn!("Label build failed {} period {}: {}", key, period, e);
+                    continue;
+                }
+            };
+
+            debug!(
+                "         Key: {} indicators: {} Period: {} Labels: {:?}",
+                key,
+                indicators.len(),
+                period,
+                ticker_labels.len()
+            );
+
+            if ticker_labels.len() < *period as usize{
+                warn!("           Labels {} less than the period {}. Skipping... ", ticker_labels.len(), period);
+                continue;
+            }
+
+
+            match train_labels_for_all_algorithms(
+                key,
+                "",
+                ticker_labels,
+                *period,
+                ModelType::Ticker,
+            ) {
+                Ok(result) => {
+                    ticker_alphas.extend(result.0);
+                    ticker_rf_models.extend(result.1);
+                    success_count += 1;
+                }
+                Err(e) => {
+                    warn!("Training failed {} period {}: {}", key, period, e);
+                }
+            }
+        }
+
+        info!(
+            "  {} — trained {}/{} periods, {} alphas",
+            key,
+            success_count,
+            periods.len(),
+            ticker_alphas.len()
+        );
+
+        if !ticker_alphas.is_empty() {
+            match all_alphas.lock() {
+                Ok(mut guard) => guard.extend(ticker_alphas),
+                Err(e) => warn!("Mutex poisoned for {}: {}", key, e),
+            }
+        }
+
+        if !ticker_rf_models.is_empty() {
+            match all_rf_models.lock() {
+                Ok(mut guard) => guard.extend(ticker_rf_models),
+                Err(e) => warn!("RF mutex poisoned for {}: {}", key, e),
+            }
+        }
+    });
+    // Check what was collected
+    let all_alphas = all_alphas.into_inner().unwrap_or_default();
+    let all_rf_models = all_rf_models.into_inner().unwrap_or_default();
+    Ok((all_alphas, all_rf_models))
+}
 
 pub fn train_labels_for_all_algorithms(
     key: &str,
@@ -18,23 +102,20 @@ pub fn train_labels_for_all_algorithms(
     labeled_data: Vec<(f64, Vec<f64>)>,
     n: i32,
     model_type: ModelType,
-) -> Result<(
-    Vec<TickerAlpha>,
-    HashMap<String, Option<EnsembleLearner<DecisionTree<f64, usize>>>>,
-)> {
-    debug!("  Period: {} Sector: {}", n, sector);
+) -> Result<(Vec<TickerAlpha>, HashMap<String, RandomForestModel>)> {
+    // debug!("  Period: {} Sector: {}", n, sector);
     let split_idx = (labeled_data.len() as f64 * 0.8) as usize;
     let (train_data, test_data) = labeled_data.split_at(split_idx);
 
     let train_size = train_data.len() as i32;
     let test_size = test_data.len() as i32;
-
+    debug!("          Training data: {} Test data: {}", train_size, test_size);
     // Normalization params from training set only
     // Stored in TickerAlpha and reused at inference via normalize_single
     let (means, stds) = compute_normalization_params(train_data);
 
-    debug!("  Means sample: {:?}", &means[..5.min(means.len())]);
-    debug!("  Stds  sample: {:?}", &stds[..5.min(stds.len())]);
+    debug!("          Means sample: {:?}", &means[..5.min(means.len())]);
+    debug!("          Stds  sample: {:?}", &stds[..5.min(stds.len())]);
 
     // Stats
     let sample_count = labeled_data.len() as i32;
@@ -43,7 +124,7 @@ pub fn train_labels_for_all_algorithms(
     let down_count = labeled_data.iter().filter(|(l, _)| *l < 0.0).count() as i32;
 
     debug!(
-        "  samples: {} UP: {} DOWN: {}",
+        "          samples: {} UP: {} DOWN: {}",
         sample_count, up_count, down_count
     );
 
@@ -59,7 +140,7 @@ pub fn train_labels_for_all_algorithms(
     ] {
         let means_clone = means.clone();
         let stds_clone = stds.clone();
-        debug!("  Training model: {:?}...", model_algorithm);
+        debug!("          Training model: {:?}...", model_algorithm);
         // Time-based split — never shuffle time series data
         let (
             metrics,
@@ -178,7 +259,7 @@ pub fn train_labels_for_all_algorithms(
         let alpha_key = TickerAlpha::new_id(key, n, model_algorithm);
 
         info!(
-            "Key: {} Dir Acc: {:.1}%  Bullish: {:.1}%  Bearish: {:.1}%  MAE: {:.4}  R2: {:.4}",
+            "              Key: {} Dir Acc: {:.1}%  Bullish: {:.1}%  Bearish: {:.1}%  MAE: {:.4}  R2: {:.4}",
             alpha_key,
             metrics.directional_accuracy * 100.0,
             metrics.bullish_precision * 100.0,
@@ -221,7 +302,9 @@ pub fn train_labels_for_all_algorithms(
         };
 
         all_alphas.push(alpha);
-        all_rf_models.insert(format!("{}:{}", key, n), rf_model);
+        if let Some(rf_model) = rf_model {
+            all_rf_models.insert(format!("{}:{}", key, n), rf_model);
+        }
     }
 
     Ok((all_alphas, all_rf_models))

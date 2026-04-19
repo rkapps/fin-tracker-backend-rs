@@ -11,7 +11,7 @@ use rust_decimal::{Decimal, prelude::ToPrimitive};
 use std::{collections::HashMap, sync::Arc};
 use tracing::debug;
 
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub struct TickersService {
     pub storage_service: Arc<dyn StorageService>,
 }
@@ -153,8 +153,10 @@ impl TickersService {
 
     pub async fn search_tickers(&self, param: TickerSearchParam) -> Result<Vec<TickerEntity>> {
         // let mut tickers = Vec::new();
+        debug!("Search Param: {:#?}", param);
         let tickers: Vec<Ticker> = if let Some(symbols) = param.symbols {
             let list: Vec<String> = symbols.split(',').map(|s| s.to_string()).collect();
+            debug!("List: {:?}", list);
             self.storage_service.get_tickers_by_symbols(list).await?
         } else if let Some(function) = param.function {
             match function.as_str() {

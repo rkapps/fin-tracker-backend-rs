@@ -38,6 +38,7 @@ impl TickerStorageService for MongoStorageService {
         let mut criteria = SearchCriteria::new();
         criteria.add_condition("symbol", SearchOp::In, SearchValue::Array(symbols));
         criteria.add_sort("symbol", true);
+        debug!("get_tickers_by_symbols: {:#?}", criteria);
         self.get_ticker_by_criteria(&criteria).await
     }
 

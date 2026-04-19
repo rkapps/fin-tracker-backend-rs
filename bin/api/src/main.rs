@@ -9,7 +9,7 @@ use axum::{
 
 use bin_shared::{
     logger::set_logger,
-    services::{get_analyse_service, get_ticker_service},
+    services::{get_analyse_service, get_tickers_service},
 };
 use fin_tracker_api::{
     handlers::{
@@ -29,7 +29,7 @@ use tower_http::cors::CorsLayer;
 async fn main() -> Result<()> {
     set_logger();
 
-    let ticker_service = get_ticker_service().await?;
+    let ticker_service = get_tickers_service().await?;
     let analyse_service = get_analyse_service().await?;
     // application state
     let app_state = AppState {

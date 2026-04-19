@@ -966,6 +966,7 @@ dependencies = [
  "serde_json",
  "storage-core",
  "ta",
+ "tokio",
  "tracing",
 ]
 

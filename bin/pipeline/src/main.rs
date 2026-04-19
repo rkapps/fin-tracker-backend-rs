@@ -15,10 +15,13 @@ struct Cli {
 
 #[derive(Subcommand)]
 enum PipelineCommands {
-    TickersEod,
+    TickersEod {
+        #[arg(short, long)]
+        symbols: String,
+    },
     RealtimeStocksEtfs,
     RealtimeCrypto,
-    TrainModel,
+    BuildTickerPredictionModels,
 }
 
 #[tokio::main]
@@ -29,15 +32,15 @@ async fn main() -> Result<()> {
     let pipeline_service = get_pipeline_service().await?;
 
     match cli.command {
-        PipelineCommands::TickersEod => {
+        PipelineCommands::TickersEod { symbols } => {
             info!("Tickers EOD PipeLine started...");
-            match pipeline_service.update_tickers_eod().await {
+            match pipeline_service.update_tickers_eod(&symbols).await {
                 Ok(_) => info!("Tickers EOD update completed successfully."),
                 Err(e) => error!("Tickers EOD update failed: {:?}", e),
             }
 
             match pipeline_service
-                .update_ticker_eod_prediction_signals()
+                .update_ticker_eod_prediction_signals(&symbols)
                 .await
             {
                 Ok(_) => info!("Tickers EOD prediction signals completed successfully."),
@@ -59,10 +62,10 @@ async fn main() -> Result<()> {
                 Err(e) => error!("Tickers Crypto Realtime failed: {:?}", e),
             }
         }
-        PipelineCommands::TrainModel => {
+        PipelineCommands::BuildTickerPredictionModels => {
             info!("Tickers Training Model started...");
             let ml_service = get_ml_service().await?;
-            match ml_service.build_and_train_all().await {
+            match ml_service.build_ticker_prediction_models("").await {
                 Ok(_) => info!("Tickers Training Model completed successfully."),
                 Err(e) => error!("Tickers Training Model failed: {:?}", e),
             }

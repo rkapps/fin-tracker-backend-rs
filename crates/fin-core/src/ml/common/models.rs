@@ -1,5 +1,11 @@
+use std::{collections::HashMap, sync::Arc};
+
 use linfa_ensemble::EnsembleLearner;
 use linfa_trees::DecisionTree;
+use tokio::sync::RwLock;
+
+pub type RandomForestModel = EnsembleLearner<DecisionTree<f64, usize>>;
+pub type RandomForestModelCache = Arc<RwLock<HashMap<String, Option<RandomForestModel>>>>;
 
 pub struct LrResult {
     pub intercept: f64,
@@ -8,7 +14,7 @@ pub struct LrResult {
 }
 
 pub struct RfResult {
-    pub model: EnsembleLearner<DecisionTree<f64, usize>>,
+    pub model: RandomForestModel,
     pub metrics: ModelMetrics,
     pub mean_up: f64,
     pub mean_neutral: f64,

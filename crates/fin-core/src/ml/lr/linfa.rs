@@ -3,7 +3,7 @@ use fin_domain::tickers::TickerAlpha;
 use linfa::prelude::*;
 use linfa_linear::LinearRegression;
 use ndarray::{Array1, Array2};
-use tracing::debug;
+use tracing::{debug, trace};
 
 use crate::ml::common::{
     metrics::log_metrics_from_vecs,
@@ -21,7 +21,7 @@ pub fn build_linfa_dataset(
     let dataset = apply_scaling(labeled_data, means, stds)?;
 
     debug!(
-        "Training dataset — samples: {}  features: {}",
+        "           Training dataset after scaling— samples: {}  features: {}",
         dataset.nsamples(),
         dataset.nfeatures()
     );
@@ -78,7 +78,7 @@ fn apply_scaling(
         .map_err(|e| anyhow::anyhow!("Failed to build feature matrix: {}", e))?;
     let y_vector = Array1::from_vec(y);
 
-    debug!("First row after scaling: {:?}", x_matrix.row(0));
+    trace!("First row after scaling: {:?}", x_matrix.row(0));
 
     Ok(Dataset::new(x_matrix, y_vector))
 }
@@ -104,8 +104,8 @@ pub fn train_models_for_linfa(
     let float_predictions: Vec<f64> = predictions.iter().copied().collect();
     let float_actuals: Vec<f64> = actuals.iter().copied().collect();
 
-    debug!("Intercept: {:.4}", intercept);
-    debug!("Params:    {:?}", params);
+    debug!("          Intercept: {:.4}", intercept);
+    debug!("          Params:    {:?}", &params[..4.min(params.len())]);
     let (directional_accuracy, bullish_precision, bearish_precision, mae, r2) =
         log_metrics_from_vecs(&float_predictions, &float_actuals)?;
     let metrics = ModelMetrics {

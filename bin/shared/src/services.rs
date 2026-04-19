@@ -15,7 +15,7 @@ use fin_storage::{
 };
 
 // Returns the ticker service
-pub async fn get_ticker_service() -> Result<TickersService> {
+pub async fn get_tickers_service() -> Result<TickersService> {
     let storage_service: Arc<dyn StorageService> = get_storage_service().await?;
     Ok(TickersService::new(Arc::clone(&storage_service)))
 }

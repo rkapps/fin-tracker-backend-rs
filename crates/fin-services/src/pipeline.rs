@@ -30,8 +30,10 @@ impl PipeLineService {
         }
     }
 
-    pub async fn update_tickers_eod(&self) -> Result<()> {
-        let tickers = self.storage_service.get_tickers_by_marketcap().await?;
+    pub async fn update_tickers_eod(&self, symbols: &str) -> Result<()> {
+        let list: Vec<String> = symbols.split(',').map(|s| s.to_string()).collect();
+        let tickers = self.storage_service.get_tickers_by_symbols(list).await?;
+        // let tickers = self.storage_service.get_tickers_by_marketcap().await?;
         let total = tickers.len();
 
         // Limit to 5 concurrent requests (matches rate limit)
@@ -119,8 +121,10 @@ impl PipeLineService {
         Ok(())
     }
 
-    pub async fn update_ticker_eod_prediction_signals(&self) -> Result<()> {
-        let tickers = self.storage_service.get_tickers_by_marketcap().await?;
+    pub async fn update_ticker_eod_prediction_signals(&self, symbols: &str) -> Result<()> {
+        let list: Vec<String> = symbols.split(',').map(|s| s.to_string()).collect();
+        let tickers = self.storage_service.get_tickers_by_symbols(list).await?;
+        // let tickers = self.storage_service.get_tickers_by_marketcap().await?;
         let symbols = tickers.iter().map(|t| t.symbol.clone());
 
         let length = tickers.len();
@@ -128,9 +132,6 @@ impl PipeLineService {
 
         for (i, symbol) in symbols.enumerate() {
             let mut ticker = self.storage_service.get_ticker_by_symbol(&symbol).await?;
-            // if !(ticker.symbol == "NVDA" || ticker.symbol == "AAPL") {
-            //     continue;
-            // }
 
             if i % 20 == 0 {
                 info!(
@@ -148,7 +149,7 @@ impl PipeLineService {
                         sasm.insert(sector.clone(), c);
                     }
                     Err(e) => {
-                        error!("Error getting SectorAlphas for {}-{}", ticker.symbol, e);
+                        error!("       Error getting SectorAlphas for {}-{}", ticker.symbol, e);
                         sasm.insert(sector.clone(), Vec::new());
                     }
                 };
@@ -160,7 +161,7 @@ impl PipeLineService {
                 update_ticker_prediction_signals(self.storage_service.clone(), &mut ticker, sas)
                     .await
             {
-                error!("Ticker Prediction error {}: {}", symbol, e);
+                error!("       Prediction error {}: {}", symbol, e);
                 continue;
             }
 
