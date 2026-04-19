@@ -34,9 +34,7 @@ pub use sentiment::TickerSentiment;
 pub use ticker_filter::TickerFilter;
 
 use serde::Serialize;
-// pub use ticker::AssetType;
 pub use ticker::Ticker;
-// pub use ticker::TickerSeed;
 
 pub const TICKER_COLLECTION_NAME: &str = "ticker";
 pub const TICKER_CONTROL_COLLECTION_NAME: &str = "ticker_control";

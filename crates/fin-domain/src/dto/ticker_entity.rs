@@ -126,7 +126,6 @@ impl From<Ticker> for TickerEntity {
             pr_diff_perc_search: value.pr_diff_perc_search,
             pr_52_wk_high: value.pr_52_wk_high.to_f64().unwrap_or_default(),
             pr_52_wk_low: value.pr_52_wk_low.to_f64().unwrap_or_default(),
-            // performance: value.performance.unwrap_or_default(),
             performance: value.performance_search,
             avg_volume: value.avg_volume,
             volume: value.volume,

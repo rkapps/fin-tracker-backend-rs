@@ -345,19 +345,11 @@ pub(crate) async fn update_ticker_sentiments(
     let Some(date_from) = Utc::now().checked_sub_months(Months::new(6)) else {
         return Err(anyhow::anyhow!("Error with DateTime"));
     };
-    // let mut sentiments = Vec::new();
-    // let mut feeds_len = 0;
-    // match ticker.asset_type {
-    //     AssetType::Stock => {
     let feeds = provider_service
         .get_ticker_sentiment(&ticker.symbol, &date_from)
         .await?;
     let feeds_len = feeds.len();
     let sentiments = TickerSentiment::new_from_alpha_batch(&ticker.symbol, feeds);
-    //     }
-    //     AssetType::Crypto => {}
-    //     AssetType::Etf => {}
-    // }
     debug!(
         "Ticker {} Feeds: {} Sentiments: {}",
         ticker.symbol,

@@ -44,17 +44,11 @@ pub fn build_labels(indicators: &[TickerIndicator], period: usize) -> Result<Vec
             isnapshot.rsi_14,
             isnapshot.rsi_26,
             fsnapshot.values().get(1).unwrap(),
-            // isnapshot.sma_20,
             isnapshot.sma_50,
             isnapshot.sma_200,
-            // fsnapshot.values().get(2).unwrap(),
             fsnapshot.values().get(3).unwrap(),
             fsnapshot.values().get(4).unwrap()
         );
-
-        // let tvalues = vec![*fsnapshot.values().get(1).unwrap(), *fsnapshot.values().get(3).unwrap() ];
-        // tvalues.push();
-        // tvalues.push(*fsnapshot.values());
 
         labels.push((return_pct, fsnapshot.values()));
     }

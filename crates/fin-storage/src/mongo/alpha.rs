@@ -20,9 +20,6 @@ impl TickerAlphaStorageService for MongoStorageService {
         criteria.add_condition("key", SearchOp::Eq, SearchValue::String(key.to_string()));
         criteria.add_sort("date", false);
 
-        // for each ticker/sector there are 4 (periods) x 2 (algorithm lf/rf) =  8 records
-        // criteria.add_limit(8);
-
         repo.find(Some(criteria)).await
     }
 

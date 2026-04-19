@@ -495,16 +495,5 @@ impl SignalsCalculator {
 
         signals
     }
-    // Before:                          After:
-    // ────────────────────────────     ────────────────────────────
-    // LR5/10/20/60 signals (4)    ←   removed — LR captured in confluence
-    // RF5/10/20/60 signals (4)    ←   removed — RF captured in confluence
-    // MLP Weak Bullish/Bearish    ←   removed — below precision threshold, not actionable
-    // ML Conflicting              ←   removed — noise, no clear action
-    // ML Caution LR/RF mismatch   ←   removed — too granular
-
-    // Kept:
-    // MLP{period} Bullish/Bearish      ← unique magnitude + precision info
-    // ML{period} Bullish/Bearish N/M   ← confluence per period
-    // ML Strong Bull/Bear summary      ← most important cross-period signal
+    
 }

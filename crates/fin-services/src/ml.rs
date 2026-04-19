@@ -39,7 +39,6 @@ impl MlService {
         info!("Data: {}", data.len());
 
         let result = train_ticker_models(&data, &PERIODS)?;
-        // let result = self.build_and_train_by_ticker(from_date).await?;
         let _ = self.storage_service.save_ticker_alphas(&result.0).await;
         for value in result.1 {
             let mut lock = self.rf_models.write().await;
@@ -53,7 +52,6 @@ impl MlService {
         from_date: DateTime<Utc>,
         symbols: &str,
     ) -> Result<Vec<(String, Vec<TickerIndicator>)>> {
-        // param.limit = Some(10);
         let tickers = if !symbols.is_empty() {
             let list: Vec<String> = symbols.split(',').map(|s| s.to_string()).collect();
             self.storage_service.get_tickers_by_symbols(list).await?

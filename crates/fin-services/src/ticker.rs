@@ -21,20 +21,6 @@ impl TickersService {
         TickersService { storage_service }
     }
 
-    // pub async fn get_tickers_by_symbols(&self, symbols: Vec<String>) -> Result<Vec<TickerEntity>> {
-    //     let tickers = self
-    //         .storage_service
-    //         .get_tickers_by_symbols(symbols)
-    //         .await
-    //         .map_err(|e| anyhow::anyhow!(format!("Get Ticker error: {}", e)))?;
-
-    //     let tentities = tickers
-    //         .iter()
-    //         .map(|t| TickerEntity::from(t.clone()))
-    //         .collect();
-    //     Ok(tentities)
-    // }
-
     pub async fn get_ticker_groups(&self) -> Result<HashMap<String, Vec<String>>> {
         let groups = self
             .storage_service
@@ -44,62 +30,6 @@ impl TickersService {
         Ok(groups)
     }
 
-    // pub async fn get_tickers_by_function(&self, function: &str) -> Result<Vec<TickerEntity>> {
-    //     let tentities: Vec<TickerEntity> = match function {
-    //         "etfs" => {
-    //             let symbols = vec![
-    //                 "DIA".into(),
-    //                 "SPY".into(),
-    //                 "IWM".into(),
-    //                 "GLD".into(),
-    //                 "GBTC".into(),
-    //                 "ETHE".into(),
-    //                 "QQQ".into(),
-    //                 "VIX".into(),
-    //             ];
-    //             self.get_tickers_by_symbols(symbols).await.unwrap()
-    //         }
-    //         "spiders" => {
-    //             let symbols = vec![
-    //                 "XLY".into(),
-    //                 "XLP".into(),
-    //                 "XLE".into(),
-    //                 "XLF".into(),
-    //                 "XLK".into(),
-    //                 "XLU".into(),
-    //                 "XHB".into(),
-    //             ];
-    //             self.get_tickers_by_symbols(symbols).await.unwrap()
-    //         }
-    //         "international" => {
-    //             let symbols = vec![
-    //                 "VWO".into(),
-    //                 "VGK".into(),
-    //                 "VXUS".into(),
-    //                 "VEU".into(),
-    //                 "VSGX".into(),
-    //                 "VWOB".into(),
-    //                 "VIGI".into(),
-    //                 "EWZ".into(),
-    //                 "EWJ".into(),
-    //             ];
-    //             self.get_tickers_by_symbols(symbols).await.unwrap()
-    //         }
-    //         _ => {
-    //             let tickers = self
-    //                 .storage_service
-    //                 .get_tickers_by_movers(function)
-    //                 .await
-    //                 .unwrap();
-    //             tickers
-    //                 .iter()
-    //                 .map(|t| TickerEntity::from(t.clone()))
-    //                 .collect()
-    //         }
-    //     };
-
-    //     Ok(tentities)
-    // }
 
     pub async fn get_ticker_charts(&self, symbol: &str) -> Result<Vec<TickerChartEntity>> {
         let indicators = self
@@ -180,8 +110,6 @@ impl TickersService {
                         .get_tickers_by_top_losers_ytd(param.asset_type)
                         .await?
                 }
-                // "oversold"    => self.storage.find_oversold().await,
-                // "overbought"  => self.storage.find_overbought().await,
                 _ => Vec::new(),
             }
         } else {
