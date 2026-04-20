@@ -4,7 +4,7 @@ use anyhow::Result;
 use chrono::Utc;
 use fin_domain::tickers::{ModelAlgorithm, ModelType, TickerAlpha, TickerIndicator};
 use rayon::iter::{IntoParallelRefIterator, ParallelIterator};
-use tracing::{debug, info, warn};
+use tracing::{debug, warn};
 
 use crate::ml::{
     common::{labels::build_labels, models::RandomForestModel},
@@ -71,7 +71,7 @@ pub fn train_ticker_models(
             }
         }
 
-        info!(
+        debug!(
             "  {} — trained {}/{} periods, {} alphas",
             key,
             success_count,
@@ -264,7 +264,7 @@ pub fn train_labels_for_all_algorithms(
         // let alpha_key = TickerAlpha::id(key, n, date);
         let alpha_key = TickerAlpha::new_id(key, n, model_algorithm);
 
-        info!(
+        debug!(
             "              Key: {} Dir Acc: {:.1}%  Bullish: {:.1}%  Bearish: {:.1}%  MAE: {:.4}  R2: {:.4}",
             alpha_key,
             metrics.directional_accuracy * 100.0,
