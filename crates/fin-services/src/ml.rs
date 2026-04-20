@@ -64,9 +64,7 @@ impl MlService {
         let mut all_rf_models = HashMap::new();
 
         for (i, ticker) in tickers.iter().enumerate() {
-            if i % 20 == 0 {
-                info!("Fetching Ticker: {} {}/{}", ticker.symbol, i + 1, length);
-            }
+            info!("Training Ticker: {} {}/{}", ticker.symbol, i + 1, length);
             let indicators = self
                 .storage_service
                 .get_ticker_indicators_by_symbol(&ticker.symbol, from_date)
