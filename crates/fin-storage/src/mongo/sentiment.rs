@@ -48,18 +48,17 @@ impl TickerSentimentStorageService for MongoStorageService {
     async fn save_ticker_sentiments(
         &self,
         symbol: &str,
-        sentiments: &[TickerSentiment],
+        sentiments: Vec<TickerSentiment>,
     ) -> Result<()> {
-        let Ok(repo) = self.manager.ticker_sentiments().await else {
-            return Err(anyhow::anyhow!(format!(
-                "Error saving TickerSentiment for '{}'",
-                symbol
-            )));
-        };
-        let mut repo = repo.lock().await;
-        for sentiment in sentiments {
-            repo.insert(sentiment.clone()).await?;
-        }
-        Ok(())
+
+        match self.manager.ticker_sentiments().await {
+            Ok(repo) => {
+                let mut repo = repo.lock().await;
+                repo.bulk_update(sentiments).await
+            }
+            Err(e) => {
+                return Err(anyhow::anyhow!(format!("Error saving TickerSentiments for {}: {}", symbol, e)));
+            }
+        }        
     }
 }

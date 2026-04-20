@@ -34,18 +34,17 @@ impl TickerEmbeddingStorageService for MongoStorageService {
     async fn save_ticker_embeddings(
         &self,
         symbol: &str,
-        sentiments: &[TickerEmbedding],
+        embeddings: Vec<TickerEmbedding>,
     ) -> Result<()> {
-        let Ok(repo) = self.manager.ticker_embeddings().await else {
-            return Err(anyhow::anyhow!(format!(
-                "Error saving TickerEmbedding for '{}'",
-                symbol
-            )));
-        };
-        let mut repo = repo.lock().await;
-        for sentiment in sentiments {
-            repo.insert(sentiment.clone()).await?;
-        }
-        Ok(())
+
+        match self.manager.ticker_embeddings().await {
+            Ok(repo) => {
+                let mut repo = repo.lock().await;
+                repo.bulk_update(embeddings).await
+            }
+            Err(e) => {
+                return Err(anyhow::anyhow!(format!("Error saving TickerEmbeddings for {}: {}", symbol, e)));
+            }
+        }        
     }
 }

@@ -185,7 +185,7 @@ pub async fn update_ticker(
                     if update {
                         // storage_service.save_ticker_control(tc.clone()).await?;
                         storage_service
-                            .save_ticker_sentiments(&ticker.symbol, &new_sentiments)
+                            .save_ticker_sentiments(&ticker.symbol, new_sentiments)
                             .await?;
                     }
                 }
@@ -211,7 +211,7 @@ pub async fn update_ticker(
                     if update {
                         // storage_service.save_ticker_control(tc.clone()).await?;
                         storage_service
-                            .save_ticker_indicators(&ticker.symbol, &new_indicators)
+                            .save_ticker_indicators(&ticker.symbol, new_indicators)
                             .await?;
                     }
                 }

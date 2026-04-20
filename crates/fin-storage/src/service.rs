@@ -103,7 +103,7 @@ pub trait TickerIndicatorStorageService: Send + Sync + Debug {
     async fn save_ticker_indicators(
         &self,
         symbol: &str,
-        indicators: &[TickerIndicator],
+        indicators: Vec<TickerIndicator>,
     ) -> Result<()>;
 }
 
@@ -119,7 +119,7 @@ pub trait TickerSentimentStorageService: Send + Sync + Debug {
     async fn save_ticker_sentiments(
         &self,
         symbol: &str,
-        sentiments: &[TickerSentiment],
+        sentiments: Vec<TickerSentiment>,
     ) -> Result<()>;
 }
 
@@ -129,12 +129,12 @@ pub trait TickerEmbeddingStorageService: Send + Sync + Debug {
     async fn save_ticker_embeddings(
         &self,
         symbol: &str,
-        sentiments: &[TickerEmbedding],
+        sentiments: Vec<TickerEmbedding>,
     ) -> Result<()>;
 }
 
 #[async_trait]
 pub trait TickerAlphaStorageService: Send + Sync + Debug {
     async fn get_ticker_alphas_by_key(&self, key: &str) -> Result<Vec<TickerAlpha>>;
-    async fn save_ticker_alphas(&self, sas: &[TickerAlpha]) -> Result<()>;
+    async fn save_ticker_alphas(&self, sas: Vec<TickerAlpha>) -> Result<()>;
 }

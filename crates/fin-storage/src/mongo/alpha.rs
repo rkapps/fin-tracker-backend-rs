@@ -23,25 +23,16 @@ impl TickerAlphaStorageService for MongoStorageService {
         repo.find(Some(criteria)).await
     }
 
-    async fn save_ticker_alphas(&self, sas: &[TickerAlpha]) -> Result<()> {
-        let Ok(repo) = self.manager.ticker_alphas().await else {
-            return Err(anyhow::anyhow!("Error saving SectorAlpha"));
-        };
-        let mut repo = repo.lock().await;
-        let mut saved = 0;
-        let mut failed = 0;
+    async fn save_ticker_alphas(&self, sas: Vec<TickerAlpha>) -> Result<()> {
 
-        for sa in sas {
-            match repo.insert(sa.clone()).await {
-                Ok(_) => saved += 1,
-                Err(e) => {
-                    warn!("Failed to save alpha {}:{} — {}", sa.key, sa.n, e);
-                    failed += 1;
-                }
+        match self.manager.ticker_alphas().await {
+            Ok(repo) => {
+                let mut repo = repo.lock().await;
+                repo.bulk_update(sas).await
+            }
+            Err(e) => {
+                return Err(anyhow::anyhow!(format!("Error saving TickerAlpha: {}", e)));
             }
         }
-
-        info!("Saved {} alphas, {} failed", saved, failed);
-        Ok(())
     }
 }

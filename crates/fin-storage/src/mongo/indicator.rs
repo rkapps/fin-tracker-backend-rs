@@ -131,18 +131,17 @@ impl TickerIndicatorStorageService for MongoStorageService {
     async fn save_ticker_indicators(
         &self,
         symbol: &str,
-        indicators: &[TickerIndicator],
+        indicators: Vec<TickerIndicator>,
     ) -> Result<()> {
-        let Ok(repo) = self.manager.ticker_indicators().await else {
-            return Err(anyhow::anyhow!(format!(
-                "Error saving TickerIndicator for '{}'",
-                symbol
-            )));
-        };
-        let mut repo = repo.lock().await;
-        for indicator in indicators {
-            repo.insert(indicator.clone()).await?;
-        }
-        Ok(())
+
+        match self.manager.ticker_indicators().await {
+            Ok(repo) => {
+                let mut repo = repo.lock().await;
+                repo.bulk_update(indicators).await
+            }
+            Err(e) => {
+                return Err(anyhow::anyhow!(format!("Error saving TickerIndicators for {}: {}", symbol, e)));
+            }
+        }        
     }
 }

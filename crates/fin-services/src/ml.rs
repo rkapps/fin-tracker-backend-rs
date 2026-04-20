@@ -39,7 +39,7 @@ impl MlService {
         info!("Data: {}", data.len());
 
         let result = train_ticker_models(&data, &PERIODS)?;
-        let _ = self.storage_service.save_ticker_alphas(&result.0).await;
+        let _ = self.storage_service.save_ticker_alphas(result.0).await;
         for value in result.1 {
             let mut lock = self.rf_models.write().await;
             lock.insert(value.0, Some(value.1));
