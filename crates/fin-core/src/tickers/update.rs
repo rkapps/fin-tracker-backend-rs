@@ -496,6 +496,10 @@ pub(crate) async fn update_ticker_sentiment_embeddings(
         sentiments.len()
     );
 
+    if sentiments.is_empty() {
+        return Ok(new_embeddings);
+    }
+
     // Generate embeddings
     // Collect the owned Strings so they stay alive
     let mut embedding_texts: Vec<String> = Vec::new();
