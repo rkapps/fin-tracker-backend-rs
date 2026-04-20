@@ -4,6 +4,7 @@ use crate::{
 };
 use anyhow::Result;
 use rust_decimal::{Decimal, prelude::ToPrimitive};
+use tracing::trace;
 
 const RSI_DEFAULT: f64 = 45.0;
 const STOCH_DEFAULT: f64 = 50.0;
@@ -67,6 +68,7 @@ impl FeatureSnapshot {
         let macd_histogram_slope = prev
             .map(|p| macd_histogram - decimal_to_float(p.macd_histogram, 0.0))
             .unwrap_or(0.0);
+
 
         Ok(Self {
             price: decimal_to_float(value.price, 0.0),
@@ -153,6 +155,7 @@ impl FeatureSnapshot {
     }
 
     pub fn atr_as_price_pct(atr: Option<Decimal>, price: Decimal) -> f64 {
+
         match (atr, price) {
             (Some(atr), p) if atr > Decimal::ZERO && price > Decimal::ZERO => {
                 (atr / p * Decimal::from(100)).to_f64().unwrap_or(1.0)
@@ -166,6 +169,9 @@ impl FeatureSnapshot {
         bb_middle: Option<Decimal>,
         bb_lower: Option<Decimal>,
     ) -> f64 {
+
+        trace!("bb_upper: {:?} bb_middle: {:?} bb_lower: {:?}", bb_upper, bb_middle, bb_lower);
+
         match (bb_upper, bb_middle, bb_lower) {
             (Some(u), Some(m), Some(l))
                 if u > Decimal::ZERO && m > Decimal::ZERO && l > Decimal::ZERO =>
@@ -181,9 +187,12 @@ impl FeatureSnapshot {
         bb_upper: Option<Decimal>,
         bb_lower: Option<Decimal>,
     ) -> f64 {
+
+        trace!("price: {:?} bb_upper: {:?} bb_lower: {:?}", price, bb_upper, bb_lower);
+
         match (price, bb_upper, bb_lower) {
             (p, Some(u), Some(l))
-                if p > Decimal::ZERO && u > Decimal::ZERO && l > Decimal::ZERO =>
+                if p > Decimal::ZERO && u > Decimal::ZERO && l > Decimal::ZERO && u -l > Decimal::ZERO=>
             {
                 ((p - l) / (u - l) * Decimal::from(100))
                     .to_f64()
