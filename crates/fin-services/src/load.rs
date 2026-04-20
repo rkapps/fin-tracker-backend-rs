@@ -1,3 +1,4 @@
+use agentic_core::client::embeddings::EmbeddingClient;
 use anyhow::Result;
 use fin_core::tickers::update::
     update_all_tickers
@@ -12,16 +13,19 @@ use tracing::info;
 pub struct LoadService {
     pub storage_service: Arc<dyn StorageService>,
     pub provider_service: ProviderService,
+    embedding_client: Arc<dyn EmbeddingClient>,    
 }
 
 impl LoadService {
     pub fn new(
         storage_service: Arc<dyn StorageService>,
         provider_service: ProviderService,
+        embedding_client: Arc<dyn EmbeddingClient>,
     ) -> LoadService {
         LoadService {
             storage_service,
             provider_service,
+            embedding_client
         }
     }
 
@@ -48,6 +52,7 @@ impl LoadService {
         update_all_tickers(
             self.storage_service.clone(),
             self.provider_service.clone(),
+            self.embedding_client.clone(),
             all_new_controls,
             all_tickers,
         )

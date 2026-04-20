@@ -53,9 +53,14 @@ pub async fn get_ml_service() -> Result<MlService> {
 pub async fn get_load_service() -> Result<LoadService> {
     let storage_service: Arc<dyn StorageService> = get_storage_service().await?;
     let provider_service = get_provider_service()?;
+    let openai_api_key: String =
+        env::var("OPENAI_API_KEY").expect("OPENAI_API_KEY environment variable not set");
+    let embedding_client = Arc::new(OpenAIEmbeddingClient::new(&openai_api_key)?);
+
     Ok(LoadService::new(
         storage_service,
         provider_service,
+        embedding_client
     ))
 }
 
@@ -63,10 +68,14 @@ pub async fn get_load_service() -> Result<LoadService> {
 pub async fn get_pipeline_service() -> Result<PipeLineService> {
     let storage_service: Arc<dyn StorageService> = get_storage_service().await?;
     let provider_service = get_provider_service()?;
+    let openai_api_key: String =
+        env::var("OPENAI_API_KEY").expect("OPENAI_API_KEY environment variable not set");
+    let embedding_client = Arc::new(OpenAIEmbeddingClient::new(&openai_api_key)?);
 
     Ok(PipeLineService::new(
         storage_service,
         provider_service,
+        embedding_client
     ))
 }
 

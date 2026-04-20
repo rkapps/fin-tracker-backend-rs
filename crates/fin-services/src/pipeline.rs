@@ -1,3 +1,4 @@
+use agentic_core::client::embeddings::EmbeddingClient;
 use anyhow::Result;
 use fin_core::tickers::update::{
     update_all_tickers, update_ticker_prediction_signals, update_ticker_realtime,
@@ -13,16 +14,19 @@ use tracing::{debug, error, info};
 pub struct PipeLineService {
     pub storage_service: Arc<dyn StorageService>,
     pub provider_service: ProviderService,
+    pub embedding_client: Arc<dyn EmbeddingClient>,
 }
 
 impl PipeLineService {
     pub fn new(
         storage_service: Arc<dyn StorageService>,
         provider_service: ProviderService,
+        embedding_client: Arc<dyn EmbeddingClient>,        
     ) -> PipeLineService {
         PipeLineService {
             storage_service,
             provider_service,
+            embedding_client
         }
     }
 
@@ -40,6 +44,7 @@ impl PipeLineService {
         update_all_tickers(
             self.storage_service.clone(),
             self.provider_service.clone(),
+            self.embedding_client.clone(),
             all_controls,
             all_tickers,
         )

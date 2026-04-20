@@ -27,16 +27,14 @@ use crate::{
         BASE_CURRENCY,
         indicators::IndicatorCalculator,
         signals::SignalsCalculator,
-        sync::{
-            should_sync_history, should_sync_indicators,
-            should_sync_sentiments,
-        },
+        sync::{should_sync_embeddings, should_sync_history, should_sync_indicators, should_sync_sentiments},
     },
 };
 
 pub async fn update_all_tickers(
     storage_service: Arc<dyn StorageService>,
     provider_service: ProviderService,
+    embedding_client: Arc<dyn EmbeddingClient>,    
     all_controls: Vec<TickerControl>,
     all_tickers: Vec<Ticker>,
 ) -> Result<()> {
@@ -66,6 +64,7 @@ pub async fn update_all_tickers(
             let sem = semaphore.clone();
             let storage_service = storage_service.clone();
             let provider_service = provider_service.clone();
+            let embedding_client = embedding_client.clone();
 
             Some(tokio::spawn(async move {
                 let _permit = sem.acquire().await.unwrap();
@@ -76,13 +75,8 @@ pub async fn update_all_tickers(
                     info!("Updating Ticker: {} {}/{}", ticker.symbol, i + 1, total);
                 }
 
-                let result = update_ticker(
-                    storage_service,
-                    provider_service,
-                    &mut tc,
-                    &mut ticker,
-                )
-                .await;
+                let result =
+                    update_ticker(storage_service, provider_service, embedding_client, &mut tc, &mut ticker).await;
 
                 sleep(delay).await;
 
@@ -133,6 +127,7 @@ pub async fn update_all_tickers(
 pub async fn update_ticker(
     storage_service: Arc<dyn StorageService>,
     provider_service: ProviderService,
+    embedding_client: Arc<dyn EmbeddingClient>,
     tc: &mut TickerControl,
     ticker: &mut Ticker,
 ) -> Result<()> {
@@ -156,7 +151,11 @@ pub async fn update_ticker(
             Ok((all_histories, new_histories)) => {
                 if !new_histories.is_empty() {
                     tc.last_history_sync_at = Some(Utc::now());
-                    info!("Ticker new History for {}: {} ", ticker.symbol, new_histories.len());
+                    info!(
+                        "Ticker new History for {}: {} ",
+                        ticker.symbol,
+                        new_histories.len()
+                    );
                     if update {
                         storage_service.save_ticker_control(tc.clone()).await?;
                         storage_service
@@ -170,7 +169,6 @@ pub async fn update_ticker(
         }
     }
 
-    
     // update sentiments
     if should_sync_sentiments(tc) {
         match update_ticker_sentiments(provider_service, tc, ticker).await {
@@ -194,7 +192,34 @@ pub async fn update_ticker(
         }
     }
 
-
+    if should_sync_embeddings(tc) {
+        match update_ticker_sentiment_embeddings(
+            storage_service.clone(),
+            embedding_client,
+            tc,
+            ticker,
+        )
+        .await
+        {
+            Ok(new_embeddings) => {
+                if !new_embeddings.is_empty() {
+                    debug!(
+                        "Ticker {} New Embeddings: {}",
+                        ticker.symbol,
+                        new_embeddings.len()
+                    );
+                    tc.last_embedding_sync_at = Some(Utc::now());
+                    if update {
+                        // storage_service.save_ticker_control(tc.clone()).await?;
+                        storage_service
+                            .save_ticker_embeddings(&ticker.symbol, new_embeddings)
+                            .await?;
+                    }
+                }
+            }
+            Err(e) => error!("Embeddings update failed for {}: {}", ticker.symbol, e),
+        }
+    }
 
     // update technical indicators
     // tc.last_indicator_sync_at = None;
@@ -231,7 +256,6 @@ pub async fn update_ticker(
     update_ticker_signals(storage_service.clone(), ticker).await?;
 
     tc.last_sync_at = Some(Utc::now());
-
 
     Ok(())
 }
@@ -451,13 +475,19 @@ pub(crate) async fn update_ticker_sentiment_embeddings(
     let mut new_embeddings = Vec::new();
     let cmp_score = dec!(0.8);
 
-    let sentiments = storage_service
+    let all_sentiments = storage_service
         .get_ticker_sentiments_with_score(&ticker.symbol, &cmp_score)
         .await?;
 
-    if sentiments.is_empty() {
+    if all_sentiments.is_empty() {
         return Ok(new_embeddings);
     }
+
+    let sentiments: Vec<_> = all_sentiments
+        .into_iter()
+        .filter(|s| s.score.abs() > 0.4 && s.date > (Utc::now() - chrono::Duration::days(30)))
+        .take(50)
+        .collect();
 
     debug!(
         "Ticker {} Sentiments with score: {} - {}",
