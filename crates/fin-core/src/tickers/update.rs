@@ -260,27 +260,6 @@ pub async fn update_ticker(
     Ok(())
 }
 
-pub async fn update_ticker_realtime(
-    provider_service: ProviderService,
-    ticker: &mut Ticker,
-) -> Result<()> {
-    match ticker.asset_type {
-        AssetType::Stock | AssetType::Etf => {
-            let raw = provider_service
-                .get_stock_etf_realtime(&ticker.symbol)
-                .await?;
-
-            ticker.update_stock_etf_price_realtime(raw)?;
-            debug!(
-                "pr date: {:?} pr_prev: {:?} pr_last {:?} pr_diff: {:?}",
-                ticker.pr_date, ticker.pr_prev, ticker.pr_last, ticker.pr_diff_amt
-            );
-        }
-        AssetType::Crypto => {}
-    }
-
-    Ok(())
-}
 pub(crate) async fn update_ticker_details(
     provider_service: ProviderService,
     ticker: &mut Ticker,
@@ -833,4 +812,74 @@ pub async fn run_ticker_predictions(
 
     let rf_models = Arc::new(RwLock::new(HashMap::new()));
     run_predictions(rf_models, indicator, prev_indicator, sas.to_vec()).await
+}
+
+
+pub async fn update_all_tickers_realtime(
+    storage_service: Arc<dyn StorageService>,
+    provider_service: ProviderService,
+    all_tickers: Vec<Ticker>,
+) -> Result<()> {
+
+    let mut updated_tickers = Vec::new();
+    let length = all_tickers.len();
+
+    // rate limit constraints
+    let delay = Duration::from_millis(3000);
+    for (i, mut ticker) in all_tickers.into_iter().enumerate() {
+        if i % 20 == 0 {
+            info!(
+                "Updating Ticker Realtime: {} {}/{}",
+                ticker.symbol,
+                i + 1,
+                length
+            );
+        }
+        match update_ticker_realtime(provider_service.clone(), &mut ticker).await {
+            Ok(_) => updated_tickers.push(ticker),
+            Err(e) => error!("Ticker Realtime error {}: {}", ticker.symbol, e),
+        }
+        sleep(delay).await;
+    }
+
+    info!(
+        "Realtime update complete: {}/{} updated",
+        updated_tickers.len(),
+        length
+    );
+
+    // bulk write at the end
+    if !updated_tickers.is_empty() {
+        storage_service.save_tickers(updated_tickers).await?;
+    }
+
+    Ok(())
+}
+
+pub async fn update_ticker_realtime(
+    provider_service: ProviderService,
+    ticker: &mut Ticker,
+) -> Result<()> {
+    match ticker.asset_type {
+        AssetType::Stock | AssetType::Etf => {
+            let raw = provider_service
+                .get_stock_etf_realtime(&ticker.symbol)
+                .await?;
+
+            ticker.update_stock_etf_price_realtime(raw)?;
+        }
+        AssetType::Crypto => {
+            let raw = provider_service
+                .get_crypto(vec![ticker.symbol.clone()])
+                .await?;
+            ticker.update_crypto_realtime(raw)?;
+        }
+    }
+
+    debug!(
+        "Ticker: {} pr date: {:?} pr_prev: {:?} pr_last {:?} pr_diff: {:?}",
+        ticker.symbol, ticker.pr_date, ticker.pr_prev, ticker.pr_last, ticker.pr_diff_amt
+    );
+
+    Ok(())
 }

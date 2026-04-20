@@ -1,7 +1,7 @@
 use agentic_core::client::embeddings::EmbeddingClient;
 use anyhow::Result;
 use fin_core::tickers::update::{
-    update_all_tickers, update_ticker_prediction_signals, update_ticker_realtime,
+    update_all_tickers, update_all_tickers_realtime, update_ticker_prediction_signals
 };
 use fin_domain::tickers::{AssetType, Ticker, TickerAlpha};
 use fin_providers::ProviderService;
@@ -160,40 +160,18 @@ impl PipeLineService {
     pub async fn update_realtime_stocks_etfs(&self) -> Result<()> {
         let mut all_tickers = self.storage_service.get_tickers_by_marketcap().await?;
         all_tickers.retain(|t| t.asset_type == AssetType::Stock || t.asset_type == AssetType::Etf);
-        let length = all_tickers.len();
 
-        let mut updated_tickers = Vec::new();
-
-        for (i, mut ticker) in all_tickers.into_iter().enumerate() {
-            if i % 20 == 0 {
-                info!(
-                    "Updating Ticker Realtime: {} {}/{}",
-                    ticker.symbol,
-                    i + 1,
-                    length
-                );
-            }
-            match update_ticker_realtime(self.provider_service.clone(), &mut ticker).await {
-                Ok(_) => updated_tickers.push(ticker),
-                Err(e) => error!("Ticker Realtime error {}: {}", ticker.symbol, e),
-            }
-        }
-
-        info!(
-            "Realtime update complete: {}/{} updated",
-            updated_tickers.len(),
-            length
-        );
-
-        // bulk write at the end
-        if !updated_tickers.is_empty() {
-            self.storage_service.save_tickers(updated_tickers).await?;
-        }
+        update_all_tickers_realtime(self.storage_service.clone(), self.provider_service.clone(), all_tickers).await?;
 
         Ok(())
     }
 
     pub async fn update_realtime_crypto(&self) -> Result<()> {
+
+        let mut all_tickers = self.storage_service.get_tickers_by_marketcap().await?;
+        all_tickers.retain(|t| t.asset_type == AssetType::Crypto);
+
+        update_all_tickers_realtime(self.storage_service.clone(), self.provider_service.clone(), all_tickers).await?;
         Ok(())
     }
 }
