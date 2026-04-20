@@ -7,6 +7,18 @@ use anyhow::Result;
 
 #[async_trait]
 impl TickerControlStorageService for MongoStorageService {
+    async fn get_ticker_controls(&self) -> Result<Vec<TickerControl>> {
+        match self.manager.ticker_controls().await {
+            Ok(repo) => {
+                let mut repo = repo.lock().await;
+                repo.find_all().await
+            }
+            Err(e) => {
+                return Err(anyhow::anyhow!("Error getting TickerControl: {}", e));
+            }
+        }
+    }
+
     async fn get_ticker_control(&self, symbol: &str) -> Result<TickerControl> {
         match self.manager.ticker_controls().await {
             Ok(repo) => {
@@ -29,6 +41,21 @@ impl TickerControlStorageService for MongoStorageService {
                 return Err(anyhow::anyhow!(format!(
                     "Error saving TickerControl for '{}' error: {}",
                     tc.symbol, e
+                )));
+            }
+        }
+    }
+
+    async fn save_ticker_controls(&self, tcs: Vec<TickerControl>) -> Result<()> {
+        match self.manager.ticker_controls().await {
+            Ok(repo) => {
+                let mut repo = repo.lock().await;
+                repo.bulk_update(tcs).await
+            }
+            Err(e) => {
+                return Err(anyhow::anyhow!(format!(
+                    "Error saving TickerControls: {}",
+                    e
                 )));
             }
         }

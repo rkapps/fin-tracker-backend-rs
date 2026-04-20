@@ -982,6 +982,7 @@ dependencies = [
  "fin-domain",
  "fin-providers",
  "fin-storage",
+ "futures",
  "linfa",
  "linfa-ensemble",
  "linfa-linear",
@@ -1088,6 +1089,7 @@ dependencies = [
  "anyhow",
  "bin-shared",
  "calamine",
+ "chrono",
  "clap",
  "fin-core",
  "fin-domain",
@@ -3573,7 +3575,7 @@ checksum = "6ce2be8dc25455e1f91df71bfa12ad37d7af1092ae736f3a6cd0e37bc7810596"
 [[package]]
 name = "storage-core"
 version = "0.1.0"
-source = "git+https://github.com/rkapps/storage-core-rs#ae1a51bcbf8caef7d65a34fcbdbf6ba6fc02ee31"
+source = "git+https://github.com/rkapps/storage-core-rs#a9923ef7e4db4363875557d4df43d52a745ef4a5"
 dependencies = [
  "anyhow",
  "async-trait",

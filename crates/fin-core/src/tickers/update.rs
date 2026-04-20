@@ -14,8 +14,11 @@ use fin_providers::ProviderService;
 use fin_storage::service::StorageService;
 use rust_decimal::prelude::ToPrimitive;
 use rust_decimal_macros::dec;
-use std::{collections::HashMap, sync::Arc};
-use tokio::sync::RwLock;
+use std::{collections::HashMap, sync::Arc, time::Duration};
+use tokio::{
+    sync::{RwLock, Semaphore},
+    time::sleep,
+};
 use tracing::{debug, error, info, trace, warn};
 
 use crate::{
@@ -30,6 +33,105 @@ use crate::{
         },
     },
 };
+
+pub async fn update_all_tickers(
+    storage_service: Arc<dyn StorageService>,
+    provider_service: ProviderService,
+    embedding_client: Arc<dyn EmbeddingClient>,
+    all_controls: Vec<TickerControl>,
+    all_tickers: Vec<Ticker>,
+) -> Result<()> {
+    let mut control_map: HashMap<String, TickerControl> = all_controls
+        .into_iter()
+        .map(|c| (c.symbol.clone(), c))
+        .collect();
+
+    let total = all_tickers.len();
+    let semaphore = Arc::new(Semaphore::new(3));
+    let delay = Duration::from_millis(1000);
+
+    info!("Processing {} tickers with 3 concurrent workers", total);
+
+    let tasks: Vec<_> = all_tickers
+        .into_iter()
+        .enumerate()
+        .filter_map(|(i, ticker)| {
+            let tc = match control_map.remove(&ticker.symbol) {
+                Some(tc) => tc,
+                None => {
+                    warn!("No control record for {}, skipping", ticker.symbol);
+                    return None;
+                }
+            };
+
+            let sem = semaphore.clone();
+            let storage_service = storage_service.clone();
+            let provider_service = provider_service.clone();
+            let embedding_client = embedding_client.clone();
+
+            Some(tokio::spawn(async move {
+                let _permit = sem.acquire().await.unwrap();
+                let mut ticker = ticker;
+                let mut tc = tc;
+
+                if i % 20 == 0 {
+                    info!("Updating Ticker: {} {}/{}", ticker.symbol, i + 1, total);
+                }
+
+                let result = update_ticker(
+                    storage_service,
+                    provider_service,
+                    embedding_client,
+                    &mut tc,
+                    &mut ticker,
+                )
+                .await;
+
+                sleep(delay).await;
+
+                result.map(|_| (ticker, tc))
+            }))
+        })
+        .collect();
+
+    // collect results
+    let results = futures::future::join_all(tasks).await;
+
+    let mut success = 0;
+    let mut failed = 0;
+    let mut updated_tickers = Vec::new();
+    let mut updated_controls = Vec::new();
+
+    for result in results {
+        match result {
+            Ok(Ok((ticker, tc))) => {
+                success += 1;
+                updated_tickers.push(ticker);
+                updated_controls.push(tc);
+            }
+            Ok(Err(e)) => {
+                error!("Ticker update failed: {}", e);
+                failed += 1;
+            }
+            Err(e) => {
+                error!("Task panicked: {}", e);
+                failed += 1;
+            }
+        }
+    }
+
+    // bulk write at the end
+    if !updated_tickers.is_empty() {
+        storage_service.save_tickers(updated_tickers).await?;
+        storage_service
+            .save_ticker_controls(updated_controls)
+            .await?;
+    }
+
+    info!("Completed: {} successful, {} failed", success, failed);
+
+    Ok(())
+}
 
 pub async fn update_ticker(
     storage_service: Arc<dyn StorageService>,
@@ -56,7 +158,7 @@ pub async fn update_ticker(
                 if !new_histories.is_empty() {
                     tc.last_history_sync_at = Some(Utc::now());
                     if update {
-                        storage_service.save_ticker_control(tc.clone()).await?;
+                        // storage_service.save_ticker_control(tc.clone()).await?;
                         storage_service
                             .save_ticker_history(&ticker.symbol, &new_histories)
                             .await?;
@@ -79,7 +181,7 @@ pub async fn update_ticker(
                     );
                     tc.last_sentiment_sync_at = Some(Utc::now());
                     if update {
-                        storage_service.save_ticker_control(tc.clone()).await?;
+                        // storage_service.save_ticker_control(tc.clone()).await?;
                         storage_service
                             .save_ticker_sentiments(&ticker.symbol, &new_sentiments)
                             .await?;
@@ -90,34 +192,34 @@ pub async fn update_ticker(
         }
     }
 
-    if should_sync_embeddings(tc) {
-        match update_ticker_sentiment_embeddings(
-            storage_service.clone(),
-            embedding_client,
-            tc,
-            ticker,
-        )
-        .await
-        {
-            Ok(new_embeddings) => {
-                if !new_embeddings.is_empty() {
-                    debug!(
-                        "Ticker {} New Embeddings: {}",
-                        ticker.symbol,
-                        new_embeddings.len()
-                    );
-                    tc.last_embedding_sync_at = Some(Utc::now());
-                    if update {
-                        storage_service.save_ticker_control(tc.clone()).await?;
-                        storage_service
-                            .save_ticker_embeddings(&ticker.symbol, &new_embeddings)
-                            .await?;
-                    }
-                }
-            }
-            Err(e) => error!("Embeddings update failed for {}: {}", ticker.symbol, e),
-        }
-    }
+    // if should_sync_embeddings(tc) {
+    //     match update_ticker_sentiment_embeddings(
+    //         storage_service.clone(),
+    //         embedding_client,
+    //         tc,
+    //         ticker,
+    //     )
+    //     .await
+    //     {
+    //         Ok(new_embeddings) => {
+    //             if !new_embeddings.is_empty() {
+    //                 debug!(
+    //                     "Ticker {} New Embeddings: {}",
+    //                     ticker.symbol,
+    //                     new_embeddings.len()
+    //                 );
+    //                 tc.last_embedding_sync_at = Some(Utc::now());
+    //                 if update {
+    //                     // storage_service.save_ticker_control(tc.clone()).await?;
+    //                     storage_service
+    //                         .save_ticker_embeddings(&ticker.symbol, &new_embeddings)
+    //                         .await?;
+    //                 }
+    //             }
+    //         }
+    //         Err(e) => error!("Embeddings update failed for {}: {}", ticker.symbol, e),
+    //     }
+    // }
 
     //Get the history
     let mut histories = storage_service.get_ticker_history(&ticker.symbol).await?;
@@ -136,7 +238,7 @@ pub async fn update_ticker(
                     );
                     tc.last_indicator_sync_at = Some(Utc::now());
                     if update {
-                        storage_service.save_ticker_control(tc.clone()).await?;
+                        // storage_service.save_ticker_control(tc.clone()).await?;
                         storage_service
                             .save_ticker_indicators(&ticker.symbol, &new_indicators)
                             .await?;
@@ -159,14 +261,13 @@ pub async fn update_ticker(
 
     tc.last_sync_at = Some(Utc::now());
 
-    storage_service.save_ticker(ticker.clone()).await?;
-    storage_service.save_ticker_control(tc.clone()).await?;
+    // storage_service.save_ticker(ticker.clone()).await?;
+    // storage_service.save_ticker_control(tc.clone()).await?;
 
     Ok(())
 }
 
 pub async fn update_ticker_realtime(
-    storage_service: Arc<dyn StorageService>,
     provider_service: ProviderService,
     ticker: &mut Ticker,
 ) -> Result<()> {
@@ -184,7 +285,7 @@ pub async fn update_ticker_realtime(
         }
         AssetType::Crypto => {}
     }
-    storage_service.save_ticker(ticker.clone()).await?;
+    // storage_service.save_ticker(ticker.clone()).await?;
 
     Ok(())
 }

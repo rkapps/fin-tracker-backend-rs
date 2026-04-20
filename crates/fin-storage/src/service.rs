@@ -27,8 +27,10 @@ pub trait StorageService:
 
 #[async_trait]
 pub trait TickerControlStorageService: Send + Sync + Debug {
+    async fn get_ticker_controls(&self) -> Result<Vec<TickerControl>>;
     async fn get_ticker_control(&self, symbol: &str) -> Result<TickerControl>;
     async fn save_ticker_control(&self, tc: TickerControl) -> Result<()>;
+    async fn save_ticker_controls(&self, tcs: Vec<TickerControl>) -> Result<()>;
 }
 
 #[async_trait]
@@ -58,6 +60,7 @@ pub trait TickerStorageService: Send + Sync + Debug {
     async fn search_tickers(&self, param: TickerFilter) -> Result<Vec<Ticker>>;
 
     async fn save_ticker(&self, ticker: Ticker) -> Result<()>;
+    async fn save_tickers(&self, tickers: Vec<Ticker>) -> Result<()>;
 }
 
 #[async_trait]

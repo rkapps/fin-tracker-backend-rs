@@ -247,4 +247,16 @@ impl TickerStorageService for MongoStorageService {
             }
         }
     }
+
+    async fn save_tickers(&self, tickers: Vec<Ticker>) -> Result<()> {
+        match self.manager.tickers().await {
+            Ok(repo) => {
+                let mut repo = repo.lock().await;
+                repo.bulk_update(tickers).await
+            }
+            Err(e) => {
+                return Err(anyhow::anyhow!(format!("Error saving Ticker: {}", e)));
+            }
+        }
+    }
 }
