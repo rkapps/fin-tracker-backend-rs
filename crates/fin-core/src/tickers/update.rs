@@ -158,7 +158,7 @@ pub async fn update_ticker(
                     tc.last_history_sync_at = Some(Utc::now());
                     info!("Ticker new History for {}: {} ", ticker.symbol, new_histories.len());
                     if update {
-                        // storage_service.save_ticker_control(tc.clone()).await?;
+                        storage_service.save_ticker_control(tc.clone()).await?;
                         storage_service
                             .save_ticker_history(&ticker.symbol, new_histories)
                             .await?;
@@ -183,7 +183,7 @@ pub async fn update_ticker(
                     );
                     tc.last_sentiment_sync_at = Some(Utc::now());
                     if update {
-                        // storage_service.save_ticker_control(tc.clone()).await?;
+                        storage_service.save_ticker_control(tc.clone()).await?;
                         storage_service
                             .save_ticker_sentiments(&ticker.symbol, new_sentiments)
                             .await?;
@@ -209,7 +209,7 @@ pub async fn update_ticker(
                     );
                     tc.last_indicator_sync_at = Some(Utc::now());
                     if update {
-                        // storage_service.save_ticker_control(tc.clone()).await?;
+                        storage_service.save_ticker_control(tc.clone()).await?;
                         storage_service
                             .save_ticker_indicators(&ticker.symbol, new_indicators)
                             .await?;
