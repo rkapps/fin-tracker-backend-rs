@@ -36,7 +36,6 @@ pub async fn check_update_ticker(symbol: &str) -> Result<()> {
     if let Err(e) = update_ticker(
         pipeline_service.storage_service,
         pipeline_service.provider_service,
-        pipeline_service.embedding_client,
         &mut tc,
         &mut ticker,
     )

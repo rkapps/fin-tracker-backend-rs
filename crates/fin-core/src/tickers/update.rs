@@ -28,7 +28,7 @@ use crate::{
         indicators::IndicatorCalculator,
         signals::SignalsCalculator,
         sync::{
-            should_sync_embeddings, should_sync_history, should_sync_indicators,
+            should_sync_history, should_sync_indicators,
             should_sync_sentiments,
         },
     },
@@ -37,7 +37,6 @@ use crate::{
 pub async fn update_all_tickers(
     storage_service: Arc<dyn StorageService>,
     provider_service: ProviderService,
-    embedding_client: Arc<dyn EmbeddingClient>,
     all_controls: Vec<TickerControl>,
     all_tickers: Vec<Ticker>,
 ) -> Result<()> {
@@ -67,7 +66,6 @@ pub async fn update_all_tickers(
             let sem = semaphore.clone();
             let storage_service = storage_service.clone();
             let provider_service = provider_service.clone();
-            let embedding_client = embedding_client.clone();
 
             Some(tokio::spawn(async move {
                 let _permit = sem.acquire().await.unwrap();
@@ -81,7 +79,6 @@ pub async fn update_all_tickers(
                 let result = update_ticker(
                     storage_service,
                     provider_service,
-                    embedding_client,
                     &mut tc,
                     &mut ticker,
                 )
@@ -136,7 +133,6 @@ pub async fn update_all_tickers(
 pub async fn update_ticker(
     storage_service: Arc<dyn StorageService>,
     provider_service: ProviderService,
-    embedding_client: Arc<dyn EmbeddingClient>,
     tc: &mut TickerControl,
     ticker: &mut Ticker,
 ) -> Result<()> {
@@ -151,24 +147,30 @@ pub async fn update_ticker(
         }
     };
 
+    //Get the history
+    let mut histories = Vec::new();
+
     // update history
     if should_sync_history(tc) {
         match update_ticker_history(provider_service.clone(), tc, ticker).await {
-            Ok(new_histories) => {
+            Ok((all_histories, new_histories)) => {
                 if !new_histories.is_empty() {
                     tc.last_history_sync_at = Some(Utc::now());
+                    info!("Ticker new History for {}: {} ", ticker.symbol, new_histories.len());
                     if update {
                         // storage_service.save_ticker_control(tc.clone()).await?;
                         storage_service
-                            .save_ticker_history(&ticker.symbol, &new_histories)
+                            .save_ticker_history(&ticker.symbol, new_histories)
                             .await?;
                     }
                 }
+                histories = all_histories
             }
             Err(e) => error!("History update failed for {}: {}", ticker.symbol, e),
         }
     }
 
+    
     // update sentiments
     if should_sync_sentiments(tc) {
         match update_ticker_sentiments(provider_service, tc, ticker).await {
@@ -192,38 +194,7 @@ pub async fn update_ticker(
         }
     }
 
-    // if should_sync_embeddings(tc) {
-    //     match update_ticker_sentiment_embeddings(
-    //         storage_service.clone(),
-    //         embedding_client,
-    //         tc,
-    //         ticker,
-    //     )
-    //     .await
-    //     {
-    //         Ok(new_embeddings) => {
-    //             if !new_embeddings.is_empty() {
-    //                 debug!(
-    //                     "Ticker {} New Embeddings: {}",
-    //                     ticker.symbol,
-    //                     new_embeddings.len()
-    //                 );
-    //                 tc.last_embedding_sync_at = Some(Utc::now());
-    //                 if update {
-    //                     // storage_service.save_ticker_control(tc.clone()).await?;
-    //                     storage_service
-    //                         .save_ticker_embeddings(&ticker.symbol, &new_embeddings)
-    //                         .await?;
-    //                 }
-    //             }
-    //         }
-    //         Err(e) => error!("Embeddings update failed for {}: {}", ticker.symbol, e),
-    //     }
-    // }
 
-    //Get the history
-    let mut histories = storage_service.get_ticker_history(&ticker.symbol).await?;
-    debug!("Ticker History: {}", histories.len());
 
     // update technical indicators
     // tc.last_indicator_sync_at = None;
@@ -261,8 +232,6 @@ pub async fn update_ticker(
 
     tc.last_sync_at = Some(Utc::now());
 
-    // storage_service.save_ticker(ticker.clone()).await?;
-    // storage_service.save_ticker_control(tc.clone()).await?;
 
     Ok(())
 }
@@ -285,7 +254,6 @@ pub async fn update_ticker_realtime(
         }
         AssetType::Crypto => {}
     }
-    // storage_service.save_ticker(ticker.clone()).await?;
 
     Ok(())
 }
@@ -317,7 +285,7 @@ pub(crate) async fn update_ticker_history(
     provider_service: ProviderService,
     tc: &mut TickerControl,
     ticker: &mut Ticker,
-) -> Result<Vec<TickerHistory>> {
+) -> Result<(Vec<TickerHistory>, Vec<TickerHistory>)> {
     let Some(hist_start_date) = Utc::now().checked_sub_months(Months::new(60)) else {
         return Err(anyhow::anyhow!("Error calcuating start date"));
     };
@@ -358,12 +326,13 @@ pub(crate) async fn update_ticker_history(
     if !histories.is_empty() {
         new_histories = match tc.last_history_sync_at {
             Some(last_sync) => histories
-                .into_iter()
+                .iter()
                 .filter(|h| h.date > last_sync)
+                .cloned()
                 .collect(),
             None => {
                 // First sync - insert all
-                histories
+                histories.clone()
             }
         };
     }
@@ -373,7 +342,7 @@ pub(crate) async fn update_ticker_history(
         new_histories.len()
     );
 
-    Ok(new_histories)
+    Ok((histories, new_histories))
 }
 
 pub(crate) async fn update_ticker_price_history(

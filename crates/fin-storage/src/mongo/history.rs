@@ -68,18 +68,28 @@ impl TickerHistoryStorageService for MongoStorageService {
         self.get_ticker_history_by_criteria(&criteria).await
     }
 
-    async fn save_ticker_history(&self, symbol: &str, hist: &[TickerHistory]) -> Result<()> {
-        let Ok(repo) = self.manager.ticker_history().await else {
-            return Err(anyhow::anyhow!(format!(
-                "Error saving TickerHistory for '{}'",
-                symbol
-            )));
-        };
+    async fn save_ticker_history(&self, symbol: &str, hist: Vec<TickerHistory>) -> Result<()> {
 
-        let mut repo = repo.lock().await;
-        for thist in hist {
-            repo.insert(thist.clone()).await?;
+        match self.manager.ticker_history().await {
+            Ok(repo) => {
+                let mut repo = repo.lock().await;
+                repo.bulk_update(hist).await
+            }
+            Err(e) => {
+                return Err(anyhow::anyhow!(format!("Error saving Ticker: {}", e)));
+            }
         }
-        Ok(())
+
+        // let Ok(repo) = self.manager.ticker_history().await else {
+        //     return Err(anyhow::anyhow!(format!(
+        //         "Error saving TickerHistory for '{}'",
+        //         symbol
+        //     )));
+        // };
+
+        // let mut repo = repo.lock().await;
+        // for thist in hist {
+        //     repo.insert(thist.clone()).await?;
+        // }
     }
 }

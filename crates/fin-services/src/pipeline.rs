@@ -1,32 +1,28 @@
-use agentic_core::client::embeddings::EmbeddingClient;
 use anyhow::Result;
 use fin_core::tickers::update::{
-    update_all_tickers, update_ticker, update_ticker_prediction_signals, update_ticker_realtime,
+    update_all_tickers, update_ticker_prediction_signals, update_ticker_realtime,
 };
-use fin_domain::tickers::{AssetType, Ticker, TickerAlpha, TickerControl};
+use fin_domain::tickers::{AssetType, Ticker, TickerAlpha};
 use fin_providers::ProviderService;
 use fin_storage::service::StorageService;
-use std::{collections::HashMap, sync::Arc, time::Duration};
-use tokio::{sync::Semaphore, task::JoinHandle, time::sleep};
-use tracing::{debug, error, info, warn};
+use std::{collections::HashMap, sync::Arc};
+use tokio::{sync::Semaphore, task::JoinHandle};
+use tracing::{debug, error, info};
 
 #[derive(Debug)]
 pub struct PipeLineService {
     pub storage_service: Arc<dyn StorageService>,
     pub provider_service: ProviderService,
-    pub embedding_client: Arc<dyn EmbeddingClient>,
 }
 
 impl PipeLineService {
     pub fn new(
         storage_service: Arc<dyn StorageService>,
         provider_service: ProviderService,
-        embedding_client: Arc<dyn EmbeddingClient>,
     ) -> PipeLineService {
         PipeLineService {
             storage_service,
             provider_service,
-            embedding_client,
         }
     }
 
@@ -44,7 +40,6 @@ impl PipeLineService {
         update_all_tickers(
             self.storage_service.clone(),
             self.provider_service.clone(),
-            self.embedding_client.clone(),
             all_controls,
             all_tickers,
         )

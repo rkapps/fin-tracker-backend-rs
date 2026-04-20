@@ -73,7 +73,7 @@ pub trait TickerHistoryStorageService: Send + Sync + Debug {
         from_date: DateTime<Utc>,
     ) -> Result<Vec<TickerHistory>>;
     async fn get_ticker_history_latest(&self, symbol: &str) -> Result<Vec<TickerHistory>>;
-    async fn save_ticker_history(&self, symbol: &str, hist: &[TickerHistory]) -> Result<()>;
+    async fn save_ticker_history(&self, symbol: &str, hist: Vec<TickerHistory>) -> Result<()>;
 }
 
 #[async_trait]
