@@ -110,46 +110,57 @@ impl AnalyseService {
         let peers_tool = TickerPeersTool::new(self.storage_service.clone());
 
         let builder = self.agent_service.builder();
+        let builder = builder
+            .with_preset_thorough()
+            .with_tool(screening_tool)
+            .with_tool(taxonomy_tool)
+            // .with_tool(simiarity_tool)
+            .with_tool(sentiment_tool)
+            .with_tool(snapshot_tool)
+            .with_tool(history_tool)
+            .with_tool(indicator_tool)
+            .with_tool(peers_tool);
+
         let agent = match llm {
             "openai" => builder
                 .with_openai(&self.openai_api_key, MODEL_GPT_5_4_MINI)?
-                .with_preset_thorough()
-                .with_tool(screening_tool)
-                .with_tool(taxonomy_tool)
-                // .with_tool(simiarity_tool)
-                .with_tool(sentiment_tool)
-                .with_tool(snapshot_tool)
-                .with_tool(history_tool)
-                .with_tool(indicator_tool)
-                .with_tool(peers_tool)
+                // .with_preset_thorough()
+                // .with_tool(screening_tool)
+                // .with_tool(taxonomy_tool)
+                // // .with_tool(simiarity_tool)
+                // .with_tool(sentiment_tool)
+                // .with_tool(snapshot_tool)
+                // .with_tool(history_tool)
+                // .with_tool(indicator_tool)
+                // .with_tool(peers_tool)
                 .build()?,
             "gemini" => builder
                 .with_gemini(&self.gemini_api_key, MODEL_GEMINI_3_FLASH_PREVIEW)?
-                .with_preset_thorough()
-                .with_tool(screening_tool)
-                .with_tool(taxonomy_tool)
-                // .with_tool(simiarity_tool)
-                .with_tool(sentiment_tool)
-                .with_tool(snapshot_tool)
-                .with_tool(history_tool)
-                .with_tool(indicator_tool)
-                .with_tool(peers_tool)
+                // .with_preset_thorough()
+                // .with_tool(screening_tool)
+                // .with_tool(taxonomy_tool)
+                // // .with_tool(simiarity_tool)
+                // .with_tool(sentiment_tool)
+                // .with_tool(snapshot_tool)
+                // .with_tool(history_tool)
+                // .with_tool(indicator_tool)
+                // .with_tool(peers_tool)
                 .build()?,
 
             "anthropic" => builder
                 .with_anthropic(&self.anthropic_api_key, MODEL_CLAUDE_SONNET_4_6)?
-                .with_preset_thorough()
-                .with_tool(screening_tool)
-                .with_tool(taxonomy_tool)
-                // .with_tool(simiarity_tool)
-                .with_tool(sentiment_tool)
-                .with_tool(snapshot_tool)
-                .with_tool(history_tool)
-                .with_tool(indicator_tool)
-                .with_tool(peers_tool)
+                // .with_preset_thorough()
+                // .with_tool(screening_tool)
+                // .with_tool(taxonomy_tool)
+                // // .with_tool(simiarity_tool)
+                // .with_tool(sentiment_tool)
+                // .with_tool(snapshot_tool)
+                // .with_tool(history_tool)
+                // .with_tool(indicator_tool)
+                // .with_tool(peers_tool)
                 .build()?,
-            // "qwen" => builder
-            //     .with_local("qwen", "qwen3.5:4b", "http://localhost:11434")?
+            "qwen" => builder
+                .with_local("qwen", "qwen3.5:4b", "http://localhost:11434")?
             //     .with_preset_thorough()
             //     .with_tool(screening_tool)
             //     .with_tool(taxonomy_tool)
@@ -159,7 +170,7 @@ impl AnalyseService {
             //     .with_tool(history_tool)
             //     .with_tool(indicator_tool)
             //     .with_tool(peers_tool)
-            //     .build()?,
+                .build()?,
             _ => return Err(anyhow::anyhow!("Llm {} not recognised", llm)),
         };
 

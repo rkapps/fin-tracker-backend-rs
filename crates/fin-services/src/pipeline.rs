@@ -161,7 +161,7 @@ impl PipeLineService {
         let mut all_tickers = self.storage_service.get_tickers_by_marketcap().await?;
         all_tickers.retain(|t| t.asset_type == AssetType::Stock || t.asset_type == AssetType::Etf);
 
-        update_all_tickers_realtime(self.storage_service.clone(), self.provider_service.clone(), all_tickers).await?;
+        update_all_tickers_realtime(self.storage_service.clone(), self.provider_service.clone(), all_tickers, false).await?;
 
         Ok(())
     }
@@ -171,7 +171,7 @@ impl PipeLineService {
         let mut all_tickers = self.storage_service.get_tickers_by_marketcap().await?;
         all_tickers.retain(|t| t.asset_type == AssetType::Crypto);
 
-        update_all_tickers_realtime(self.storage_service.clone(), self.provider_service.clone(), all_tickers).await?;
+        update_all_tickers_realtime(self.storage_service.clone(), self.provider_service.clone(), all_tickers, true).await?;
         Ok(())
     }
 }

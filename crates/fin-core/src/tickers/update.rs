@@ -819,6 +819,7 @@ pub async fn update_all_tickers_realtime(
     storage_service: Arc<dyn StorageService>,
     provider_service: ProviderService,
     all_tickers: Vec<Ticker>,
+    allow_delay: bool
 ) -> Result<()> {
 
     let mut updated_tickers = Vec::new();
@@ -839,7 +840,10 @@ pub async fn update_all_tickers_realtime(
             Ok(_) => updated_tickers.push(ticker),
             Err(e) => error!("Ticker Realtime error {}: {}", ticker.symbol, e),
         }
-        sleep(delay).await;
+        if allow_delay {
+            sleep(delay).await;        
+        }
+
     }
 
     info!(
