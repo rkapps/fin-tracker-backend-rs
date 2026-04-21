@@ -3,7 +3,7 @@ use tracing_subscriber::FmtSubscriber;
 
 pub fn set_logger() {
     let filter = std::env::var("RUST_LOG").unwrap_or_else(|_| {
-        "fin_services=trace,fin_core=debug,agentic_core=info,fin_tracker_pipeline=info".to_string()
+        "fin_services=trace,fin_core=info,agentic_core=info,fin_tracker_pipeline=info".to_string()
     });
 
     let is_cloud = std::env::var("LOG_FORMAT").is_ok();

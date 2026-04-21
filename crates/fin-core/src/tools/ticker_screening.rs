@@ -150,16 +150,15 @@ impl Tool for TickerScreeningTool {
     async fn execute(&self, value: serde_json::Value) -> Result<Value> {
         let filter: TickerFilter = serde_json::from_value(value.clone())
             .map_err(|e| anyhow::anyhow!("Failed to deserialize params: {:?} — {:?}", value, e))?;
-        info!("Screening Tools param: {:#?}", filter);
 
         let symbols = screen_tickers(
             self.storage_service.clone(),
             self.embedding_client.clone(),
-            filter,
+            filter.clone(),
         )
         .await?;
 
-        info!("Screened stocks: {:?}", symbols);
+        info!("Screening Tools param: {:#?} Stocks: {:?}", filter, symbols);
         Ok(json!({ "sreened_tickers": symbols }))
     }
 }
