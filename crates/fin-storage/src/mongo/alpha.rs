@@ -4,7 +4,6 @@ use storage_core::core::{
     Repository as _,
     search::{SearchCriteria, SearchOp, SearchValue},
 };
-use tracing::{info, warn};
 
 use crate::{mongo::MongoStorageService, service::TickerAlphaStorageService};
 use anyhow::Result;
