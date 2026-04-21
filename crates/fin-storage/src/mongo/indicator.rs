@@ -17,6 +17,27 @@ use anyhow::Result;
 
 #[async_trait]
 impl TickerIndicatorStorageService for MongoStorageService {
+
+    async fn delete_ticker_indicators_before(&self, date: DateTime<Utc>) -> Result<()>{
+
+        let mut criteria = SearchCriteria::new();
+        criteria.add_condition(
+            "date",
+            SearchOp::Lt,
+            SearchValue::DateTime(date),
+        );
+
+        match self.manager.ticker_indicators().await {
+            Ok(repo) => {
+                let mut repo = repo.lock().await;
+                repo.delete_many(Some(criteria)).await
+            }
+            Err(e) => {
+                return Err(anyhow::anyhow!("Error getting TickerSentiment: {}", e));
+            }
+        }
+    } 
+
     async fn delete_ticker_indicators(&self, symbol: &str) -> Result<()> {
         let mut criteria = SearchCriteria::new();
         criteria.add_condition(

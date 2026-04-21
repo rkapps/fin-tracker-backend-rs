@@ -1,4 +1,5 @@
 use async_trait::async_trait;
+use chrono::{DateTime, Utc};
 use fin_domain::tickers::TickerSentiment;
 use rust_decimal::Decimal;
 use rust_decimal_macros::dec;
@@ -12,10 +13,33 @@ use anyhow::Result;
 
 #[async_trait]
 impl TickerSentimentStorageService for MongoStorageService {
+
+    async fn delete_ticker_sentiments_before(&self, date: DateTime<Utc>) -> Result<()>{
+
+        let mut criteria = SearchCriteria::new();
+        criteria.add_condition(
+            "date",
+            SearchOp::Lt,
+            SearchValue::DateTime(date),
+        );
+
+        match self.manager.ticker_sentiments().await {
+            Ok(repo) => {
+                let mut repo = repo.lock().await;
+                repo.delete_many(Some(criteria)).await
+            }
+            Err(e) => {
+                return Err(anyhow::anyhow!("Error getting TickerSentiment: {}", e));
+            }
+        }
+    } 
+
     async fn get_ticker_sentiments(&self, symbol: &str) -> Result<Vec<TickerSentiment>> {
         let score = dec!(0);
         self.get_ticker_sentiments_with_score(symbol, &score).await
     }
+
+
 
     async fn get_ticker_sentiments_with_score(
         &self,

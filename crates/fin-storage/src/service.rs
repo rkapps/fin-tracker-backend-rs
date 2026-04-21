@@ -79,6 +79,8 @@ pub trait TickerHistoryStorageService: Send + Sync + Debug {
 #[async_trait]
 pub trait TickerIndicatorStorageService: Send + Sync + Debug {
     async fn delete_ticker_indicators(&self, symbol: &str) -> Result<()>;
+    async fn delete_ticker_indicators_before(&self, date: DateTime<Utc>) -> Result<()>; 
+
     async fn get_ticker_indicators(&self, symbol: &str) -> Result<Vec<TickerIndicator>>;
     async fn get_ticker_indicators_latest(&self, symbol: &str) -> Result<TickerIndicator>;
 
@@ -109,6 +111,7 @@ pub trait TickerIndicatorStorageService: Send + Sync + Debug {
 
 #[async_trait]
 pub trait TickerSentimentStorageService: Send + Sync + Debug {
+    async fn delete_ticker_sentiments_before(&self, date: DateTime<Utc>) -> Result<()>; 
     async fn get_ticker_sentiments(&self, symbol: &str) -> Result<Vec<TickerSentiment>>;
     async fn get_ticker_sentiments_with_score(
         &self,
@@ -125,6 +128,7 @@ pub trait TickerSentimentStorageService: Send + Sync + Debug {
 
 #[async_trait]
 pub trait TickerEmbeddingStorageService: Send + Sync + Debug {
+    async fn delete_ticker_embeddings_before(&self, date: DateTime<Utc>) -> Result<()>; 
     async fn get_ticker_embeddings(&self, symbol: &str) -> Result<Vec<TickerEmbedding>>;
     async fn save_ticker_embeddings(
         &self,

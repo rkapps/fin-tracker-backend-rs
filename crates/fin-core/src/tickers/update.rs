@@ -415,7 +415,7 @@ pub(crate) async fn update_ticker_sentiments(
 ) -> Result<Vec<TickerSentiment>> {
     let mut new_sentiments = Vec::new();
 
-    let Some(date_from) = Utc::now().checked_sub_months(Months::new(6)) else {
+    let Some(date_from) = Utc::now().checked_sub_months(Months::new(1)) else {
         return Err(anyhow::anyhow!("Error with DateTime"));
     };
     let feeds = provider_service
