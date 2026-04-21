@@ -6,6 +6,7 @@ use bin_shared::{
     services::{get_load_service, get_ml_service, get_pipeline_service},
 };
 use clap::{Parser, Subcommand};
+use fin_core::tickers::update::update_ticker_overview_embedding;
 use fin_tracker_admin::{
     seed::{load_ticker_seeds_from_file, load_ticker_seeds_from_gcs},
     ticker::{check_ticker_sentiment, check_update_ticker},
@@ -38,6 +39,10 @@ enum AdminCommands {
         symbol: String,
     },
     BuildTickerPredictionModels {
+        #[arg(short, long)]
+        symbols: Option<String>,
+    },
+    UpdateTickerOverviewEmbeddings {
         #[arg(short, long)]
         symbols: Option<String>,
     },
@@ -102,6 +107,34 @@ async fn main() -> Result<()> {
             let ml_service = get_ml_service().await?;
             let _ = ml_service.build_ticker_prediction_models(symbols_str).await;
             info!("Building Ticker Prediction Models done.");
+        }
+
+        AdminCommands::UpdateTickerOverviewEmbeddings { symbols } => {
+            let symbols_str = symbols.as_deref().unwrap_or("");
+
+            let pipeline_service = get_pipeline_service().await?;
+            let all_tickers = if symbols.is_some() {
+                let list: Vec<String> = symbols_str.split(',').map(|s| s.to_string()).collect();
+                pipeline_service
+                    .storage_service
+                    .get_tickers_by_symbols(list)
+                    .await?
+            } else {
+                pipeline_service
+                    .storage_service
+                    .get_tickers_by_marketcap()
+                    .await?
+            };
+
+            // run ticker overview embeddings
+            for mut ticker in all_tickers {
+                update_ticker_overview_embedding(
+                    pipeline_service.storage_service.clone(),
+                    pipeline_service.embedding_client.clone(),
+                    &mut ticker,
+                )
+                .await?;
+            }
         }
     }
 

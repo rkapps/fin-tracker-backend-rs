@@ -1,7 +1,7 @@
 use agentic_core::client::embeddings::EmbeddingClient;
 use anyhow::Result;
-use fin_core::tickers::update::
-    update_all_tickers
+use fin_core::tickers::update::{
+    update_all_tickers, update_ticker_overview_embedding}
 ;
 use fin_domain::tickers::{Ticker, TickerControl, TickerSeed};
 use fin_providers::ProviderService;
@@ -54,9 +54,15 @@ impl LoadService {
             self.provider_service.clone(),
             self.embedding_client.clone(),
             all_new_controls,
-            all_tickers,
+            all_tickers.clone(),
         )
         .await?;
+
+        // run ticker overview embeddings
+        for mut ticker in all_tickers {
+            update_ticker_overview_embedding(self.storage_service.clone(), self.embedding_client.clone(), &mut ticker).await?;
+        }
+            
         Ok(())
     }
 }
