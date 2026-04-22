@@ -1,12 +1,11 @@
 use agentic_core::{
-    agent::{completion::Agent, service::AgentService},
+    agent::{builder::Preset, completion::Agent, provider::Provider, service::{AgentService, LlmProvider}},
     client::{
-        embeddings::EmbeddingClient, llm::CompletionStreamResponse, message::Message,
+        embeddings::{Embedding, EmbeddingClient},
+        llm::CompletionStreamResponse,
+        message::Message,
         response::CompletionResponse,
-    },
-    providers::{
-        anthropic::MODEL_CLAUDE_SONNET_4_6, gemini::MODEL_GEMINI_3_FLASH_PREVIEW,
-        openai::MODEL_GPT_5_4_MINI,
+        tools::Tool,
     },
 };
 use anyhow::Result;
@@ -22,12 +21,6 @@ pub struct AnalyseService {
     storage_service: Arc<dyn StorageService>,
     embedding_client: Arc<dyn EmbeddingClient>,
     agent_service: Arc<AgentService>,
-    #[allow(dead_code)]
-    openai_api_key: String,
-    #[allow(dead_code)]
-    gemini_api_key: String,
-    #[allow(dead_code)]
-    anthropic_api_key: String,
 }
 
 impl AnalyseService {
@@ -35,18 +28,17 @@ impl AnalyseService {
         storage_service: Arc<dyn StorageService>,
         embedding_client: Arc<dyn EmbeddingClient>,
         agent_service: Arc<AgentService>,
-        openai_api_key: String,
-        gemini_api_key: String,
-        anthropic_api_key: String,
     ) -> Self {
         Self {
             storage_service,
             embedding_client,
             agent_service,
-            openai_api_key,
-            gemini_api_key,
-            anthropic_api_key,
         }
+    }
+
+     /// Returns configured LLM providers — UI uses this for dropdown
+    pub fn get_llm_providers(&self) -> Vec<LlmProvider> {
+        self.agent_service.get_llm_providers()
     }
 
     pub async fn analyse_tickers(
@@ -84,7 +76,6 @@ impl AnalyseService {
 
         let agent = self.build_agent(llm, prompt).await?;
         let system_prompt = self.build_system_prompt();
-        // let system_prompt = Some("You are a expert at everthing".to_string());
         let stream = agent
             .complete_with_tools_streaming(&system_prompt, &messages)
             .await?;
@@ -99,82 +90,42 @@ impl AnalyseService {
             .await
             .map_err(|e| anyhow::anyhow!("Error embedding input prompt {}: {}", prompt, e))?;
 
-        let taxonomy_tool = TickerTaxonomyTool::new(self.storage_service.clone());
-        let sentiment_tool =
-            TickerSentimentTool::new(query_embedding.clone(), self.storage_service.clone());
-        let screening_tool =
-            TickerScreeningTool::new(self.storage_service.clone(), self.embedding_client.clone());
-        let snapshot_tool = TickerSnapshotTool::new(self.storage_service.clone());
-        let history_tool = TickerPriceHistoryTool::new(self.storage_service.clone());
-        let indicator_tool = TickerIndicatorTool::new(self.storage_service.clone());
-        let peers_tool = TickerPeersTool::new(self.storage_service.clone());
+        // resolve_provider has everything it needs — no keys passed in
+        let provider = self.agent_service.resolve_provider(llm)?;
 
-        let builder = self.agent_service.builder();
-        let builder = builder
-            .with_preset_thorough()
-            .with_tool(screening_tool)
-            .with_tool(taxonomy_tool)
-            // .with_tool(simiarity_tool)
-            .with_tool(sentiment_tool)
-            .with_tool(snapshot_tool)
-            .with_tool(history_tool)
-            .with_tool(indicator_tool)
-            .with_tool(peers_tool);
-
-        let agent = match llm {
-            "openai" => builder
-                .with_openai(&self.openai_api_key, MODEL_GPT_5_4_MINI)?
-                // .with_preset_thorough()
-                // .with_tool(screening_tool)
-                // .with_tool(taxonomy_tool)
-                // // .with_tool(simiarity_tool)
-                // .with_tool(sentiment_tool)
-                // .with_tool(snapshot_tool)
-                // .with_tool(history_tool)
-                // .with_tool(indicator_tool)
-                // .with_tool(peers_tool)
-                .build()?,
-            "gemini" => builder
-                .with_gemini(&self.gemini_api_key, MODEL_GEMINI_3_FLASH_PREVIEW)?
-                // .with_preset_thorough()
-                // .with_tool(screening_tool)
-                // .with_tool(taxonomy_tool)
-                // // .with_tool(simiarity_tool)
-                // .with_tool(sentiment_tool)
-                // .with_tool(snapshot_tool)
-                // .with_tool(history_tool)
-                // .with_tool(indicator_tool)
-                // .with_tool(peers_tool)
-                .build()?,
-
-            "anthropic" => builder
-                .with_anthropic(&self.anthropic_api_key, MODEL_CLAUDE_SONNET_4_6)?
-                // .with_preset_thorough()
-                // .with_tool(screening_tool)
-                // .with_tool(taxonomy_tool)
-                // // .with_tool(simiarity_tool)
-                // .with_tool(sentiment_tool)
-                // .with_tool(snapshot_tool)
-                // .with_tool(history_tool)
-                // .with_tool(indicator_tool)
-                // .with_tool(peers_tool)
-                .build()?,
-            "qwen" => builder
-                .with_local("qwen", "qwen3.5:4b", "http://localhost:11434")?
-            //     .with_preset_thorough()
-            //     .with_tool(screening_tool)
-            //     .with_tool(taxonomy_tool)
-            //     // .with_tool(simiarity_tool)
-            //     .with_tool(sentiment_tool)
-            //     .with_tool(snapshot_tool)
-            //     .with_tool(history_tool)
-            //     .with_tool(indicator_tool)
-            //     .with_tool(peers_tool)
-                .build()?,
-            _ => return Err(anyhow::anyhow!("Llm {} not recognised", llm)),
+        // For a non local agent, use thorough
+        let preset = match &provider {
+            Provider::Local { .. } => Preset::Local,
+            _ => Preset::Thorough,
         };
 
+        let agent = self
+            .agent_service
+            .builder()
+            .with_tools(self.build_finance_tools(query_embedding))
+            .with_preset(preset)
+            .with_provider(provider)?
+            .build()?;
+
         Ok(agent)
+    }
+
+    fn build_finance_tools(&self, query_embedding: Embedding) -> Vec<Box<dyn Tool>> {
+        vec![
+            Box::new(TickerScreeningTool::new(
+                self.storage_service.clone(),
+                self.embedding_client.clone(),
+            )),
+            Box::new(TickerTaxonomyTool::new(self.storage_service.clone())),
+            Box::new(TickerSentimentTool::new(
+                query_embedding.clone(),
+                self.storage_service.clone(),
+            )),
+            Box::new(TickerSnapshotTool::new(self.storage_service.clone())),
+            Box::new(TickerPriceHistoryTool::new(self.storage_service.clone())),
+            Box::new(TickerIndicatorTool::new(self.storage_service.clone())),
+            Box::new(TickerPeersTool::new(self.storage_service.clone())),
+        ]
     }
 
     fn build_system_prompt(&self) -> Option<String> {

@@ -1,7 +1,12 @@
 use std::{env, sync::Arc};
 
 use agentic_core::{
-    agent::service::AgentService, providers::openai::embeddings::OpenAIEmbeddingClient,
+    agent::{
+        config::{AgentServiceConfig, LocalEndpoint},
+        service::AgentService,
+    },
+    client::embeddings::EmbeddingClient,
+    providers::openai::embeddings::OpenAIEmbeddingClient,
 };
 use anyhow::Result;
 use fin_providers::ProviderService;
@@ -14,13 +19,14 @@ use fin_storage::{
     service::StorageService,
 };
 
-// Returns the ticker service
-pub async fn get_tickers_service() -> Result<TickersService> {
-    let storage_service: Arc<dyn StorageService> = get_storage_service().await?;
-    Ok(TickersService::new(Arc::clone(&storage_service)))
+pub fn get_embedding_client() -> Result<Arc<dyn EmbeddingClient>> {
+    let openai_api_key: String =
+        env::var("OPENAI_API_KEY").expect("OPENAI_API_KEY environment variable not set");
+    Ok(Arc::new(OpenAIEmbeddingClient::new(&openai_api_key)?))
 }
 
-pub async fn get_analyse_service() -> Result<AnalyseService> {
+// get_agent_service
+fn get_agent_service() -> Result<AgentService> {
     let openai_api_key: String =
         env::var("OPENAI_API_KEY").expect("OPENAI_API_KEY environment variable not set");
     let gemini_api_key: String =
@@ -28,19 +34,47 @@ pub async fn get_analyse_service() -> Result<AnalyseService> {
     let anthropic_api_key: String =
         env::var("ANTHROPIC_API_KEY").expect("ANTHROPIC_API_KEY environment variable not set");
 
-    let agent_service = AgentService::new();
-    let embedding_client = Arc::new(OpenAIEmbeddingClient::new(&openai_api_key)?);
+    // Build config from user credentials + infrastructure config
+    let config = AgentServiceConfig::new()
+        .with_api_key("openai", &openai_api_key)
+        .with_api_key("anthropic", &anthropic_api_key)
+        .with_api_key("gemini", &gemini_api_key)
+        // .with_local_endpoint(LocalEndpoint {
+        //     id: "local".to_string(),
+        //     label: "Local".to_string(),
+        //     base_url: std::env::var("LOCAL_LLM_BASE_URL")
+        //         .expect("LOCAL_LLM_BASE_URL environment variable not found"),
+        //     default_model: "qwen3.5:4b".to_string(),
+        //     models: vec!["qwen3.5:4b".to_string()],
+        // })
+        .with_local_endpoint(LocalEndpoint {
+            id: "gwen".to_string(),
+            label: "Gwen".to_string(),
+            base_url: std::env::var("GCP_LLM_BASE_URL").expect("GCP_LLM_BASE_URL environment variable not set"),
+            default_model: "qwen3.5:4b".to_string(),
+            models: vec!["qwen3.5:4b".to_string()],
+        })
+        ;
 
+    let agent_service = AgentService::with_config(config);
+    Ok(agent_service)
+}
+
+pub async fn get_analyse_service() -> Result<AnalyseService> {
+    let agent_service = get_agent_service()?;
     let storage_service: Arc<dyn StorageService> = get_storage_service().await?;
-
+    let embedding_client = get_embedding_client()?;
     Ok(AnalyseService::new(
         storage_service,
         embedding_client,
         Arc::new(agent_service),
-        openai_api_key,
-        gemini_api_key,
-        anthropic_api_key,
     ))
+}
+
+// Returns the ticker service
+pub async fn get_tickers_service() -> Result<TickersService> {
+    let storage_service: Arc<dyn StorageService> = get_storage_service().await?;
+    Ok(TickersService::new(Arc::clone(&storage_service)))
 }
 
 //Returns the Ml service
@@ -53,14 +87,12 @@ pub async fn get_ml_service() -> Result<MlService> {
 pub async fn get_load_service() -> Result<LoadService> {
     let storage_service: Arc<dyn StorageService> = get_storage_service().await?;
     let provider_service = get_provider_service()?;
-    let openai_api_key: String =
-        env::var("OPENAI_API_KEY").expect("OPENAI_API_KEY environment variable not set");
-    let embedding_client = Arc::new(OpenAIEmbeddingClient::new(&openai_api_key)?);
+    let embedding_client = get_embedding_client()?;
 
     Ok(LoadService::new(
         storage_service,
         provider_service,
-        embedding_client
+        embedding_client,
     ))
 }
 
@@ -68,14 +100,12 @@ pub async fn get_load_service() -> Result<LoadService> {
 pub async fn get_pipeline_service() -> Result<PipeLineService> {
     let storage_service: Arc<dyn StorageService> = get_storage_service().await?;
     let provider_service = get_provider_service()?;
-    let openai_api_key: String =
-        env::var("OPENAI_API_KEY").expect("OPENAI_API_KEY environment variable not set");
-    let embedding_client = Arc::new(OpenAIEmbeddingClient::new(&openai_api_key)?);
+    let embedding_client = get_embedding_client()?;
 
     Ok(PipeLineService::new(
         storage_service,
         provider_service,
-        embedding_client
+        embedding_client,
     ))
 }
 

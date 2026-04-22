@@ -13,7 +13,7 @@ use bin_shared::{
 };
 use fin_tracker_api::{
     handlers::{
-        analyse::{analyse_tickers_handler, analyse_tickers_streaming_handler},
+        analyse::{analyse_tickers_handler, analyse_tickers_streaming_handler, get_llm_providers_handler},
         tickers::{get_ticker_charts_handler, get_ticker_groups_handler, search_tickers_handler},
     },
     state::AppState,
@@ -71,6 +71,7 @@ async fn main() -> Result<()> {
         .route("/tickers/search", post(search_tickers_handler))
         .route("/tickers/analyse", post(analyse_tickers_handler))
         .route("/tickers/analyse_streaming", post(analyse_tickers_streaming_handler))
+        .route("/llm_providers", get(get_llm_providers_handler))
 
         .layer(cors)
         .with_state(app_state) // Shared state
