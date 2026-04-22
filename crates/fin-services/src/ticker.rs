@@ -88,6 +88,7 @@ impl TickersService {
             .await
             .map_err(|e| anyhow::anyhow!(format!("Get Ticker Groups error: {}", e)))?;
 
+        debug!("Ticker {} news: {}", symbol, news.len());
         let news_entity: Vec<TickerNewsEntity> = news.iter().map(|n| {
             let entity = n.clone();
             TickerNewsEntity{

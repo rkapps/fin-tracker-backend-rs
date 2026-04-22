@@ -35,6 +35,7 @@ impl TickerNewsStorageService for MongoStorageService {
             SearchValue::String(symbol.to_uppercase().to_string()),
         );
         criteria.add_limit(50);
+        criteria.add_sort("date", false);
         // debug!("Criteria: {:?}", criteria);
         match self.manager.ticker_news().await {
             Ok(repo) => {
