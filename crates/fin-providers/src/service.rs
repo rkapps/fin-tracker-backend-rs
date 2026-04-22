@@ -8,7 +8,7 @@ use crate::{
     tiingo::{
         self,
         api::get_stock_etf_realtime,
-        model::{TiingoTickerHistory, TiingoTickerRealtime},
+        model::{TiingoTickerHistory, TiingoTickerNews, TiingoTickerRealtime},
     },
 };
 use anyhow::Result;
@@ -34,45 +34,9 @@ impl ProviderService {
         })
     }
 
-    pub async fn get_stock_etf_realtime(&self, symbol: &str) -> Result<TiingoTickerRealtime> {
-        let realtime =
-            get_stock_etf_realtime(&self.http_client, symbol, &self.tiingo_token).await?;
-        Ok(realtime)
-    }
-
-    pub async fn get_stock(&self, symbol: &str) -> Result<AlphaTicker> {
-        let raw = alpha::api::get_stock(&self.http_client, symbol, &self.alpha_key).await?;
-        Ok(raw)
-    }
-
-    pub async fn get_etf(&self, symbol: &str) -> Result<AlphaEtf> {
-        let raw = alpha::api::get_etf(&self.http_client, symbol, &self.alpha_key).await?;
-        Ok(raw)
-    }
-
     pub async fn get_crypto(&self, symbols: Vec<String>) -> Result<CmcCryptoData> {
         let raw = cmc::api::get_crypto(&self.http_client, symbols, &self.coinmarketcap_key).await?;
         Ok(raw)
-    }
-
-    pub async fn get_ticker_sentiment(
-        &self,
-        symbol: &str,
-        date_from: &DateTime<Utc>,
-    ) -> Result<Vec<AlphaTickerSentimentFeed>> {
-        let feeds =
-            alpha::api::get_stock_sentiments(&self.http_client, symbol, &self.alpha_key, date_from)
-                .await?;
-        Ok(feeds)
-    }
-
-    pub async fn get_stock_history(
-        &self,
-        symbol: &str,
-        start_date: &DateTime<Utc>,
-    ) -> Result<Vec<TiingoTickerHistory>> {
-        tiingo::api::get_stock_history(&self.http_client, symbol, &self.tiingo_token, start_date)
-            .await
     }
 
     pub async fn get_crypto_history(
@@ -90,4 +54,54 @@ impl ProviderService {
         )
         .await
     }
+
+    pub async fn get_etf(&self, symbol: &str) -> Result<AlphaEtf> {
+        let raw = alpha::api::get_etf(&self.http_client, symbol, &self.alpha_key).await?;
+        Ok(raw)
+    }
+
+    pub async fn get_stock_etf_realtime(&self, symbol: &str) -> Result<TiingoTickerRealtime> {
+        let realtime =
+            get_stock_etf_realtime(&self.http_client, symbol, &self.tiingo_token).await?;
+        Ok(realtime)
+    }
+
+    pub async fn get_stock(&self, symbol: &str) -> Result<AlphaTicker> {
+        let raw = alpha::api::get_stock(&self.http_client, symbol, &self.alpha_key).await?;
+        Ok(raw)
+    }
+
+    pub async fn get_stock_history(
+        &self,
+        symbol: &str,
+        start_date: &DateTime<Utc>,
+    ) -> Result<Vec<TiingoTickerHistory>> {
+        tiingo::api::get_stock_history(&self.http_client, symbol, &self.tiingo_token, start_date)
+            .await
+    }
+
+    pub async fn get_ticker_sentiment(
+        &self,
+        symbol: &str,
+        date_from: &DateTime<Utc>,
+    ) -> Result<Vec<AlphaTickerSentimentFeed>> {
+        let feeds =
+            alpha::api::get_stock_sentiments(&self.http_client, symbol, &self.alpha_key, date_from)
+                .await?;
+        Ok(feeds)
+    }
+
+    pub async fn get_ticker_news(
+        &self,
+        symbol: &str,
+    ) -> Result<Vec<TiingoTickerNews>> {
+        let feeds =
+            tiingo::api::get_ticker_news(&self.http_client, symbol, &self.tiingo_token)
+                .await?;
+        Ok(feeds)
+    }
+
+
+
+
 }

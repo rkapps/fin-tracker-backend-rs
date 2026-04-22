@@ -41,3 +41,16 @@ pub struct TiingoTickerHistory {
     #[serde(rename = "splitFactor", default)]
     pub split_factor: Decimal,
 }
+
+
+
+#[derive(Debug, Clone, Deserialize)]
+pub struct TiingoTickerNews {
+    #[serde(rename = "publishedDate", default)]
+    pub date: DateTime<Utc>,
+    pub url: String,
+    pub title: String,
+    pub description: Option<String>,
+    pub source: String
+
+}

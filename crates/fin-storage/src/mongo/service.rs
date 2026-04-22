@@ -3,9 +3,7 @@ use std::fmt::Debug;
 use crate::{
     mongo::manager::MongoStorageManager,
     service::{
-        StorageService, TickerAlphaStorageService, TickerControlStorageService,
-        TickerEmbeddingStorageService, TickerHistoryStorageService, TickerIndicatorStorageService,
-        TickerSentimentStorageService, TickerStorageService,
+        StorageService, TickerAlphaStorageService, TickerControlStorageService, TickerEmbeddingStorageService, TickerHistoryStorageService, TickerIndicatorStorageService, TickerNewsStorageService, TickerSentimentStorageService, TickerStorageService
     },
 };
 use anyhow::Result;
@@ -94,6 +92,7 @@ impl<T> StorageService for T where
         + TickerIndicatorStorageService
         + TickerSentimentStorageService
         + TickerEmbeddingStorageService
+        + TickerNewsStorageService
         + TickerAlphaStorageService
         + Send
         + Sync

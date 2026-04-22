@@ -4,8 +4,7 @@ use anyhow::Result;
 use async_trait::async_trait;
 use chrono::{DateTime, Utc};
 use fin_domain::tickers::{
-    IndicatorWindow, Ticker, TickerAlpha, TickerControl, TickerEmbedding, TickerFilter,
-    TickerHistory, TickerIndicator, TickerSentiment,
+    IndicatorWindow, Ticker, TickerAlpha, TickerControl, TickerEmbedding, TickerFilter, TickerHistory, TickerIndicator, TickerNews, TickerSentiment
 };
 use rust_decimal::Decimal;
 // use std::collections::HashMap;
@@ -18,6 +17,7 @@ pub trait StorageService:
     + TickerIndicatorStorageService
     + TickerSentimentStorageService
     + TickerEmbeddingStorageService
+    + TickerNewsStorageService
     + TickerAlphaStorageService
     + Send
     + Sync
@@ -136,6 +136,19 @@ pub trait TickerEmbeddingStorageService: Send + Sync + Debug {
         sentiments: Vec<TickerEmbedding>,
     ) -> Result<()>;
 }
+
+
+#[async_trait]
+pub trait TickerNewsStorageService: Send + Sync + Debug {
+    async fn delete_ticker_news_before(&self, date: DateTime<Utc>) -> Result<()>; 
+    async fn get_ticker_news(&self, symbol: &str) -> Result<Vec<TickerNews>>;
+    async fn save_ticker_news(
+        &self,
+        symbol: &str,
+        news: Vec<TickerNews>,
+    ) -> Result<()>;
+}
+
 
 #[async_trait]
 pub trait TickerAlphaStorageService: Send + Sync + Debug {

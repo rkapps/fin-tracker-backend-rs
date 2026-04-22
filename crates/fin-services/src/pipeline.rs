@@ -1,7 +1,7 @@
 use agentic_core::client::embeddings::EmbeddingClient;
 use anyhow::Result;
 use fin_core::tickers::update::{
-    update_all_tickers, update_all_tickers_realtime, update_ticker_prediction_signals
+    update_all_tickers, update_all_tickers_news, update_all_tickers_realtime, update_ticker_prediction_signals
 };
 use fin_domain::tickers::{AssetType, Ticker, TickerAlpha};
 use fin_providers::ProviderService;
@@ -174,4 +174,12 @@ impl PipeLineService {
         update_all_tickers_realtime(self.storage_service.clone(), self.provider_service.clone(), all_tickers, true).await?;
         Ok(())
     }
+
+    pub async fn update_tickers_news(&self) -> Result<()> {
+
+        let all_tickers = self.storage_service.get_tickers_by_marketcap().await?;
+        update_all_tickers_news(self.storage_service.clone(), self.provider_service.clone(), all_tickers).await?;
+        Ok(())
+    }
+
 }

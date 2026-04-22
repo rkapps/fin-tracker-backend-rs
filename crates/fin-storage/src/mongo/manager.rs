@@ -1,7 +1,7 @@
 use std::sync::Arc;
 
 use anyhow::Result;
-use fin_domain::tickers::TICKER_ALPHA_COLLECTION_NAME;
+use fin_domain::tickers::{TICKER_ALPHA_COLLECTION_NAME, TICKER_NEWS_COLLECTION_NAME, TickerNews};
 use fin_domain::tickers::{
     TICKER_COLLECTION_NAME, TICKER_CONTROL_COLLECTION_NAME, TICKER_EMBEDDING_COLLECTION_NAME,
     TICKER_HISTORY_COLLECTION_NAME, TICKER_INDICATOR_COLLECTION_NAME,
@@ -41,6 +41,11 @@ impl MongoStorageManager {
         .await?;
         mdb.register_collection::<String, TickerEmbedding>(
             TICKER_EMBEDDING_COLLECTION_NAME.to_string(),
+        )
+        .await?;
+
+        mdb.register_collection::<String, TickerNews>(
+            TICKER_NEWS_COLLECTION_NAME.to_string(),
         )
         .await?;
 
@@ -93,6 +98,13 @@ impl MongoStorageManager {
     ) -> Result<Arc<Mutex<MongoRepository<String, TickerEmbedding>>>> {
         self.db
             .collection::<String, TickerEmbedding>(TICKER_EMBEDDING_COLLECTION_NAME.to_string())
+            .await
+    }
+    pub async fn ticker_news(
+        &self,
+    ) -> Result<Arc<Mutex<MongoRepository<String, TickerNews>>>> {
+        self.db
+            .collection::<String, TickerNews>(TICKER_NEWS_COLLECTION_NAME.to_string())
             .await
     }
 

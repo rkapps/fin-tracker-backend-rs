@@ -14,7 +14,7 @@ use bin_shared::{
 use fin_tracker_api::{
     handlers::{
         analyse::{analyse_tickers_handler, analyse_tickers_streaming_handler, get_llm_providers_handler},
-        tickers::{get_ticker_charts_handler, get_ticker_groups_handler, search_tickers_handler},
+        tickers::{get_ticker_charts_handler, get_ticker_groups_handler, get_ticker_news_handler, search_tickers_handler},
     },
     state::AppState,
 };
@@ -61,6 +61,7 @@ async fn main() -> Result<()> {
         .route("/tickers/groups", get(get_ticker_groups_handler))
         // .route("/tickers/{symbol}/history", get(get_ticker_history))
         .route("/tickers/{symbol}/charts", get(get_ticker_charts_handler))
+        .route("/tickers/{symbol}/news", get(get_ticker_news_handler))
         // .route("/tickers/{symbol}/history_latest", get(get_ticker_history_latest))
         // .route("/tickers/{symbol}/indicators_latest", get(get_ticker_indicators_latest))
         // .route("/tickers/{symbol}/sentiments", get(get_ticker_sentiments))

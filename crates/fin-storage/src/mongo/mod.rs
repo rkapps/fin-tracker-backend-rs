@@ -4,9 +4,11 @@ pub mod embedding;
 pub mod history;
 pub mod indicator;
 pub mod manager;
+pub mod news;
 pub mod sentiment;
 pub mod service;
 pub mod ticker;
+
 
 pub use manager::MongoStorageManager;
 pub use service::MongoStorageService;

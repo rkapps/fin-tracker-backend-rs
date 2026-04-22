@@ -1,10 +1,9 @@
 use anyhow::Result;
 use fin_domain::{
     dto::{
-        ticker_chart_entity::TickerChartEntity, ticker_entity::TickerEntity,
-        ticker_search_param::TickerSearchParam,
+        ticker_chart_entity::TickerChartEntity, ticker_entity::TickerEntity, ticker_news_entity::TickerNewsEntity, ticker_search_param::TickerSearchParam
     },
-    tickers::{Ticker, TickerFilter, TickerIndicator},
+    tickers::{Ticker, TickerFilter, TickerIndicator, TickerNews},
 };
 use fin_storage::service::StorageService;
 use rust_decimal::{Decimal, prelude::ToPrimitive};
@@ -80,6 +79,30 @@ impl TickersService {
 
         Ok(charts)
     }
+
+
+    pub async fn get_ticker_news(&self, symbol: &str) -> Result<Vec<TickerNewsEntity>> {
+        let news = self
+            .storage_service
+            .get_ticker_news(symbol)
+            .await
+            .map_err(|e| anyhow::anyhow!(format!("Get Ticker Groups error: {}", e)))?;
+
+        let news_entity: Vec<TickerNewsEntity> = news.iter().map(|n| {
+            let entity = n.clone();
+            TickerNewsEntity{
+                date: entity.date,
+                description: entity.description,
+                source: entity.source,
+                symbol: entity.symbol,
+                title: entity.title,
+                url: entity.url
+            }
+        }).collect();
+        Ok(news_entity)
+    }
+
+
 
     pub async fn search_tickers(&self, param: TickerSearchParam) -> Result<Vec<TickerEntity>> {
         // let mut tickers = Vec::new();

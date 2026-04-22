@@ -4,7 +4,7 @@ use chrono::{Months, Utc};
 use fin_domain::{
     tickers::{
         AssetType, ModelAlgorithm, TICKER_PERFORMANCE_PERIODS, Ticker, TickerAlpha, TickerControl,
-        TickerEmbedding, TickerHistory, TickerIndicator, TickerSentiment,
+        TickerEmbedding, TickerHistory, TickerIndicator, TickerNews, TickerSentiment,
     },
     utils::data_utils::{
         assets_cap_label, calculate_performance, get_period_close, get_period_start,
@@ -27,14 +27,17 @@ use crate::{
         BASE_CURRENCY,
         indicators::IndicatorCalculator,
         signals::SignalsCalculator,
-        sync::{should_sync_embeddings, should_sync_history, should_sync_indicators, should_sync_sentiments},
+        sync::{
+            should_sync_embeddings, should_sync_history, should_sync_indicators,
+            should_sync_sentiments,
+        },
     },
 };
 
 pub async fn update_all_tickers(
     storage_service: Arc<dyn StorageService>,
     provider_service: ProviderService,
-    embedding_client: Arc<dyn EmbeddingClient>,    
+    embedding_client: Arc<dyn EmbeddingClient>,
     all_controls: Vec<TickerControl>,
     all_tickers: Vec<Ticker>,
 ) -> Result<()> {
@@ -75,8 +78,14 @@ pub async fn update_all_tickers(
                     info!("Updating Ticker: {} {}/{}", ticker.symbol, i + 1, total);
                 }
 
-                let result =
-                    update_ticker(storage_service, provider_service, embedding_client, &mut tc, &mut ticker).await;
+                let result = update_ticker(
+                    storage_service,
+                    provider_service,
+                    embedding_client,
+                    &mut tc,
+                    &mut ticker,
+                )
+                .await;
 
                 sleep(delay).await;
 
@@ -814,14 +823,12 @@ pub async fn run_ticker_predictions(
     run_predictions(rf_models, indicator, prev_indicator, sas.to_vec()).await
 }
 
-
 pub async fn update_all_tickers_realtime(
     storage_service: Arc<dyn StorageService>,
     provider_service: ProviderService,
     all_tickers: Vec<Ticker>,
-    allow_delay: bool
+    allow_delay: bool,
 ) -> Result<()> {
-
     let mut updated_tickers = Vec::new();
     let length = all_tickers.len();
 
@@ -841,9 +848,8 @@ pub async fn update_all_tickers_realtime(
             Err(e) => error!("Ticker Realtime error {}: {}", ticker.symbol, e),
         }
         if allow_delay {
-            sleep(delay).await;        
+            sleep(delay).await;
         }
-
     }
 
     info!(
@@ -884,6 +890,43 @@ pub async fn update_ticker_realtime(
         "Ticker: {} pr date: {:?} pr_prev: {:?} pr_last {:?} pr_diff: {:?}",
         ticker.symbol, ticker.pr_date, ticker.pr_prev, ticker.pr_last, ticker.pr_diff_amt
     );
+
+    Ok(())
+}
+
+pub async fn update_all_tickers_news(
+    storage_service: Arc<dyn StorageService>,
+    provider_service: ProviderService,
+    all_tickers: Vec<Ticker>,
+) -> Result<()> {
+    let length = all_tickers.len();
+
+    for (i, ticker) in all_tickers.into_iter().enumerate() {
+        let mut updated_news: Vec<TickerNews> = Vec::new();
+
+        if i % 20 == 0 {
+            info!(
+                "Updating Ticker News: {} {}/{}",
+                ticker.symbol,
+                i + 1,
+                length
+            );
+        }
+        match provider_service.get_ticker_news(&ticker.symbol).await {
+            Ok(c) => {
+                let news = TickerNews::from_tiingo_batch(&ticker.symbol, c)?;
+                updated_news.extend(news)
+            }
+            Err(e) => error!("Ticker News error {}: {}", ticker.symbol, e),
+        }
+
+        // bulk write at the end
+        if !updated_news.is_empty() {
+            storage_service
+                .save_ticker_news(&ticker.symbol, updated_news)
+                .await?;
+        }
+    }
 
     Ok(())
 }

@@ -16,6 +16,7 @@ struct Cli {
 #[derive(Subcommand)]
 enum PipelineCommands {
     TickersEod, 
+    UpdateTickersNews, 
     RealtimeStocksEtfs,
     RealtimeCrypto,
     BuildTickerPredictionModels,
@@ -67,6 +68,15 @@ async fn main() -> Result<()> {
                 Err(e) => error!("Tickers Training Model failed: {:?}", e),
             }
         }
+        PipelineCommands::UpdateTickersNews => {
+            info!("Tickers News PipeLine started...");
+            match pipeline_service.update_tickers_news().await {
+                Ok(_) => info!("Tickers News update completed successfully."),
+                Err(e) => error!("Tickers News update failed: {:?}", e),
+            }
+        }
+
+
     }
 
     Ok(())
