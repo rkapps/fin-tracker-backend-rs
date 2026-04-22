@@ -11,7 +11,7 @@ checksum = "320119579fcad9c21884f5c4861d16174d0e06250625266f50fe6898340abefa"
 [[package]]
 name = "agentic-core"
 version = "0.1.0"
-source = "git+https://github.com/rkapps/agentic-core-rs#670ca4d43238386dc91c6c6982dcb2ebf32c0016"
+source = "git+https://github.com/rkapps/agentic-core-rs#dbdf7a8d5c0a3106d00556c2bfa23297b933ec96"
 dependencies = [
  "anyhow",
  "async-stream",
@@ -1793,7 +1793,7 @@ dependencies = [
  "libc",
  "percent-encoding",
  "pin-project-lite",
- "socket2 0.6.2",
+ "socket2 0.5.10",
  "system-configuration",
  "tokio",
  "tower-service",
@@ -4371,7 +4371,7 @@ version = "0.1.11"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "c2a7b1c03c876122aa43f3020e6c3c3ee5c05081c9a00739faf7503aeba10d22"
 dependencies = [
- "windows-sys 0.61.2",
+ "windows-sys 0.48.0",
 ]
 
 [[package]]

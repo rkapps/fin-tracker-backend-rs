@@ -1,10 +1,7 @@
 use std::{env, sync::Arc};
 
 use agentic_core::{
-    agent::{
-        config::{AgentServiceConfig, LocalEndpoint},
-        service::AgentService,
-    },
+    agent::{config::AgentServiceConfig, service::AgentService},
     client::embeddings::EmbeddingClient,
     providers::openai::embeddings::OpenAIEmbeddingClient,
 };
@@ -47,13 +44,13 @@ fn get_agent_service() -> Result<AgentService> {
         //     default_model: "qwen3.5:4b".to_string(),
         //     models: vec!["qwen3.5:4b".to_string()],
         // })
-        .with_local_endpoint(LocalEndpoint {
-            id: "gwen".to_string(),
-            label: "Gwen".to_string(),
-            base_url: std::env::var("GCP_LLM_BASE_URL").expect("GCP_LLM_BASE_URL environment variable not set"),
-            default_model: "qwen3.5:4b".to_string(),
-            models: vec!["qwen3.5:4b".to_string()],
-        })
+        // .with_local_endpoint(LocalEndpoint {
+        //     id: "gwen".to_string(),
+        //     label: "Gwen".to_string(),
+        //     base_url: std::env::var("GCP_LLM_BASE_URL").expect("GCP_LLM_BASE_URL environment variable not set"),
+        //     default_model: "qwen3.5:4b".to_string(),
+        //     models: vec!["qwen3.5:4b".to_string()],
+        // })
         ;
 
     let agent_service = AgentService::with_config(config);
