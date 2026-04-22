@@ -39,7 +39,9 @@ async fn main() -> Result<()> {
         "http://localhost:4200".parse::<HeaderValue>().unwrap(),
         "http://localhost:4201".parse::<HeaderValue>().unwrap(),
         "http://localhost:4202".parse::<HeaderValue>().unwrap(),
+        "https://fin-tracker-backend-test.web.app".parse::<HeaderValue>().unwrap(),
     ];
+    
     let cors = CorsLayer::new()
         .allow_origin(origins)
         .allow_methods([
