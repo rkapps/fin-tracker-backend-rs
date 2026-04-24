@@ -839,7 +839,6 @@ pub async fn update_stocks_etfs_realtime(
     let length = all_tickers.len();
 
     // rate limit constraints
-    let delay = Duration::from_millis(3000);
     for (i, mut ticker) in all_tickers.into_iter().enumerate() {
         if i % 20 == 0 {
             info!(
@@ -860,8 +859,6 @@ pub async fn update_stocks_etfs_realtime(
             }
             Err(e) => error!("Ticker Realtime error {}: {}", ticker.symbol, e),
         };
-
-        sleep(delay).await;
     }
 
     info!(
