@@ -18,7 +18,7 @@ enum PipelineCommands {
     TickersEod, 
     UpdateTickersNews, 
     RealtimeStocksEtfs,
-    RealtimeCrypto,
+    RealtimeCryptos,
     BuildTickerPredictionModels,
 }
 
@@ -53,9 +53,9 @@ async fn main() -> Result<()> {
                 Err(e) => error!("Tickers Stocks and Etfs Realtime failed: {:?}", e),
             }
         }
-        PipelineCommands::RealtimeCrypto => {
+        PipelineCommands::RealtimeCryptos => {
             info!("Tickers Crypto Realtime started...");
-            match pipeline_service.update_realtime_crypto().await {
+            match pipeline_service.update_realtime_cryptos().await {
                 Ok(_) => info!("Tickers Crypto Realtime completed successfully."),
                 Err(e) => error!("Tickers Crypto Realtime failed: {:?}", e),
             }

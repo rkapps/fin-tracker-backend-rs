@@ -176,7 +176,7 @@ impl PipeLineService {
         Ok(())
     }
 
-    pub async fn update_realtime_crypto(&self) -> Result<()> {
+    pub async fn update_realtime_cryptos(&self) -> Result<()> {
         let mut all_tickers = self.storage_service.get_tickers_by_marketcap().await?;
         all_tickers.retain(|t| t.asset_type == AssetType::Crypto);
 
