@@ -3,9 +3,10 @@ use axum::{
     Json,
     extract::{Path, State},
 };
-use fin_domain::{dto::{
-    ticker_chart_entity::TickerChartEntity, ticker_entity::TickerEntity, ticker_news_entity::TickerNewsEntity, ticker_search_param::TickerSearchParam
-}, tickers::TickerNews};
+use fin_domain::dto::{
+    ticker_chart_entity::TickerChartEntity, ticker_entity::TickerEntity,
+    ticker_news_entity::TickerNewsEntity, ticker_search_param::TickerSearchParam,
+};
 use fin_services::ticker::TickersService;
 use reqwest::StatusCode;
 use serde::Deserialize;
@@ -57,7 +58,6 @@ pub async fn get_ticker_news_handler(
         .map_err(|e| (StatusCode::BAD_REQUEST, format!("{}", e)))?;
     Ok(Json(news))
 }
-
 
 pub async fn search_tickers_handler(
     State(ticker_service): State<Arc<TickersService>>,
