@@ -32,7 +32,7 @@ async fn main() -> Result<()> {
     match cli.command {
         PipelineCommands::TickersEod => {
             info!("Tickers EOD PipeLine started...");
-            match pipeline_service.update_tickers_eod("").await {
+            match pipeline_service.update_tickers_eod("", true).await {
                 Ok(_) => info!("Tickers EOD update completed successfully."),
                 Err(e) => error!("Tickers EOD update failed: {:?}", e),
             }

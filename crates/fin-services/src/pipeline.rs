@@ -1,7 +1,7 @@
 use agentic_core::client::embeddings::EmbeddingClient;
 use anyhow::Result;
 use fin_core::tickers::update::{
-    update_all_tickers, update_all_tickers_news, update_all_tickers_realtime, update_ticker_prediction_signals
+    update_all_tickers, update_all_tickers_news, update_cryptos_realtime, update_stocks_etfs_realtime, update_ticker_prediction_signals
 };
 use fin_domain::tickers::{AssetType, Ticker, TickerAlpha};
 use fin_providers::ProviderService;
@@ -21,16 +21,16 @@ impl PipeLineService {
     pub fn new(
         storage_service: Arc<dyn StorageService>,
         provider_service: ProviderService,
-        embedding_client: Arc<dyn EmbeddingClient>,        
+        embedding_client: Arc<dyn EmbeddingClient>,
     ) -> PipeLineService {
         PipeLineService {
             storage_service,
             provider_service,
-            embedding_client
+            embedding_client,
         }
     }
 
-    pub async fn update_tickers_eod(&self, symbols: &str) -> Result<()> {
+    pub async fn update_tickers_eod(&self, symbols: &str, update: bool) -> Result<()> {
         let all_tickers = if !symbols.is_empty() {
             let list: Vec<String> = symbols.split(',').map(|s| s.to_string()).collect();
             debug!("List: {:?}", list);
@@ -47,6 +47,7 @@ impl PipeLineService {
             self.embedding_client.clone(),
             all_controls,
             all_tickers,
+            update,
         )
         .await?;
 
@@ -161,25 +162,41 @@ impl PipeLineService {
         let mut all_tickers = self.storage_service.get_tickers_by_marketcap().await?;
         all_tickers.retain(|t| t.asset_type == AssetType::Stock || t.asset_type == AssetType::Etf);
 
-        update_all_tickers_realtime(self.storage_service.clone(), self.provider_service.clone(), all_tickers, false).await?;
+        match update_stocks_etfs_realtime(
+            self.storage_service.clone(),
+            self.provider_service.clone(),
+            all_tickers,
+        )
+        .await
+        {
+            Ok(_) => {}
+            Err(e) => error!("Ticker Realtime error: {}", e),
+        }
 
         Ok(())
     }
 
     pub async fn update_realtime_crypto(&self) -> Result<()> {
-
         let mut all_tickers = self.storage_service.get_tickers_by_marketcap().await?;
         all_tickers.retain(|t| t.asset_type == AssetType::Crypto);
 
-        update_all_tickers_realtime(self.storage_service.clone(), self.provider_service.clone(), all_tickers, true).await?;
+        update_cryptos_realtime(
+            self.storage_service.clone(),
+            self.provider_service.clone(),
+            all_tickers,
+        )
+        .await?;
         Ok(())
     }
 
     pub async fn update_tickers_news(&self) -> Result<()> {
-
         let all_tickers = self.storage_service.get_tickers_by_marketcap().await?;
-        update_all_tickers_news(self.storage_service.clone(), self.provider_service.clone(), all_tickers).await?;
+        update_all_tickers_news(
+            self.storage_service.clone(),
+            self.provider_service.clone(),
+            all_tickers,
+        )
+        .await?;
         Ok(())
     }
-
 }

@@ -19,7 +19,7 @@ pub struct CmcCryptoSymbol {
     pub quote: HashMap<String, CmcCryptoQuote>,
 }
 
-#[derive(Debug, Deserialize)]
+#[derive(Debug, Deserialize, Clone)]
 pub struct CmcCryptoQuote {
     pub price: Option<f64>,
     pub market_cap: Option<f64>,

@@ -39,6 +39,7 @@ pub async fn check_update_ticker(symbol: &str) -> Result<()> {
         pipeline_service.embedding_client,
         &mut tc,
         &mut ticker,
+        false
     )
     .await
     {

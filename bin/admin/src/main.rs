@@ -85,7 +85,7 @@ async fn main() -> Result<()> {
 
             info!("Load Tickers PipeLine started...");
 
-            match load_service.load_tickers(&ticker_seeds).await {
+            match load_service.load_tickers(&ticker_seeds, true).await {
                 Ok(_) => info!("Background Tickers EOD Update completed successfully."),
                 Err(e) => error!("Background Tickers EOD Update failed: {:?}", e),
             }
@@ -132,7 +132,7 @@ async fn main() -> Result<()> {
             info!("Tickers EOD PipeLine started...");
             let symbols_str = symbols.as_deref().unwrap_or("");
 
-            match pipeline_service.update_tickers_eod(&symbols_str).await {
+            match pipeline_service.update_tickers_eod(&symbols_str, false).await {
                 Ok(_) => info!("Tickers EOD update completed successfully."),
                 Err(e) => error!("Tickers EOD update failed: {:?}", e),
             }

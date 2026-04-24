@@ -12,7 +12,7 @@ use anyhow::Result;
 use chrono::{DateTime, Utc};
 use fin_providers::{
     alpha::model::{AlphaEtf, AlphaTicker},
-    cmc::model::CmcCryptoData,
+    cmc::model::{CmcCryptoData, CmcCryptoQuote},
     tiingo::model::TiingoTickerRealtime,
 };
 use rust_decimal::{Decimal, prelude::ToPrimitive};
@@ -224,30 +224,28 @@ impl Ticker {
         };
     }
 
-    pub fn update_crypto_realtime(&mut self, value: CmcCryptoData) -> Result<()>{
-        // info!("value: {:?}", value.data.get(&self.symbol).unwrap().first());
+    pub fn update_crypto_realtime(
+        &mut self,
+        last_updated: DateTime<Utc>,
+        quote: CmcCryptoQuote,
+    ) -> Result<()> {
 
         self.total_assets = Some(0);
-        if let Some(data) = value.data.get(&self.symbol)
-            && let Some(sdata) = data.first()
-            && let Some(quote) = sdata.quote.get("USD")
-            && let Some(price) = quote.price
+        if let Some(price) = quote.price
             && let Some(market_cap) = quote.market_cap
         {
-
             self.total_assets = Some(market_cap as i64);
 
             if let Some(_pr_date) = self.pr_date {
-                if same_date(sdata.last_updated, Utc::now()) {
+                if same_date(last_updated, Utc::now()) {
                     self.pr_last = Decimal::from_f64_retain(price).unwrap();
                     self.pr_last = self.pr_last.round_dp(6);
                 }
             } else {
-                self.pr_date = Some(sdata.last_updated);
+                self.pr_date = Some(last_updated);
                 self.pr_prev = self.pr_last;
             }
             self.calculate_price_diff()?;
-                
         };
         Ok(())
     }

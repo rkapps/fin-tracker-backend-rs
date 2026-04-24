@@ -29,7 +29,7 @@ impl LoadService {
         }
     }
 
-    pub async fn load_tickers(&self, ticker_seeds: &[TickerSeed]) -> Result<()> {
+    pub async fn load_tickers(&self, ticker_seeds: &[TickerSeed], update: bool) -> Result<()> {
         info!("Loading tickers: {}", ticker_seeds.len());
 
         let all_controls = self.storage_service.get_ticker_controls().await?;
@@ -55,6 +55,7 @@ impl LoadService {
             self.embedding_client.clone(),
             all_new_controls,
             all_tickers.clone(),
+            update
         )
         .await?;
 

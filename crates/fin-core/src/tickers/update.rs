@@ -19,7 +19,7 @@ use tokio::{
     sync::{RwLock, Semaphore},
     time::sleep,
 };
-use tracing::{debug, error, info, trace, warn};
+use tracing::{debug, error, info, warn};
 
 use crate::{
     ml::prediction::run_predictions,
@@ -40,6 +40,7 @@ pub async fn update_all_tickers(
     embedding_client: Arc<dyn EmbeddingClient>,
     all_controls: Vec<TickerControl>,
     all_tickers: Vec<Ticker>,
+    update: bool,
 ) -> Result<()> {
     let mut control_map: HashMap<String, TickerControl> = all_controls
         .into_iter()
@@ -84,6 +85,7 @@ pub async fn update_all_tickers(
                     embedding_client,
                     &mut tc,
                     &mut ticker,
+                    update,
                 )
                 .await;
 
@@ -121,7 +123,7 @@ pub async fn update_all_tickers(
     }
 
     // bulk write at the end
-    if !updated_tickers.is_empty() {
+    if update && !updated_tickers.is_empty() {
         storage_service.save_tickers(updated_tickers).await?;
         storage_service
             .save_ticker_controls(updated_controls)
@@ -139,9 +141,8 @@ pub async fn update_ticker(
     embedding_client: Arc<dyn EmbeddingClient>,
     tc: &mut TickerControl,
     ticker: &mut Ticker,
+    update: bool,
 ) -> Result<()> {
-    let update = true;
-
     match update_ticker_details(provider_service.clone(), ticker).await {
         Ok(c) => c,
         Err(e) => {
@@ -155,7 +156,7 @@ pub async fn update_ticker(
     let mut histories = Vec::new();
 
     // update history
-    if should_sync_history(tc) {
+    if !update || should_sync_history(tc) {
         match update_ticker_history(provider_service.clone(), tc, ticker).await {
             Ok((all_histories, new_histories)) => {
                 if !new_histories.is_empty() {
@@ -179,7 +180,7 @@ pub async fn update_ticker(
     }
 
     // update sentiments
-    if should_sync_sentiments(tc) {
+    if !update || should_sync_sentiments(tc) {
         match update_ticker_sentiments(provider_service, tc, ticker).await {
             Ok(new_sentiments) => {
                 if !new_sentiments.is_empty() {
@@ -201,7 +202,7 @@ pub async fn update_ticker(
         }
     }
 
-    if should_sync_embeddings(tc) {
+    if !update || should_sync_embeddings(tc) {
         match update_ticker_sentiment_embeddings(
             storage_service.clone(),
             embedding_client,
@@ -232,7 +233,7 @@ pub async fn update_ticker(
 
     // update technical indicators
     // tc.last_indicator_sync_at = None;
-    if should_sync_indicators(tc) {
+    if !update || should_sync_indicators(tc) {
         match update_stock_indicators(tc, ticker, &histories).await {
             Ok(new_indicators) => {
                 if !new_indicators.is_empty() {
@@ -257,6 +258,7 @@ pub async fn update_ticker(
     // sort by descending for updating price history
     histories.sort_by(|a, b| b.date.cmp(&a.date));
 
+    debug!("Histories: {}", histories.len());
     update_ticker_price_history(tc, ticker, &histories).await?;
     //now calculate the performance
     update_ticker_performance(tc, ticker, &histories).await?;
@@ -369,12 +371,17 @@ pub(crate) async fn update_ticker_price_history(
             prev_history = Some(histories[1].clone());
         }
         // update the price
-        trace!(
-            "Last History: {:?} Prev history: {:?}",
-            last_history.date, prev_history
+        debug!(
+            "Last History: {:?} close: {:?} Prev history: {:?}",
+            last_history.date, last_history.close, prev_history
         );
 
         ticker.update_price_from_history(last_history, prev_history)?;
+
+        debug!(
+            "Price date: {:?} close: {:?}, ",
+            ticker.pr_date, ticker.pr_last
+        );
     }
 
     Ok(())
@@ -823,11 +830,10 @@ pub async fn run_ticker_predictions(
     run_predictions(rf_models, indicator, prev_indicator, sas.to_vec()).await
 }
 
-pub async fn update_all_tickers_realtime(
+pub async fn update_stocks_etfs_realtime(
     storage_service: Arc<dyn StorageService>,
     provider_service: ProviderService,
     all_tickers: Vec<Ticker>,
-    allow_delay: bool,
 ) -> Result<()> {
     let mut updated_tickers = Vec::new();
     let length = all_tickers.len();
@@ -843,17 +849,23 @@ pub async fn update_all_tickers_realtime(
                 length
             );
         }
-        match update_ticker_realtime(provider_service.clone(), &mut ticker).await {
-            Ok(_) => updated_tickers.push(ticker),
+        match provider_service
+            .get_stock_etf_realtime(&ticker.symbol)
+            .await
+        {
+            Ok(raw) => {
+                ticker.update_stock_etf_price_realtime(raw)?;
+                debug!("Price: {}", ticker.pr_last);
+                updated_tickers.push(ticker);
+            }
             Err(e) => error!("Ticker Realtime error {}: {}", ticker.symbol, e),
-        }
-        if allow_delay {
-            sleep(delay).await;
-        }
+        };
+
+        sleep(delay).await;
     }
 
     info!(
-        "Realtime update complete: {}/{} updated",
+        "Stocks and Etfs Realtime update complete: {}/{} updated",
         updated_tickers.len(),
         length
     );
@@ -866,30 +878,53 @@ pub async fn update_all_tickers_realtime(
     Ok(())
 }
 
-pub async fn update_ticker_realtime(
+pub async fn update_cryptos_realtime(
+    storage_service: Arc<dyn StorageService>,
     provider_service: ProviderService,
-    ticker: &mut Ticker,
+    all_tickers: Vec<Ticker>,
 ) -> Result<()> {
-    match ticker.asset_type {
-        AssetType::Stock | AssetType::Etf => {
-            let raw = provider_service
-                .get_stock_etf_realtime(&ticker.symbol)
-                .await?;
+    let mut updated_tickers = Vec::new();
+    let length = all_tickers.len();
 
-            ticker.update_stock_etf_price_realtime(raw)?;
+    let mut all_tickers_map: HashMap<String, Ticker> = all_tickers
+        .iter()
+        .map(|t| (t.symbol.clone(), t.clone()))
+        .collect();
+    let symbols: Vec<String> = all_tickers.iter().map(|t| t.symbol.clone()).collect();
+
+    let raw = match provider_service.get_crypto(symbols).await {
+        Ok(raw) => raw,
+        Err(e) => {
+            return Err(anyhow::anyhow!(format!("Cryptos Realtime error: {}", e)));
         }
-        AssetType::Crypto => {
-            let raw = provider_service
-                .get_crypto(vec![ticker.symbol.clone()])
-                .await?;
-            ticker.update_crypto_realtime(raw)?;
+    };
+    for data in raw.data {
+        if let Some(ticker) = all_tickers_map.get_mut(&data.0)
+            && !data.1.is_empty()
+        {
+            if let Some(cdata) = data.1.first()
+                && let Some(quote) = cdata.quote.get("USD")
+            {
+                match ticker.update_crypto_realtime(cdata.last_updated, quote.clone()) {
+                    Ok(_) => {
+                        debug!("Data: {} Price: {}", data.0, ticker.pr_last);
+                        updated_tickers.push(ticker.clone())
+                    },
+                    Err(e) => error!("Ticker Realtime error {}: {}", ticker.symbol, e),
+                };
+            };
         }
     }
-
-    debug!(
-        "Ticker: {} pr date: {:?} pr_prev: {:?} pr_last {:?} pr_diff: {:?}",
-        ticker.symbol, ticker.pr_date, ticker.pr_prev, ticker.pr_last, ticker.pr_diff_amt
+    info!(
+        "Cryptos Realtime update complete: {}/{} updated",
+        updated_tickers.len(),
+        length
     );
+
+    // bulk write at the end
+    if !updated_tickers.is_empty() {
+        storage_service.save_tickers(updated_tickers).await?;
+    }
 
     Ok(())
 }
