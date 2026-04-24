@@ -3,7 +3,7 @@ use fin_domain::{
     dto::{
         ticker_chart_entity::TickerChartEntity, ticker_entity::TickerEntity, ticker_news_entity::TickerNewsEntity, ticker_search_param::TickerSearchParam
     },
-    tickers::{Ticker, TickerFilter, TickerIndicator, TickerNews},
+    tickers::{Ticker, TickerFilter, TickerIndicator},
 };
 use fin_storage::service::StorageService;
 use rust_decimal::{Decimal, prelude::ToPrimitive};
