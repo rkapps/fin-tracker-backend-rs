@@ -11,6 +11,8 @@ bincode.workspace = true
 candle-core.workspace = true
 candle-nn.workspace = true
 chrono.workspace = true
+chrono-tz.workspace = true
+
 futures.workspace = true
 linfa.workspace=true
 linfa-linear.workspace=true

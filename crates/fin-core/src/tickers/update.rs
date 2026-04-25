@@ -1,6 +1,7 @@
 use agentic_core::client::embeddings::EmbeddingClient;
 use anyhow::Result;
 use chrono::{Months, Utc};
+use chrono_tz::US::Eastern;
 use fin_domain::{
     tickers::{
         AssetType, ModelAlgorithm, TICKER_PERFORMANCE_PERIODS, Ticker, TickerAlpha, TickerControl,
@@ -339,11 +340,14 @@ pub(crate) async fn update_ticker_history(
     let mut new_histories = Vec::new();
     if !histories.is_empty() {
         new_histories = match tc.last_history_sync_at {
-            Some(last_sync) => histories
-                .iter()
-                .filter(|h| h.date > last_sync)
-                .cloned()
-                .collect(),
+            Some(last_sync) => {
+                let last_sync_date = last_sync.with_timezone(&Eastern).date_naive();
+                histories
+                    .iter()
+                    .filter(|h| h.date.with_timezone(&Eastern).date_naive() > last_sync_date)
+                    .cloned()
+                    .collect()
+            }
             None => {
                 // First sync - insert all
                 histories.clone()
@@ -906,7 +910,7 @@ pub async fn update_cryptos_realtime(
                     Ok(_) => {
                         debug!("Data: {} Price: {}", data.0, ticker.pr_last);
                         updated_tickers.push(ticker.clone())
-                    },
+                    }
                     Err(e) => error!("Ticker Realtime error {}: {}", ticker.symbol, e),
                 };
             };
