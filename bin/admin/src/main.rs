@@ -10,7 +10,6 @@ use clap::{Parser, Subcommand};
 use fin_core::tickers::update::update_ticker_overview_embedding;
 use fin_tracker_admin::{
     seed::{load_ticker_seeds_from_file, load_ticker_seeds_from_gcs},
-    ticker::{check_ticker_sentiment, check_update_ticker},
 };
 use tracing::{error, info};
 
@@ -31,20 +30,15 @@ enum AdminCommands {
         #[arg(short, long)]
         file: PathBuf,
     },
-    CheckUpdateTicker {
-        #[arg(short, long)]
-        symbol: String,
-    },
-    CheckTickerSentiment {
-        #[arg(short, long)]
-        symbol: String,
-    },
     PruneIndicators, // keep last 5 years
     PruneSentiments, // keep last 30 days
     PruneEmbeddings, // keep last 30 days
     TickersEod {
         #[arg(short, long)]
         symbols: Option<String>,
+        #[arg(short, long)]
+        update: Option<bool>,
+
     },
     UpdateTickerOverviewEmbeddings {
         #[arg(short, long)]
@@ -64,14 +58,6 @@ async fn main() -> Result<()> {
             let ml_service = get_ml_service().await?;
             let _ = ml_service.build_ticker_prediction_models(symbols_str).await;
             info!("Building Ticker Prediction Models done.");
-        }
-        AdminCommands::CheckUpdateTicker { symbol } => {
-            check_update_ticker(&symbol).await?;
-        }
-
-        AdminCommands::CheckTickerSentiment { symbol } => {
-            info!("Checking Ticker sentiment {}...", symbol);
-            check_ticker_sentiment(&symbol).await?;
         }
 
         AdminCommands::LoadTickers { file } => {
@@ -126,13 +112,17 @@ async fn main() -> Result<()> {
             }
         }
 
-        AdminCommands::TickersEod { symbols } => {
+        AdminCommands::TickersEod { symbols, update} => {
             let pipeline_service = get_pipeline_service().await?;
 
-            info!("Tickers EOD PipeLine started...");
             let symbols_str = symbols.as_deref().unwrap_or("");
-
-            match pipeline_service.update_tickers_eod(&symbols_str, false).await {
+            let update = if update.is_none() { 
+                false
+            } else {
+                update.unwrap()
+            };
+            info!("Tickers EOD PipeLine started... Update: {}", update);
+            match pipeline_service.update_tickers_eod(&symbols_str, update).await {
                 Ok(_) => info!("Tickers EOD update completed successfully."),
                 Err(e) => error!("Tickers EOD update failed: {:?}", e),
             }
