@@ -8,7 +8,7 @@ use fin_domain::tickers::TickerEmbedding;
 use fin_storage::service::StorageService;
 use serde_json::{Value, json};
 use storage_core::vector::search;
-use tracing::debug;
+use tracing::{debug, info};
 
 #[derive(Debug)]
 pub struct TickerSentimentTool {
@@ -90,28 +90,51 @@ impl Tool for TickerSentimentTool {
         let results = search::<String>(&vectors, &candidates, 5);
 
         // iterator through result and return vector of (TickerEmbedding, f32)
+        // let final_results: Vec<(TickerEmbedding, f32)> = results
+        //     .iter()
+        //     .filter_map(|(id, score)| idsm.get(id).cloned().map(|item| (item, *score)))
+        //     .collect();
+
+        // let texts = final_results
+        //     .iter()
+        //     .map(|entry| {
+        //         let text = entry.0.embedding_text.as_str();
+        //         text.chars().take(150).collect::<String>()
+        //     })
+        //     .collect::<Vec<String>>()
+        //     .join(", ");
+        // info!("results: {:?}", texts);
+
+        // debug!("sentiments for symbol: {} - {}", ticker_param.symbol, texts);
+
+        // // Format the the summarize contents to the llm
+        // let content: String = format!("{{ {} }}", texts);
+        // Ok(json!({
+        //     "symbol": ticker_param.symbol,
+        //     "sentiment_count": texts.len(),
+        //     "sentiments": content
+        // }))
+
         let final_results: Vec<(TickerEmbedding, f32)> = results
             .iter()
             .filter_map(|(id, score)| idsm.get(id).cloned().map(|item| (item, *score)))
             .collect();
-
-        let texts = final_results
+        let sentiments: Vec<serde_json::Value> = final_results
             .iter()
             .map(|entry| {
-                let text = entry.0.embedding_text.as_str();
-                text.chars().take(150).collect::<String>()
+                json!({
+                    "text": entry.0.embedding_text.as_str().chars().take(150).collect::<String>(),
+                    // "score": entry.0.e,
+                    // "label": entry.0.label,
+                })
             })
-            .collect::<Vec<String>>()
-            .join(", ");
+            .collect();
+        info!("results: {:?}", sentiments);
 
-        debug!("sentiments for symbol: {} - {}", ticker_param.symbol, texts);
-
-        // Format the the summarize contents to the llm
-        let content: String = format!("{{ {} }}", texts);
         Ok(json!({
             "symbol": ticker_param.symbol,
-            "sentiment_count": texts.len(),
-            "sentiments": content
+            "sentiment_count": final_results.len(),
+            "sentiments": sentiments
         }))
     }
 }
