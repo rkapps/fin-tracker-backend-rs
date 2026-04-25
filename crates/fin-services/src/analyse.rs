@@ -1,5 +1,10 @@
 use agentic_core::{
-    agent::{builder::Preset, completion::Agent, provider::Provider, service::{AgentService, LlmProvider}},
+    agent::{
+        builder::Preset,
+        completion::Agent,
+        provider::Provider,
+        service::{AgentService, LlmProvider},
+    },
     client::{
         embeddings::{Embedding, EmbeddingClient},
         llm::CompletionStreamResponse,
@@ -36,7 +41,7 @@ impl AnalyseService {
         }
     }
 
-     /// Returns configured LLM providers — UI uses this for dropdown
+    /// Returns configured LLM providers — UI uses this for dropdown
     pub fn get_llm_providers(&self) -> Vec<LlmProvider> {
         self.agent_service.get_llm_providers()
     }
@@ -44,6 +49,7 @@ impl AnalyseService {
     pub async fn analyse_tickers(
         &self,
         llm: &str,
+        model: &str,
         prompt: &str,
         response_id: Option<String>,
     ) -> Result<CompletionResponse> {
@@ -54,7 +60,7 @@ impl AnalyseService {
         };
         messages.push(message);
 
-        let agent = self.build_agent(llm, prompt).await?;
+        let agent = self.build_agent(llm, model, prompt).await?;
         let system_prompt = self.build_system_prompt();
         let response = agent.complete_with_tools(&system_prompt, &messages).await?;
         Ok(response)
@@ -63,6 +69,7 @@ impl AnalyseService {
     pub async fn analyse_tickers_streaming(
         &self,
         llm: &str,
+        model: &str,
         prompt: &str,
         response_id: Option<String>,
     ) -> Result<CompletionStreamResponse> {
@@ -72,9 +79,9 @@ impl AnalyseService {
             response_id,
         };
         messages.push(message);
-        info!("analyse ticker prompt: llm: {} {:?}", llm, messages);
+        info!("analyse ticker prompt: llm: {} model: {} prompt {:?}", llm, model, prompt);
 
-        let agent = self.build_agent(llm, prompt).await?;
+        let agent = self.build_agent(llm, model, prompt).await?;
         let system_prompt = self.build_system_prompt();
         let stream = agent
             .complete_with_tools_streaming(&system_prompt, &messages)
@@ -82,7 +89,7 @@ impl AnalyseService {
         Ok(Box::pin(stream))
     }
 
-    async fn build_agent(&self, llm: &str, prompt: &str) -> Result<Agent> {
+    async fn build_agent(&self, llm: &str, model: &str, prompt: &str) -> Result<Agent> {
         // get the input embeddings for the prompt
         let query_embedding = self
             .embedding_client
@@ -91,7 +98,7 @@ impl AnalyseService {
             .map_err(|e| anyhow::anyhow!("Error embedding input prompt {}: {}", prompt, e))?;
 
         // resolve_provider has everything it needs — no keys passed in
-        let provider = self.agent_service.resolve_provider(llm, None)?;
+        let provider = self.agent_service.resolve_provider(llm, Some(model))?;
 
         // For a non local agent, use thorough
         let preset = match &provider {
@@ -104,8 +111,10 @@ impl AnalyseService {
             .builder()
             .with_tools(self.build_finance_tools(query_embedding))
             .with_preset(preset)
-            .with_provider(provider)?
-            .build()?;
+            .with_provider(provider)
+            .await?
+            .build()
+            .await?;
 
         Ok(agent)
     }

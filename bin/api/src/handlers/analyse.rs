@@ -10,11 +10,13 @@ use fin_services::analyse::AnalyseService;
 use futures::StreamExt;
 use reqwest::StatusCode;
 use serde::{Deserialize, Serialize};
-use tracing::debug;
+use tokio::sync::Mutex;
+use tracing::{debug, info};
 
 #[derive(Deserialize, Debug)]
 pub struct TickerAnalyseParam {
     pub llm: String,
+    pub model: String,
     pub prompt: String,
     pub prev_response_id: Option<String>,
 }
@@ -28,9 +30,8 @@ pub struct TickerAnalyseResponse {
 pub async fn get_llm_providers_handler(
     State(analyse_service): State<Arc<AnalyseService>>,
 ) -> Result<Json<Vec<LlmProvider>>, (StatusCode, String)> {
-
     let providers = analyse_service.get_llm_providers();
-    Ok(Json(providers))   
+    Ok(Json(providers))
 }
 
 pub async fn analyse_tickers_handler(
@@ -41,7 +42,7 @@ pub async fn analyse_tickers_handler(
     let response_id = param.prev_response_id;
 
     let response = analyse_service
-        .analyse_tickers(&param.llm, &param.prompt, response_id)
+        .analyse_tickers(&param.llm, &param.model, &param.prompt, response_id)
         .await
         .map_err(|e| {
             (
@@ -78,7 +79,7 @@ pub async fn analyse_tickers_streaming_handler(
     let response_id = param.prev_response_id;
 
     let stream = match analyse_service
-        .analyse_tickers_streaming(&param.llm, &param.prompt, response_id)
+        .analyse_tickers_streaming(&param.llm, &param.model, &param.prompt, response_id)
         .await
     {
         Ok(stream) => stream,
@@ -87,29 +88,46 @@ pub async fn analyse_tickers_streaming_handler(
         }
     };
 
-    let event_stream = stream.map(move |chunk_result| {
-        match chunk_result {
-            Ok(chunk) => {
-                // Convert your ChatResponseChunk to SSE Event
-                // info!("chunk: {:?}", chunk);
+    let final_content = Arc::new(Mutex::new(String::new()));
+    let final_thought = Arc::new(Mutex::new(String::new()));
 
-                match serde_json::to_string(&chunk) {
-                    Ok(c) => {
-                        Ok::<Event, Infallible>(
-                            Event::default()
-                                .data(c) // Serialize to JSON string
-                                .event("message"),
-                        )
+    let event_stream = stream.then(move |chunk_result| {
+        // ✅ Clone handles into the async block
+        let final_content = final_content.clone();
+        let final_thought = final_thought.clone();
+
+        async move {
+            match chunk_result {
+                Ok(chunk) => {
+                    // ✅ Always accumulate content once (was being doubled before)
+                    {
+                        let mut fc = final_content.lock().await;
+                        fc.push_str(&chunk.content);
+
+                        let mut ft = final_thought.lock().await;
+                        ft.push_str(&chunk.thought);
+
                     }
-                    Err(e) => Ok::<Event, Infallible>(
-                        Event::default().data(format!("{}", e)).event("error"),
-                    ),
+
+                    // ✅ Save only on the final chunk
+                    if chunk.is_final {
+                        let fc = final_content.lock().await;
+                        let ft = final_thought.lock().await;
+                        info!("final_thought: {:?}", *ft);
+                        info!("final_content: {:?}", *fc);
+                    }
+
+                    match serde_json::to_string(&chunk) {
+                        Ok(c) => Ok::<Event, Infallible>(Event::default().data(c).event("message")),
+                        Err(e) => Ok::<Event, Infallible>(
+                            Event::default().data(format!("{}", e)).event("error"),
+                        ),
+                    }
                 }
-            }
-            Err(e) => {
-                // Send error as SSE event
-                debug!("error: {:?}", e);
-                Ok::<Event, Infallible>(Event::default().data(format!("{}", e)).event("error"))
+                Err(e) => {
+                    debug!("error: {:?}", e);
+                    Ok::<Event, Infallible>(Event::default().data(format!("{}", e)).event("error"))
+                }
             }
         }
     });
