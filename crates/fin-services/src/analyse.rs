@@ -91,7 +91,7 @@ impl AnalyseService {
             .map_err(|e| anyhow::anyhow!("Error embedding input prompt {}: {}", prompt, e))?;
 
         // resolve_provider has everything it needs — no keys passed in
-        let provider = self.agent_service.resolve_provider(llm)?;
+        let provider = self.agent_service.resolve_provider(llm, None)?;
 
         // For a non local agent, use thorough
         let preset = match &provider {
