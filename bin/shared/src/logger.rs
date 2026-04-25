@@ -11,11 +11,13 @@ pub fn set_logger() {
     println!("{}", filter);
     if is_cloud {
         let subscriber = FmtSubscriber::builder()
-            .with_max_level(Level::TRACE)
+            .json()
+            .with_env_filter(filter)
+            .with_current_span(false)
+            .with_span_list(false)
             .with_target(true)
             .with_line_number(true)
-            .with_env_filter(filter)
-            .json()
+            .flatten_event(true) // ← this is the key
             .finish();
         tracing::subscriber::set_global_default(subscriber)
             .expect("setting default subscriber failed");
