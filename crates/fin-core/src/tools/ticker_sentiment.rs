@@ -129,7 +129,7 @@ impl Tool for TickerSentimentTool {
                 })
             })
             .collect();
-        info!("results: {:?}", sentiments);
+        debug!("results: {:?}", sentiments);
 
         Ok(json!({
             "symbol": ticker_param.symbol,
