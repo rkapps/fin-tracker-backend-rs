@@ -1,12 +1,8 @@
 use anyhow::{Context, Result};
+use bin_shared::gcs::download_gcs_to_file;
 use calamine::{Reader, Xlsx, open_workbook};
 use fin_domain::tickers::TickerSeed;
-use google_cloud_storage::client::{Client, ClientConfig};
-use google_cloud_storage::http::objects::download::Range;
-use google_cloud_storage::http::objects::get::GetObjectRequest;
-use std::io::Write;
 use std::path::PathBuf;
-use tempfile::NamedTempFile;
 
 pub fn load_ticker_seeds_from_file(file: PathBuf) -> Result<Vec<TickerSeed>> {
     let mut workbook: Xlsx<_> =
@@ -39,34 +35,36 @@ pub fn load_ticker_seeds_from_file(file: PathBuf) -> Result<Vec<TickerSeed>> {
 }
 
 pub async fn load_ticker_seeds_from_gcs(gcs_path: &str) -> anyhow::Result<PathBuf> {
-    // parse gs://bucket-name/path/to/file.xlsx
-    let path = gcs_path
-        .strip_prefix("gs://")
-        .ok_or_else(|| anyhow::anyhow!("Invalid GCS path"))?;
-    let (bucket, object) = path
-        .split_once('/')
-        .ok_or_else(|| anyhow::anyhow!("Invalid GCS path"))?;
+    download_gcs_to_file(gcs_path).await
 
-    // create client using ADC (works automatically on Cloud Run)
-    let config = ClientConfig::default().with_auth().await?;
-    let client = Client::new(config);
+    // // parse gs://bucket-name/path/to/file.xlsx
+    // let path = gcs_path
+    //     .strip_prefix("gs://")
+    //     .ok_or_else(|| anyhow::anyhow!("Invalid GCS path"))?;
+    // let (bucket, object) = path
+    //     .split_once('/')
+    //     .ok_or_else(|| anyhow::anyhow!("Invalid GCS path"))?;
 
-    // download object bytes
-    let data = client
-        .download_object(
-            &GetObjectRequest {
-                bucket: bucket.to_string(),
-                object: object.to_string(),
-                ..Default::default()
-            },
-            &Range::default(),
-        )
-        .await?;
+    // // create client using ADC (works automatically on Cloud Run)
+    // let config = ClientConfig::default().with_auth().await?;
+    // let client = Client::new(config);
 
-    // write to temp file
-    let mut tmp = NamedTempFile::new()?;
-    tmp.write_all(&data)?;
-    let path = tmp.into_temp_path().keep()?;
+    // // download object bytes
+    // let data = client
+    //     .download_object(
+    //         &GetObjectRequest {
+    //             bucket: bucket.to_string(),
+    //             object: object.to_string(),
+    //             ..Default::default()
+    //         },
+    //         &Range::default(),
+    //     )
+    //     .await?;
 
-    Ok(path)
+    // // write to temp file
+    // let mut tmp = NamedTempFile::new()?;
+    // tmp.write_all(&data)?;
+    // let path = tmp.into_temp_path().keep()?;
+
+    // Ok(path)
 }

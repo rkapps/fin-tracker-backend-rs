@@ -8,8 +8,7 @@ use axum::{
 };
 
 use bin_shared::{
-    logger::set_logger,
-    services::{get_analyse_service, get_tickers_service},
+    config::loader::load_app_config, logger::set_logger, services::{get_agent_service, get_analyse_service, get_tickers_service, load_agent_config}
 };
 use fin_tracker_api::{
     handlers::{
@@ -27,8 +26,12 @@ use tower_http::cors::CorsLayer;
 async fn main() -> Result<()> {
     set_logger();
 
+    let app_config = load_app_config().await?;
+    let agent_config = load_agent_config(&app_config).await;
+    let agent_service = get_agent_service(agent_config)?;
+    let analyse_service = get_analyse_service(agent_service).await?;
     let ticker_service = get_tickers_service().await?;
-    let analyse_service = get_analyse_service().await?;
+    
     // application state
     let app_state = AppState {
         ticker_service: Arc::new(ticker_service),
