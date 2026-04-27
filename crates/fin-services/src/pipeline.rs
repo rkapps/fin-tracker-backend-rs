@@ -158,14 +158,22 @@ impl PipeLineService {
         Ok(())
     }
 
-    pub async fn update_realtime_stocks_etfs(&self) -> Result<()> {
-        let mut all_tickers = self.storage_service.get_tickers_by_marketcap().await?;
+    pub async fn update_realtime_stocks_etfs(&self, symbols: &str, update: bool) -> Result<()> {
+
+        let mut all_tickers = if !symbols.is_empty() {
+            let list: Vec<String> = symbols.split(',').map(|s| s.to_string()).collect();
+            debug!("List: {:?}", list);
+            self.storage_service.get_tickers_by_symbols(list).await?
+        } else {
+            self.storage_service.get_tickers_by_marketcap().await?
+        };
         all_tickers.retain(|t| t.asset_type == AssetType::Stock || t.asset_type == AssetType::Etf);
 
         match update_stocks_etfs_realtime(
             self.storage_service.clone(),
             self.provider_service.clone(),
             all_tickers,
+            update
         )
         .await
         {
@@ -176,14 +184,23 @@ impl PipeLineService {
         Ok(())
     }
 
-    pub async fn update_realtime_cryptos(&self) -> Result<()> {
-        let mut all_tickers = self.storage_service.get_tickers_by_marketcap().await?;
+    pub async fn update_realtime_cryptos(&self, symbols: &str, update: bool) -> Result<()> {
+
+        let mut all_tickers = if !symbols.is_empty() {
+            let list: Vec<String> = symbols.split(',').map(|s| s.to_string()).collect();
+            debug!("List: {:?}", list);
+            self.storage_service.get_tickers_by_symbols(list).await?
+        } else {
+            self.storage_service.get_tickers_by_marketcap().await?
+        };
+
         all_tickers.retain(|t| t.asset_type == AssetType::Crypto);
 
         update_cryptos_realtime(
             self.storage_service.clone(),
             self.provider_service.clone(),
             all_tickers,
+            update
         )
         .await?;
         Ok(())

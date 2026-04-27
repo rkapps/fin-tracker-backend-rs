@@ -383,8 +383,8 @@ pub(crate) async fn update_ticker_price_history(
         ticker.update_price_from_history(last_history, prev_history)?;
 
         debug!(
-            "Price date: {:?} close: {:?}, ",
-            ticker.pr_date, ticker.pr_last
+            "Price date: {:?} close: {:?} prev: {:?}",
+            ticker.pr_date, ticker.pr_last, ticker.pr_prev
         );
     }
 
@@ -838,6 +838,7 @@ pub async fn update_stocks_etfs_realtime(
     storage_service: Arc<dyn StorageService>,
     provider_service: ProviderService,
     all_tickers: Vec<Ticker>,
+    update: bool
 ) -> Result<()> {
     let mut updated_tickers = Vec::new();
     let length = all_tickers.len();
@@ -858,7 +859,7 @@ pub async fn update_stocks_etfs_realtime(
         {
             Ok(raw) => {
                 ticker.update_stock_etf_price_realtime(raw)?;
-                debug!("Price: {}", ticker.pr_last);
+                debug!("Price: {} prev: {}", ticker.pr_last, ticker.pr_prev);
                 updated_tickers.push(ticker);
             }
             Err(e) => error!("Ticker Realtime error {}: {}", ticker.symbol, e),
@@ -872,7 +873,7 @@ pub async fn update_stocks_etfs_realtime(
     );
 
     // bulk write at the end
-    if !updated_tickers.is_empty() {
+    if update && !updated_tickers.is_empty() {
         storage_service.save_tickers(updated_tickers).await?;
     }
 
@@ -883,6 +884,7 @@ pub async fn update_cryptos_realtime(
     storage_service: Arc<dyn StorageService>,
     provider_service: ProviderService,
     all_tickers: Vec<Ticker>,
+    update: bool    
 ) -> Result<()> {
     let mut updated_tickers = Vec::new();
     let length = all_tickers.len();
@@ -923,7 +925,7 @@ pub async fn update_cryptos_realtime(
     );
 
     // bulk write at the end
-    if !updated_tickers.is_empty() {
+    if update && !updated_tickers.is_empty() {
         storage_service.save_tickers(updated_tickers).await?;
     }
 
