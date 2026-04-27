@@ -33,6 +33,18 @@ enum AdminCommands {
     PruneIndicators, // keep last 5 years
     PruneSentiments, // keep last 30 days
     PruneEmbeddings, // keep last 30 days
+    RealtimeStocksEtfs {
+        #[arg(short, long)]
+        symbols: Option<String>,
+        #[arg(short, long)]
+        update: Option<bool>,
+    },
+    RealtimeCryptos {
+        #[arg(short, long)]
+        symbols: Option<String>,
+        #[arg(short, long)]
+        update: Option<bool>,
+    },
     TickersEod {
         #[arg(short, long)]
         symbols: Option<String>,
@@ -109,6 +121,35 @@ async fn main() -> Result<()> {
             match storage_service.delete_ticker_sentiments_before(cutoff).await {
                 Ok(_) => info!("Prune sentiments complete"),
                 Err(e) => error!("Prune sentiments failed: {:?}", e),
+            }
+        }
+
+        AdminCommands::RealtimeStocksEtfs {symbols, update}=> {
+            let pipeline_service = get_pipeline_service().await?;
+            let symbols_str = symbols.as_deref().unwrap_or("");
+            let update = if update.is_none() { 
+                false
+            } else {
+                update.unwrap()
+            };
+            match pipeline_service.update_realtime_stocks_etfs(&symbols_str, update).await {
+                Ok(_) => info!("Tickers Realtime update completed successfully."),
+                Err(e) => error!("Tickers Realtime update failed: {:?}", e),
+            }
+
+        }
+
+        AdminCommands::RealtimeCryptos {symbols, update} => {
+            let pipeline_service = get_pipeline_service().await?;
+            let symbols_str = symbols.as_deref().unwrap_or("");
+            let update = if update.is_none() { 
+                false
+            } else {
+                update.unwrap()
+            };
+            match pipeline_service.update_realtime_cryptos(&symbols_str, update).await {
+                Ok(_) => info!("Tickers Realtime update completed successfully."),
+                Err(e) => error!("Tickers Realtime update failed: {:?}", e),
             }
         }
 

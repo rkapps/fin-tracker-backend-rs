@@ -48,14 +48,14 @@ async fn main() -> Result<()> {
         }
         PipelineCommands::RealtimeStocksEtfs => {
             info!("Tickers Stocks and Etfs Realtime started...");
-            match pipeline_service.update_realtime_stocks_etfs().await {
+            match pipeline_service.update_realtime_stocks_etfs("", true).await {
                 Ok(_) => info!("Tickers Stocks and Etfs Realtime completed successfully."),
                 Err(e) => error!("Tickers Stocks and Etfs Realtime failed: {:?}", e),
             }
         }
         PipelineCommands::RealtimeCryptos => {
             info!("Tickers Crypto Realtime started...");
-            match pipeline_service.update_realtime_cryptos().await {
+            match pipeline_service.update_realtime_cryptos("", true).await {
                 Ok(_) => info!("Tickers Crypto Realtime completed successfully."),
                 Err(e) => error!("Tickers Crypto Realtime failed: {:?}", e),
             }
