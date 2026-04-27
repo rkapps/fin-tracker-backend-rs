@@ -43,6 +43,7 @@ async fn main() -> Result<()> {
         "http://localhost:4201".parse::<HeaderValue>().unwrap(),
         "http://localhost:4202".parse::<HeaderValue>().unwrap(),
         "https://fin-tracker-rkapps.web.app".parse::<HeaderValue>().unwrap(),
+        "https://rustic-ai-rkapps.web.app".parse::<HeaderValue>().unwrap(),
     ];
     
     let cors = CorsLayer::new()
