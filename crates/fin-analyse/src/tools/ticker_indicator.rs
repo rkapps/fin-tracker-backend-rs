@@ -6,7 +6,7 @@ use async_trait::async_trait;
 use fin_storage::service::StorageService;
 use serde::Deserialize;
 use serde_json::{Value, json};
-use tracing::debug;
+use tracing::{debug, error};
 
 #[derive(Debug)]
 pub struct TickerIndicatorTool {
@@ -66,7 +66,8 @@ impl Tool for TickerIndicatorTool {
             .await
         {
             Ok(t) => t,
-            Err(_) => {
+            Err(e) => {
+                error!("Ticker error: {:?}", e);
                 return Ok(json!({
                     "symbol": params.symbol,
                     "error": "Ticker not found in database"
@@ -75,6 +76,7 @@ impl Tool for TickerIndicatorTool {
         };
 
         debug!("Ticker technical indicators params {:#?}", params);
+        // self.storage_service.
         let latest_indicator = self
             .storage_service
             .get_ticker_indicators_latest(&ticker.symbol)

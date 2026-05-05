@@ -838,7 +838,7 @@ pub async fn update_stocks_etfs_realtime(
     storage_service: Arc<dyn StorageService>,
     provider_service: ProviderService,
     all_tickers: Vec<Ticker>,
-    update: bool
+    update: bool,
 ) -> Result<()> {
     let mut updated_tickers = Vec::new();
     let length = all_tickers.len();
@@ -884,7 +884,7 @@ pub async fn update_cryptos_realtime(
     storage_service: Arc<dyn StorageService>,
     provider_service: ProviderService,
     all_tickers: Vec<Ticker>,
-    update: bool    
+    update: bool,
 ) -> Result<()> {
     let mut updated_tickers = Vec::new();
     let length = all_tickers.len();
@@ -904,17 +904,15 @@ pub async fn update_cryptos_realtime(
     for data in raw.data {
         if let Some(ticker) = all_tickers_map.get_mut(&data.0)
             && !data.1.is_empty()
+            && let Some(cdata) = data.1.first()
+            && let Some(quote) = cdata.quote.get("USD")
         {
-            if let Some(cdata) = data.1.first()
-                && let Some(quote) = cdata.quote.get("USD")
-            {
-                match ticker.update_crypto_realtime(cdata.last_updated, quote.clone()) {
-                    Ok(_) => {
-                        debug!("Data: {} Price: {}", data.0, ticker.pr_last);
-                        updated_tickers.push(ticker.clone())
-                    }
-                    Err(e) => error!("Ticker Realtime error {}: {}", ticker.symbol, e),
-                };
+            match ticker.update_crypto_realtime(cdata.last_updated, quote.clone()) {
+                Ok(_) => {
+                    debug!("Data: {} Price: {}", data.0, ticker.pr_last);
+                    updated_tickers.push(ticker.clone())
+                }
+                Err(e) => error!("Ticker Realtime error {}: {}", ticker.symbol, e),
             };
         }
     }

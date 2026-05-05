@@ -1,6 +1,6 @@
 use std::{convert::Infallible, sync::Arc};
 
-use agentic_core::{agent::service::LlmProvider, client::response::CompletionResponseContent};
+use agentic_core::client::response::CompletionResponseContent;
 use axum::{
     Json,
     extract::State,
@@ -25,13 +25,6 @@ pub struct TickerAnalyseParam {
 pub struct TickerAnalyseResponse {
     pub content: String,
     pub response_id: String,
-}
-
-pub async fn get_llm_providers_handler(
-    State(analyse_service): State<Arc<AnalyseService>>,
-) -> Result<Json<Vec<LlmProvider>>, (StatusCode, String)> {
-    let providers = analyse_service.get_llm_providers();
-    Ok(Json(providers))
 }
 
 pub async fn analyse_tickers_handler(
@@ -106,7 +99,6 @@ pub async fn analyse_tickers_streaming_handler(
 
                         let mut ft = final_thought.lock().await;
                         ft.push_str(&chunk.thought);
-
                     }
 
                     // ✅ Save only on the final chunk

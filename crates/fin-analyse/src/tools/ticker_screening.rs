@@ -1,13 +1,15 @@
 use agentic_core::client::{embeddings::EmbeddingClient, tools::Tool};
 use anyhow::Result;
 use async_trait::async_trait;
-use fin_domain::tickers::TickerFilter;
+use fin_domain::{
+    tickers::{Ticker, TickerFilter},
+    utils::data_utils::get_overview_embeddings,
+};
 use fin_storage::service::StorageService;
 use serde_json::{Value, json};
 use std::sync::Arc;
-use tracing::info;
-
-use crate::tickers::screen::screen_tickers;
+use storage_core::vector::search;
+use tracing::{debug, info};
 
 #[derive(Debug)]
 pub struct TickerScreeningTool {
@@ -151,14 +153,31 @@ impl Tool for TickerScreeningTool {
         let filter: TickerFilter = serde_json::from_value(value.clone())
             .map_err(|e| anyhow::anyhow!("Failed to deserialize params: {:?} — {:?}", value, e))?;
 
-        let symbols = screen_tickers(
-            self.storage_service.clone(),
-            self.embedding_client.clone(),
-            filter.clone(),
-        )
-        .await?;
+        let tickers = self.storage_service.search_tickers(filter.clone()).await?;
+        debug!("Screened stocks from initial search: {}", tickers.len());
 
-        info!("Screening Tools param: {:#?} Stocks: {:?}", filter, symbols);
+        let overview_candidates: Vec<(Ticker, Vec<f32>)> = get_overview_embeddings(&tickers);
+        debug!("Overview candidates: {}", overview_candidates.len());
+        let limit = filter.limit.unwrap_or(10);
+
+        let symbols: Vec<String> = if let Some(query) = filter.query {
+            let vectors = self.embedding_client.embed_text(&query).await?.into_vec();
+
+            let candidates: Vec<(String, Vec<f32>)> = overview_candidates
+                .iter()
+                .map(|(t, e)| (t.symbol.clone(), e.clone()))
+                .collect();
+
+            search::search(&vectors, &candidates, limit)
+                .into_iter()
+                .map(|(s, _)| s)
+                .collect()
+        } else {
+            tickers.into_iter().take(limit).map(|t| t.symbol).collect()
+        };
+        info!("Screened Symbols: {:?}", symbols);
+
+        // info!("Screening Tools param: {:#?} Stocks: {:?}", filter, symbols);
         Ok(json!({ "sreened_tickers": symbols }))
     }
 }

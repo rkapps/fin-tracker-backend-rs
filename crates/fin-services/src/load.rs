@@ -1,8 +1,6 @@
 use agentic_core::client::embeddings::EmbeddingClient;
 use anyhow::Result;
-use fin_core::tickers::update::{
-    update_all_tickers, update_ticker_overview_embedding}
-;
+use fin_core::tickers::update::{update_all_tickers, update_ticker_overview_embedding};
 use fin_domain::tickers::{Ticker, TickerControl, TickerSeed};
 use fin_providers::ProviderService;
 use fin_storage::service::StorageService;
@@ -13,7 +11,7 @@ use tracing::info;
 pub struct LoadService {
     pub storage_service: Arc<dyn StorageService>,
     pub provider_service: ProviderService,
-    embedding_client: Arc<dyn EmbeddingClient>,    
+    embedding_client: Arc<dyn EmbeddingClient>,
 }
 
 impl LoadService {
@@ -25,7 +23,7 @@ impl LoadService {
         LoadService {
             storage_service,
             provider_service,
-            embedding_client
+            embedding_client,
         }
     }
 
@@ -55,15 +53,20 @@ impl LoadService {
             self.embedding_client.clone(),
             all_new_controls,
             all_tickers.clone(),
-            update
+            update,
         )
         .await?;
 
         // run ticker overview embeddings
         for mut ticker in all_tickers {
-            update_ticker_overview_embedding(self.storage_service.clone(), self.embedding_client.clone(), &mut ticker).await?;
+            update_ticker_overview_embedding(
+                self.storage_service.clone(),
+                self.embedding_client.clone(),
+                &mut ticker,
+            )
+            .await?;
         }
-            
+
         Ok(())
     }
 }

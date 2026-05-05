@@ -17,15 +17,9 @@ use anyhow::Result;
 
 #[async_trait]
 impl TickerIndicatorStorageService for MongoStorageService {
-
-    async fn delete_ticker_indicators_before(&self, date: DateTime<Utc>) -> Result<()>{
-
+    async fn delete_ticker_indicators_before(&self, date: DateTime<Utc>) -> Result<()> {
         let mut criteria = SearchCriteria::new();
-        criteria.add_condition(
-            "date",
-            SearchOp::Lt,
-            SearchValue::DateTime(date),
-        );
+        criteria.add_condition("date", SearchOp::Lt, SearchValue::DateTime(date));
 
         match self.manager.ticker_indicators().await {
             Ok(repo) => {
@@ -36,7 +30,7 @@ impl TickerIndicatorStorageService for MongoStorageService {
                 return Err(anyhow::anyhow!("Error getting TickerSentiment: {}", e));
             }
         }
-    } 
+    }
 
     async fn delete_ticker_indicators(&self, symbol: &str) -> Result<()> {
         let mut criteria = SearchCriteria::new();
@@ -154,15 +148,17 @@ impl TickerIndicatorStorageService for MongoStorageService {
         symbol: &str,
         indicators: Vec<TickerIndicator>,
     ) -> Result<()> {
-
         match self.manager.ticker_indicators().await {
             Ok(repo) => {
                 let mut repo = repo.lock().await;
                 repo.bulk_update(indicators).await
             }
             Err(e) => {
-                return Err(anyhow::anyhow!(format!("Error saving TickerIndicators for {}: {}", symbol, e)));
+                return Err(anyhow::anyhow!(format!(
+                    "Error saving TickerIndicators for {}: {}",
+                    symbol, e
+                )));
             }
-        }        
+        }
     }
 }

@@ -1,8 +1,6 @@
+use agentic_boot::logger::set_logger;
 use anyhow::Result;
-use bin_shared::{
-    logger::set_logger,
-    services::{get_ml_service, get_pipeline_service},
-};
+use bin_shared::services::{get_ml_service, get_pipeline_service};
 use clap::{Parser, Subcommand};
 use tracing::{error, info};
 
@@ -15,8 +13,8 @@ struct Cli {
 
 #[derive(Subcommand)]
 enum PipelineCommands {
-    TickersEod, 
-    UpdateTickersNews, 
+    TickersEod,
+    UpdateTickersNews,
     RealtimeStocksEtfs,
     RealtimeCryptos,
     BuildTickerPredictionModels,
@@ -24,7 +22,10 @@ enum PipelineCommands {
 
 #[tokio::main]
 async fn main() -> Result<()> {
-    set_logger();
+    let filter = std::env::var("RUST_LOG").unwrap_or_else(|_| {
+        "bin_shared=info,fin_services=trace,fin_providers=trace,fin_core=debug,agentic_core::agent=debug,fin_tracker_pipeline=info,fin_tracker_admin=info,fin_tracker_api=info".to_string()
+    });
+    set_logger(filter);
 
     let cli = Cli::parse();
     let pipeline_service = get_pipeline_service().await?;
@@ -75,8 +76,6 @@ async fn main() -> Result<()> {
                 Err(e) => error!("Tickers News update failed: {:?}", e),
             }
         }
-
-
     }
 
     Ok(())

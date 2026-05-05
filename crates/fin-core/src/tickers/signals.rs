@@ -495,5 +495,4 @@ impl SignalsCalculator {
 
         signals
     }
-    
 }

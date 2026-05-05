@@ -1,6 +1,8 @@
 use crate::{
     HttpClient,
-    tiingo::model::{TiingoTickerHistory, TiingoTickerNews, TiingoTickerPriceData, TiingoTickerRealtime},
+    tiingo::model::{
+        TiingoTickerHistory, TiingoTickerNews, TiingoTickerPriceData, TiingoTickerRealtime,
+    },
 };
 use anyhow::Result;
 use chrono::{DateTime, Utc};
@@ -15,12 +17,7 @@ pub async fn get_ticker_news(
     symbol: &str,
     api_token: &str,
 ) -> Result<Vec<TiingoTickerNews>> {
-    let url = format!(
-        "{}?tickers={}&token={}",
-        TIINGO_NEWS_URL,
-        symbol,
-        api_token,
-    );
+    let url = format!("{}?tickers={}&token={}", TIINGO_NEWS_URL, symbol, api_token,);
     let headers = reqwest::header::HeaderMap::new();
     let hist = http_client
         .get_request::<Vec<TiingoTickerNews>>(url, Some(headers))
@@ -28,7 +25,6 @@ pub async fn get_ticker_news(
 
     Ok(hist)
 }
-
 
 pub async fn get_stock_history(
     http_client: &HttpClient,

@@ -1,7 +1,6 @@
 use chrono::{DateTime, Utc};
 use serde::Serialize;
 
-
 #[derive(Serialize)]
 pub struct TickerNewsEntity {
     pub date: DateTime<Utc>,
@@ -9,5 +8,5 @@ pub struct TickerNewsEntity {
     pub url: String,
     pub title: String,
     pub description: String,
-    pub source: String
+    pub source: String,
 }

@@ -1,16 +1,14 @@
 use std::path::PathBuf;
 
+use agentic_boot::logger::set_logger;
 use anyhow::Result;
-use bin_shared::{
-    logger::set_logger,
-    services::{get_load_service, get_ml_service, get_pipeline_service, get_storage_service},
+use bin_shared::services::{
+    get_load_service, get_ml_service, get_pipeline_service, get_storage_service,
 };
 use chrono::Utc;
 use clap::{Parser, Subcommand};
 use fin_core::tickers::update::update_ticker_overview_embedding;
-use fin_tracker_admin::{
-    seed::{load_ticker_seeds_from_file, load_ticker_seeds_from_gcs},
-};
+use fin_tracker_admin::seed::{load_ticker_seeds_from_file, load_ticker_seeds_from_gcs};
 use tracing::{error, info};
 
 #[derive(Parser)]
@@ -50,7 +48,6 @@ enum AdminCommands {
         symbols: Option<String>,
         #[arg(short, long)]
         update: Option<bool>,
-
     },
     UpdateTickerOverviewEmbeddings {
         #[arg(short, long)]
@@ -60,7 +57,11 @@ enum AdminCommands {
 
 #[tokio::main]
 async fn main() -> Result<()> {
-    set_logger();
+    let filter = std::env::var("RUST_LOG").unwrap_or_else(|_| {
+        "bin_shared=info,fin_services=trace,fin_providers=trace,fin_core=debug,agentic_core::agent=debug,fin_tracker_pipeline=info,fin_tracker_admin=info,fin_tracker_api=info".to_string()
+    });
+
+    set_logger(filter);
     let cli = Cli::parse();
 
     match cli.command {
@@ -96,7 +97,10 @@ async fn main() -> Result<()> {
             info!("Pruning embeddings older than 30 days...");
             let cutoff = Utc::now() - chrono::Duration::days(30);
 
-            match storage_service.delete_ticker_embeddings_before(cutoff).await {
+            match storage_service
+                .delete_ticker_embeddings_before(cutoff)
+                .await
+            {
                 Ok(_) => info!("Prune embeddings complete"),
                 Err(e) => error!("Prune embeddings failed: {:?}", e),
             }
@@ -107,7 +111,10 @@ async fn main() -> Result<()> {
             info!("Pruning indicators older than 5 years...");
             let cutoff = Utc::now() - chrono::Duration::days(365 * 5);
 
-            match storage_service.delete_ticker_indicators_before(cutoff).await {
+            match storage_service
+                .delete_ticker_indicators_before(cutoff)
+                .await
+            {
                 Ok(_) => info!("Prune indicators complete"),
                 Err(e) => error!("Prune indicators failed: {:?}", e),
             }
@@ -118,58 +125,59 @@ async fn main() -> Result<()> {
             info!("Pruning sentiments older than 30 days...");
             let cutoff = Utc::now() - chrono::Duration::days(30);
 
-            match storage_service.delete_ticker_sentiments_before(cutoff).await {
+            match storage_service
+                .delete_ticker_sentiments_before(cutoff)
+                .await
+            {
                 Ok(_) => info!("Prune sentiments complete"),
                 Err(e) => error!("Prune sentiments failed: {:?}", e),
             }
         }
 
-        AdminCommands::RealtimeStocksEtfs {symbols, update}=> {
+        AdminCommands::RealtimeStocksEtfs { symbols, update } => {
             let pipeline_service = get_pipeline_service().await?;
             let symbols_str = symbols.as_deref().unwrap_or("");
-            let update = if update.is_none() { 
-                false
-            } else {
-                update.unwrap()
-            };
-            match pipeline_service.update_realtime_stocks_etfs(&symbols_str, update).await {
-                Ok(_) => info!("Tickers Realtime update completed successfully."),
-                Err(e) => error!("Tickers Realtime update failed: {:?}", e),
-            }
-
-        }
-
-        AdminCommands::RealtimeCryptos {symbols, update} => {
-            let pipeline_service = get_pipeline_service().await?;
-            let symbols_str = symbols.as_deref().unwrap_or("");
-            let update = if update.is_none() { 
-                false
-            } else {
-                update.unwrap()
-            };
-            match pipeline_service.update_realtime_cryptos(&symbols_str, update).await {
+            let update = update.is_none();
+            match pipeline_service
+                .update_realtime_stocks_etfs(symbols_str, update)
+                .await
+            {
                 Ok(_) => info!("Tickers Realtime update completed successfully."),
                 Err(e) => error!("Tickers Realtime update failed: {:?}", e),
             }
         }
 
-        AdminCommands::TickersEod { symbols, update} => {
+        AdminCommands::RealtimeCryptos { symbols, update } => {
+            let pipeline_service = get_pipeline_service().await?;
+            let symbols_str = symbols.as_deref().unwrap_or("");
+            let update = update.is_none();
+
+            match pipeline_service
+                .update_realtime_cryptos(symbols_str, update)
+                .await
+            {
+                Ok(_) => info!("Tickers Realtime update completed successfully."),
+                Err(e) => error!("Tickers Realtime update failed: {:?}", e),
+            }
+        }
+
+        AdminCommands::TickersEod { symbols, update } => {
             let pipeline_service = get_pipeline_service().await?;
 
             let symbols_str = symbols.as_deref().unwrap_or("");
-            let update = if update.is_none() { 
-                false
-            } else {
-                update.unwrap()
-            };
+            let update = update.is_none();
+
             info!("Tickers EOD PipeLine started... Update: {}", update);
-            match pipeline_service.update_tickers_eod(&symbols_str, update).await {
+            match pipeline_service
+                .update_tickers_eod(symbols_str, update)
+                .await
+            {
                 Ok(_) => info!("Tickers EOD update completed successfully."),
                 Err(e) => error!("Tickers EOD update failed: {:?}", e),
             }
 
             match pipeline_service
-                .update_ticker_eod_prediction_signals(&symbols_str)
+                .update_ticker_eod_prediction_signals(symbols_str)
                 .await
             {
                 Ok(_) => info!("Tickers EOD prediction signals completed successfully."),

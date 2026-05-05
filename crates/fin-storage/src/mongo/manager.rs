@@ -44,10 +44,8 @@ impl MongoStorageManager {
         )
         .await?;
 
-        mdb.register_collection::<String, TickerNews>(
-            TICKER_NEWS_COLLECTION_NAME.to_string(),
-        )
-        .await?;
+        mdb.register_collection::<String, TickerNews>(TICKER_NEWS_COLLECTION_NAME.to_string())
+            .await?;
 
         mdb.register_collection::<String, TickerAlpha>(TICKER_ALPHA_COLLECTION_NAME.to_string())
             .await?;
@@ -100,9 +98,7 @@ impl MongoStorageManager {
             .collection::<String, TickerEmbedding>(TICKER_EMBEDDING_COLLECTION_NAME.to_string())
             .await
     }
-    pub async fn ticker_news(
-        &self,
-    ) -> Result<Arc<Mutex<MongoRepository<String, TickerNews>>>> {
+    pub async fn ticker_news(&self) -> Result<Arc<Mutex<MongoRepository<String, TickerNews>>>> {
         self.db
             .collection::<String, TickerNews>(TICKER_NEWS_COLLECTION_NAME.to_string())
             .await

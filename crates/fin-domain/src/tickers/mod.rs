@@ -30,10 +30,10 @@ pub use indicator::TickerIndicator;
 pub use indicator::indicator_type;
 pub use indicator_snapshot::IndicatorSnapshot;
 pub use indicator_window::IndicatorWindow;
+pub use news::TickerNews;
 pub use seed::TickerSeed;
 pub use sentiment::TickerSentiment;
 pub use ticker_filter::TickerFilter;
-pub use news::TickerNews;
 
 use serde::Serialize;
 pub use ticker::Ticker;

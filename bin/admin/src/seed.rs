@@ -1,5 +1,5 @@
+use agentic_boot::startup::config::download_gcs_to_file;
 use anyhow::{Context, Result};
-use bin_shared::gcs::download_gcs_to_file;
 use calamine::{Reader, Xlsx, open_workbook};
 use fin_domain::tickers::TickerSeed;
 use std::path::PathBuf;

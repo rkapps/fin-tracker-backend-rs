@@ -48,10 +48,14 @@ tracing-subscriber = { version = "0.3", features = ["env-filter", "json"] }
 # Point to the relative path on your machine
 #storage-core = { path = "../libs/storage-core-rs" }
 #agentic-core = { path = "../libs/agentic-core-rs" }
+#agentic-boot = { path = "../libs/agentic-boot" }
+
 storage-core = { git = "https://github.com/rkapps/storage-core-rs" }
 agentic-core = { git = "https://github.com/rkapps/agentic-core-rs" }
+agentic-boot = { git = "https://github.com/rkapps/agentic-boot" }
 
 # Local app crates
+fin-analyse = { path = "crates/fin-analyse" }
 fin-core = { path = "crates/fin-core" }
 fin-domain = { path = "crates/fin-domain" }
 fin-services = { path = "crates/fin-services" }

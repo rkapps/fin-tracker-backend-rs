@@ -42,8 +42,6 @@ pub struct TiingoTickerHistory {
     pub split_factor: Decimal,
 }
 
-
-
 #[derive(Debug, Clone, Deserialize)]
 pub struct TiingoTickerNews {
     #[serde(rename = "publishedDate", default)]
@@ -51,6 +49,5 @@ pub struct TiingoTickerNews {
     pub url: String,
     pub title: String,
     pub description: Option<String>,
-    pub source: String
-
+    pub source: String,
 }

@@ -2,7 +2,10 @@ use std::{collections::HashMap, sync::Arc};
 
 use anyhow::Result;
 use chrono::{DateTime, Months, Utc};
-use fin_core::ml::{common::models::{RandomForestModel, RandomForestModelCache}, train::train_ticker_models};
+use fin_core::ml::{
+    common::models::{RandomForestModel, RandomForestModelCache},
+    train::train_ticker_models,
+};
 use fin_domain::tickers::TickerAlpha;
 use fin_storage::service::StorageService;
 use tokio::sync::RwLock;

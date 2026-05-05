@@ -23,7 +23,6 @@ impl TickerAlphaStorageService for MongoStorageService {
     }
 
     async fn save_ticker_alphas(&self, sas: Vec<TickerAlpha>) -> Result<()> {
-
         match self.manager.ticker_alphas().await {
             Ok(repo) => {
                 let mut repo = repo.lock().await;

@@ -13,15 +13,9 @@ use anyhow::Result;
 
 #[async_trait]
 impl TickerSentimentStorageService for MongoStorageService {
-
-    async fn delete_ticker_sentiments_before(&self, date: DateTime<Utc>) -> Result<()>{
-
+    async fn delete_ticker_sentiments_before(&self, date: DateTime<Utc>) -> Result<()> {
         let mut criteria = SearchCriteria::new();
-        criteria.add_condition(
-            "date",
-            SearchOp::Lt,
-            SearchValue::DateTime(date),
-        );
+        criteria.add_condition("date", SearchOp::Lt, SearchValue::DateTime(date));
 
         match self.manager.ticker_sentiments().await {
             Ok(repo) => {
@@ -32,14 +26,12 @@ impl TickerSentimentStorageService for MongoStorageService {
                 return Err(anyhow::anyhow!("Error getting TickerSentiment: {}", e));
             }
         }
-    } 
+    }
 
     async fn get_ticker_sentiments(&self, symbol: &str) -> Result<Vec<TickerSentiment>> {
         let score = dec!(0);
         self.get_ticker_sentiments_with_score(symbol, &score).await
     }
-
-
 
     async fn get_ticker_sentiments_with_score(
         &self,
@@ -74,15 +66,17 @@ impl TickerSentimentStorageService for MongoStorageService {
         symbol: &str,
         sentiments: Vec<TickerSentiment>,
     ) -> Result<()> {
-
         match self.manager.ticker_sentiments().await {
             Ok(repo) => {
                 let mut repo = repo.lock().await;
                 repo.bulk_update(sentiments).await
             }
             Err(e) => {
-                return Err(anyhow::anyhow!(format!("Error saving TickerSentiments for {}: {}", symbol, e)));
+                return Err(anyhow::anyhow!(format!(
+                    "Error saving TickerSentiments for {}: {}",
+                    symbol, e
+                )));
             }
-        }        
+        }
     }
 }

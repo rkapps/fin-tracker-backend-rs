@@ -229,7 +229,6 @@ impl Ticker {
         last_updated: DateTime<Utc>,
         quote: CmcCryptoQuote,
     ) -> Result<()> {
-
         self.total_assets = Some(0);
         if let Some(price) = quote.price
             && let Some(market_cap) = quote.market_cap

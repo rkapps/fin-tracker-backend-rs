@@ -1,13 +1,12 @@
+use crate::tickers::TICKER_NEWS_COLLECTION_NAME;
+use crate::tickers::deserialize_flexible_datetime;
+use crate::tickers::serialize_as_bson_datetime;
 use anyhow::Result;
 use chrono::DateTime;
 use chrono::Utc;
 use fin_providers::tiingo::model::TiingoTickerNews;
 use serde::{Deserialize, Serialize};
 use storage_core::core::RepoModel;
-use crate::tickers::TICKER_NEWS_COLLECTION_NAME;
-use crate::tickers::deserialize_flexible_datetime;
-use crate::tickers::serialize_as_bson_datetime;
-
 
 #[derive(Serialize, Deserialize, Clone, Debug)]
 pub struct TickerNews {
@@ -22,10 +21,8 @@ pub struct TickerNews {
     pub url: String,
     pub title: String,
     pub description: String,
-    pub source: String
+    pub source: String,
 }
-
-
 
 impl RepoModel<String> for TickerNews {
     fn id(&self) -> String {
@@ -47,7 +44,7 @@ impl TickerNews {
             source: tiingo.source,
             symbol: symbol.to_string(),
             title: tiingo.title,
-            url: tiingo.url
+            url: tiingo.url,
         })
     }
 
@@ -58,7 +55,7 @@ impl TickerNews {
     ) -> Result<Vec<Self>> {
         tiingo_data
             .into_iter()
-            .filter(|e| e.description.is_some() )
+            .filter(|e| e.description.is_some())
             .map(|e| Self::from_tiingo(symbol, e))
             .collect()
     }

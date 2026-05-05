@@ -69,14 +69,16 @@ impl TickerHistoryStorageService for MongoStorageService {
     }
 
     async fn save_ticker_history(&self, symbol: &str, hist: Vec<TickerHistory>) -> Result<()> {
-
         match self.manager.ticker_history().await {
             Ok(repo) => {
                 let mut repo = repo.lock().await;
                 repo.insert_many(hist).await
             }
             Err(e) => {
-                return Err(anyhow::anyhow!(format!("Error saving TickerHistory for {}: {}", symbol, e)));
+                return Err(anyhow::anyhow!(format!(
+                    "Error saving TickerHistory for {}: {}",
+                    symbol, e
+                )));
             }
         }
     }

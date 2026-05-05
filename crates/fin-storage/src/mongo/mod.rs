@@ -9,6 +9,5 @@ pub mod sentiment;
 pub mod service;
 pub mod ticker;
 
-
 pub use manager::MongoStorageManager;
 pub use service::MongoStorageService;

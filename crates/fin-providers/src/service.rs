@@ -91,17 +91,9 @@ impl ProviderService {
         Ok(feeds)
     }
 
-    pub async fn get_ticker_news(
-        &self,
-        symbol: &str,
-    ) -> Result<Vec<TiingoTickerNews>> {
+    pub async fn get_ticker_news(&self, symbol: &str) -> Result<Vec<TiingoTickerNews>> {
         let feeds =
-            tiingo::api::get_ticker_news(&self.http_client, symbol, &self.tiingo_token)
-                .await?;
+            tiingo::api::get_ticker_news(&self.http_client, symbol, &self.tiingo_token).await?;
         Ok(feeds)
     }
-
-
-
-
 }

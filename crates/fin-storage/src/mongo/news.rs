@@ -49,11 +49,7 @@ impl TickerNewsStorageService for MongoStorageService {
         }
     }
 
-    async fn save_ticker_news(
-        &self,
-        symbol: &str,
-        embeddings: Vec<TickerNews>,
-    ) -> Result<()> {
+    async fn save_ticker_news(&self, symbol: &str, embeddings: Vec<TickerNews>) -> Result<()> {
         match self.manager.ticker_news().await {
             Ok(repo) => {
                 let mut repo = repo.lock().await;

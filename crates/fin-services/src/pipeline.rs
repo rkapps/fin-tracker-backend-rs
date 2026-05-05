@@ -1,7 +1,8 @@
 use agentic_core::client::embeddings::EmbeddingClient;
 use anyhow::Result;
 use fin_core::tickers::update::{
-    update_all_tickers, update_all_tickers_news, update_cryptos_realtime, update_stocks_etfs_realtime, update_ticker_prediction_signals
+    update_all_tickers, update_all_tickers_news, update_cryptos_realtime,
+    update_stocks_etfs_realtime, update_ticker_prediction_signals,
 };
 use fin_domain::tickers::{AssetType, Ticker, TickerAlpha};
 use fin_providers::ProviderService;
@@ -159,7 +160,6 @@ impl PipeLineService {
     }
 
     pub async fn update_realtime_stocks_etfs(&self, symbols: &str, update: bool) -> Result<()> {
-
         let mut all_tickers = if !symbols.is_empty() {
             let list: Vec<String> = symbols.split(',').map(|s| s.to_string()).collect();
             debug!("List: {:?}", list);
@@ -173,7 +173,7 @@ impl PipeLineService {
             self.storage_service.clone(),
             self.provider_service.clone(),
             all_tickers,
-            update
+            update,
         )
         .await
         {
@@ -185,7 +185,6 @@ impl PipeLineService {
     }
 
     pub async fn update_realtime_cryptos(&self, symbols: &str, update: bool) -> Result<()> {
-
         let mut all_tickers = if !symbols.is_empty() {
             let list: Vec<String> = symbols.split(',').map(|s| s.to_string()).collect();
             debug!("List: {:?}", list);
@@ -200,7 +199,7 @@ impl PipeLineService {
             self.storage_service.clone(),
             self.provider_service.clone(),
             all_tickers,
-            update
+            update,
         )
         .await?;
         Ok(())

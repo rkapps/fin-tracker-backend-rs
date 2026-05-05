@@ -8,7 +8,7 @@ use fin_domain::tickers::TickerEmbedding;
 use fin_storage::service::StorageService;
 use serde_json::{Value, json};
 use storage_core::vector::search;
-use tracing::{debug, info};
+use tracing::debug;
 
 #[derive(Debug)]
 pub struct TickerSentimentTool {
