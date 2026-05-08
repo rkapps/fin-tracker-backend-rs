@@ -42,7 +42,7 @@ pub async fn update_all_tickers(
     all_controls: Vec<TickerControl>,
     all_tickers: Vec<Ticker>,
     update: bool,
-) -> Result<()> {
+) -> Result<Vec<Ticker>> {
     let mut control_map: HashMap<String, TickerControl> = all_controls
         .into_iter()
         .map(|c| (c.symbol.clone(), c))
@@ -123,17 +123,20 @@ pub async fn update_all_tickers(
         }
     }
 
+    debug!("Saving {} tickers", updated_tickers.len());
+
     // bulk write at the end
     if update && !updated_tickers.is_empty() {
-        storage_service.save_tickers(updated_tickers).await?;
+        storage_service
+            .save_tickers(updated_tickers.clone())
+            .await?;
         storage_service
             .save_ticker_controls(updated_controls)
             .await?;
     }
 
     info!("Completed: {} successful, {} failed", success, failed);
-
-    Ok(())
+    Ok(updated_tickers)
 }
 
 pub async fn update_ticker(
@@ -157,27 +160,27 @@ pub async fn update_ticker(
     let mut histories = Vec::new();
 
     // update history
-    if !update || should_sync_history(tc) {
-        match update_ticker_history(provider_service.clone(), tc, ticker).await {
-            Ok((all_histories, new_histories)) => {
-                if !new_histories.is_empty() {
-                    tc.last_history_sync_at = Some(Utc::now());
-                    info!(
-                        "Ticker new History for {}: {} ",
-                        ticker.symbol,
-                        new_histories.len()
-                    );
-                    if update {
-                        storage_service.save_ticker_control(tc.clone()).await?;
-                        storage_service
-                            .save_ticker_history(&ticker.symbol, new_histories)
-                            .await?;
-                    }
+    // if !update ||  {
+    match update_ticker_history(provider_service.clone(), tc, ticker).await {
+        Ok((all_histories, new_histories)) => {
+            if !new_histories.is_empty() {
+                tc.last_history_sync_at = Some(Utc::now());
+                info!(
+                    "Ticker new History for {}: {} ",
+                    ticker.symbol,
+                    new_histories.len()
+                );
+                if update && should_sync_history(tc) {
+                    storage_service.save_ticker_control(tc.clone()).await?;
+                    storage_service
+                        .save_ticker_history(&ticker.symbol, new_histories)
+                        .await?;
                 }
-                histories = all_histories
             }
-            Err(e) => error!("History update failed for {}: {}", ticker.symbol, e),
+            histories = all_histories
         }
+        Err(e) => error!("History update failed for {}: {}", ticker.symbol, e),
+        // }
     }
 
     // update sentiments
@@ -292,6 +295,10 @@ pub(crate) async fn update_ticker_details(
             ticker.update_crypto_from_cmc(raw);
         }
     }
+    debug!(
+        "Updated ticker details for {} total assets: {:?} eps: {:?}",
+        ticker.symbol, ticker.total_assets, ticker.eps
+    );
 
     Ok(())
 }

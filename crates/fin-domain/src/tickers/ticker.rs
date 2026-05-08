@@ -20,7 +20,7 @@ use rust_decimal_macros::dec;
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
 use storage_core::core::RepoModel;
-use tracing::info;
+use tracing::debug;
 
 #[derive(Serialize, Deserialize, Default, Clone, Debug)]
 pub struct Ticker {
@@ -34,11 +34,56 @@ pub struct Ticker {
     pub industry: Option<String>,
     pub overview: String,
 
-    pub country: String,
-    pub currency: String,
+    pub total_assets: Option<i64>,
+
+    pub pr_date: Option<DateTime<Utc>>,
+    #[serde(with = "decimal_serde")]
+    pub pr_last: Decimal,
+    #[serde(with = "decimal_serde")]
+    pub pr_prev: Decimal,
+    #[serde(with = "decimal_serde")]
+    pub pr_diff_amt: Decimal,
+    #[serde(with = "decimal_serde")]
+    pub pr_diff_perc: Decimal,
+
+    #[serde(with = "decimal_serde")]
+    pub pr_open: Decimal,
+    #[serde(with = "decimal_serde")]
+    pub pr_high: Decimal,
+    #[serde(with = "decimal_serde")]
+    pub pr_low: Decimal,
+    #[serde(with = "decimal_serde")]
+    pub pr_close: Decimal,
+    pub pr_diff_perc_search: f64,
+    #[serde(with = "decimal_serde")]
+    pub pr_52_wk_high: Decimal,
+    #[serde(with = "decimal_serde")]
+    pub pr_52_wk_low: Decimal,
+
+    #[serde(with = "performance_serde")]
+    pub performance: HashMap<String, HashMap<String, Decimal>>,
+
+    pub dividend_amt: f64,
+    pub r#yield: f64,
+    pub ex_div_date: Option<DateTime<Utc>>,
+    pub pay_date: Option<DateTime<Utc>>,
+    pub pay_ratio: f64,
+    pub avg_volume: i32,
+    pub volume: i32,
+
+    #[serde(default)]
+    pub signals: Vec<String>,
+
+    #[serde(default)]
+    pub lr_returns: HashMap<String, f64>, // LinearRegression returns
+
+    #[serde(default)]
+    pub rf_returns: HashMap<String, f64>, // RandomForst returns
+
+    #[serde(default)]
+    pub mlp_returns: HashMap<String, f64>, // MLP returns
 
     // pub market_cap: Option<i64>,
-    pub total_assets: Option<i64>,
     pub expense_ratio: Option<f64>, // etfs
     pub eps: Option<f64>,
     pub pe_ratio: Option<f64>,
@@ -69,45 +114,11 @@ pub struct Ticker {
     pub analyst_rating_strong_sell: Option<i32>,
     pub analyst_consensus: Option<String>,
 
-    pub dividend_amt: f64,
-    pub r#yield: f64,
-    pub ex_div_date: Option<DateTime<Utc>>,
-    pub pay_date: Option<DateTime<Utc>>,
-    pub pay_ratio: f64,
 
-    pub pr_date: Option<DateTime<Utc>>,
-
-    #[serde(with = "decimal_serde")]
-    pub pr_open: Decimal,
-    #[serde(with = "decimal_serde")]
-    pub pr_high: Decimal,
-    #[serde(with = "decimal_serde")]
-    pub pr_low: Decimal,
-    #[serde(with = "decimal_serde")]
-    pub pr_close: Decimal,
-    #[serde(with = "decimal_serde")]
-    pub pr_last: Decimal,
-    #[serde(with = "decimal_serde")]
-    pub pr_prev: Decimal,
-    #[serde(with = "decimal_serde")]
-    pub pr_diff_amt: Decimal,
-    #[serde(with = "decimal_serde")]
-    pub pr_diff_perc: Decimal,
-    pub pr_diff_perc_search: f64,
-    #[serde(with = "decimal_serde")]
-    pub pr_52_wk_high: Decimal,
-    #[serde(with = "decimal_serde")]
-    pub pr_52_wk_low: Decimal,
-
-    #[serde(with = "performance_serde")]
-    pub performance: HashMap<String, HashMap<String, Decimal>>,
     // The "Search" version (Hidden from JSON, used for Atlas)
     #[serde(default)]
     #[serde(skip_serializing_if = "HashMap::is_empty")] // 2. Keeps Mongo clean
     pub performance_search: HashMap<String, HashMap<String, f64>>,
-
-    pub avg_volume: i32,
-    pub volume: i32,
 
     pub overview_text: Option<String>,
     pub overview_embedding: Option<Vec<f32>>,
@@ -115,17 +126,9 @@ pub struct Ticker {
     pub industry_text: Option<String>,
     pub industry_embedding: Option<Vec<f32>>,
 
-    #[serde(default)]
-    pub signals: Vec<String>,
+    pub country: String,
+    pub currency: String,
 
-    #[serde(default)]
-    pub lr_returns: HashMap<String, f64>, // LinearRegression returns
-
-    #[serde(default)]
-    pub rf_returns: HashMap<String, f64>, // RandomForst returns
-
-    #[serde(default)]
-    pub mlp_returns: HashMap<String, f64>, // MLP returns
 }
 
 impl RepoModel<String> for Ticker {
@@ -197,11 +200,13 @@ impl Ticker {
         self.pay_ratio = 0.0;
 
         self.pr_52_wk_high = string_to_decimal(&value.pr_52_wk_high);
-        self.pr_52_wk_low = string_to_decimal(&value.pr_52_wk_low)
+        self.pr_52_wk_low = string_to_decimal(&value.pr_52_wk_low);
+
+        
     }
 
     pub fn update_etf_from_alpha(&mut self, value: AlphaEtf) {
-        info!("value: {:?}", value);
+        debug!("value: {:?}", value);
         self.total_assets = Some(string_to_int64(value.net_assets));
         self.expense_ratio = Some(string_to_float(&value.net_expense_ratio) * 100.0);
         if !value.dividend_yield.is_empty() {

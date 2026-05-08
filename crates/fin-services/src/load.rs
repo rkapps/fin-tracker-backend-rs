@@ -28,7 +28,7 @@ impl LoadService {
     }
 
     pub async fn load_tickers(&self, ticker_seeds: &[TickerSeed], update: bool) -> Result<()> {
-        info!("Loading tickers: {}", ticker_seeds.len());
+        info!("Loading tickers: {} update: {}", ticker_seeds.len(), update);
 
         let all_controls = self.storage_service.get_ticker_controls().await?;
         let mut control_map: HashMap<String, TickerControl> = all_controls
@@ -47,7 +47,7 @@ impl LoadService {
             all_new_controls.push(tc);
         }
 
-        update_all_tickers(
+        let updated_tickers = update_all_tickers(
             self.storage_service.clone(),
             self.provider_service.clone(),
             self.embedding_client.clone(),
@@ -58,7 +58,7 @@ impl LoadService {
         .await?;
 
         // run ticker overview embeddings
-        for mut ticker in all_tickers {
+        for mut ticker in updated_tickers {
             update_ticker_overview_embedding(
                 self.storage_service.clone(),
                 self.embedding_client.clone(),
