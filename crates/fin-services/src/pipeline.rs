@@ -140,7 +140,7 @@ impl PipeLineService {
                     updated_tickers.push(ticker);
                 }
                 Ok(Err(e)) => {
-                    error!("Ticker update failed: {}", e);
+                    error!("{}", e);
                     failed += 1;
                 }
                 Err(e) => {

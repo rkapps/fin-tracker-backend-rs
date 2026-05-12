@@ -113,7 +113,7 @@ pub async fn update_all_tickers(
                 updated_controls.push(tc);
             }
             Ok(Err(e)) => {
-                error!("Ticker update failed: {}", e);
+                error!("{}", e);
                 failed += 1;
             }
             Err(e) => {
@@ -152,7 +152,7 @@ pub async fn update_ticker(
         Err(e) => {
             let emsg = format!("Ticker update failed for {}: {}", ticker.symbol, e);
             // error!(emsg);
-            return Err(anyhow::anyhow!(emsg));
+            // return Err(anyhow::anyhow!(emsg));
         }
     };
 
