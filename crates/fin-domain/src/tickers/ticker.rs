@@ -114,7 +114,6 @@ pub struct Ticker {
     pub analyst_rating_strong_sell: Option<i32>,
     pub analyst_consensus: Option<String>,
 
-
     // The "Search" version (Hidden from JSON, used for Atlas)
     #[serde(default)]
     #[serde(skip_serializing_if = "HashMap::is_empty")] // 2. Keeps Mongo clean
@@ -128,7 +127,6 @@ pub struct Ticker {
 
     pub country: String,
     pub currency: String,
-
 }
 
 impl RepoModel<String> for Ticker {
@@ -201,8 +199,6 @@ impl Ticker {
 
         self.pr_52_wk_high = string_to_decimal(&value.pr_52_wk_high);
         self.pr_52_wk_low = string_to_decimal(&value.pr_52_wk_low);
-
-        
     }
 
     pub fn update_etf_from_alpha(&mut self, value: AlphaEtf) {

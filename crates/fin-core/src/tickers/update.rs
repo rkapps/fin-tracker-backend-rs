@@ -151,7 +151,7 @@ pub async fn update_ticker(
         Ok(c) => c,
         Err(e) => {
             let emsg = format!("Ticker update failed for {}: {}", ticker.symbol, e);
-            // error!(emsg);
+            error!(emsg);
             // return Err(anyhow::anyhow!(emsg));
         }
     };
