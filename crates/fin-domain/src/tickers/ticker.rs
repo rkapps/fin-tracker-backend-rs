@@ -262,13 +262,13 @@ impl Ticker {
     ) -> Result<()> {
         if let Some(_pr_date) = self.pr_date {
             if same_date(realtime.date, Utc::now()) {
-                self.pr_prev = self.pr_last;
+                self.pr_prev = self.pr_close;
                 self.pr_last = Decimal::from_f64_retain(realtime.tngo_last).unwrap();
                 self.pr_last = self.pr_last.round_dp(6);
             }
         } else {
             self.pr_date = Some(realtime.date);
-            self.pr_prev = self.pr_last;
+            self.pr_prev = self.pr_close;
         }
         self.calculate_price_diff()?;
         Ok(())
