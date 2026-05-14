@@ -33,7 +33,8 @@ pub fn get_embedding_client() -> Result<Arc<dyn EmbeddingClient>> {
 // Returns the ticker service
 pub async fn get_tickers_service() -> Result<TickersService> {
     let storage_service: Arc<dyn StorageService> = get_storage_service().await?;
-    Ok(TickersService::new(Arc::clone(&storage_service)))
+    let embedding_client = get_embedding_client()?;
+    Ok(TickersService::new(Arc::clone(&storage_service), embedding_client))
 }
 
 //Returns the Ml service

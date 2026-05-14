@@ -1,3 +1,4 @@
+use agentic_core::client::embeddings::EmbeddingClient;
 use anyhow::Result;
 use fin_domain::{
     dto::{
@@ -5,20 +6,29 @@ use fin_domain::{
         ticker_news_entity::TickerNewsEntity, ticker_search_param::TickerSearchParam,
     },
     tickers::{Ticker, TickerFilter, TickerIndicator},
+    utils::data_utils::get_overview_embeddings,
 };
 use fin_storage::service::StorageService;
 use rust_decimal::{Decimal, prelude::ToPrimitive};
-use std::{collections::HashMap, sync::Arc};
+use storage_core::vector::search;
+use std::{collections::HashMap, fmt::Debug, sync::Arc};
 use tracing::debug;
 
 #[derive(Debug, Clone)]
 pub struct TickersService {
     pub storage_service: Arc<dyn StorageService>,
+    pub embedding_client: Arc<dyn EmbeddingClient>,
 }
 
 impl TickersService {
-    pub fn new(storage_service: Arc<dyn StorageService>) -> TickersService {
-        TickersService { storage_service }
+    pub fn new(
+        storage_service: Arc<dyn StorageService>,
+        embedding_client: Arc<dyn EmbeddingClient>,
+    ) -> TickersService {
+        TickersService {
+            storage_service,
+            embedding_client,
+        }
     }
 
     pub async fn get_ticker_groups(&self) -> Result<HashMap<String, Vec<String>>> {
@@ -137,11 +147,14 @@ impl TickersService {
                 _ => Vec::new(),
             }
         } else {
-            let filter = TickerFilter::from(param);
-            self.storage_service
+            let filter = TickerFilter::from(param.clone());
+            let tickers = self
+                .storage_service
                 .search_tickers(filter)
                 .await
-                .map_err(|e| anyhow::anyhow!(format!("Get Ticker error: {}", e)))?
+                .map_err(|e| anyhow::anyhow!(format!("Get Ticker error: {}", e)))?;
+
+            self.search_tickers_by_overview_embedding(&param, &tickers).await?
         };
 
         debug!("Tickers: {}", tickers.len());
@@ -151,4 +164,40 @@ impl TickersService {
             .collect();
         Ok(tentities)
     }
+
+    pub async fn search_tickers_by_overview_embedding(
+        &self,
+        param: &TickerSearchParam,
+        tickers: &[Ticker],
+    ) -> Result<Vec<Ticker>> {
+        let overview_candidates: Vec<(Ticker, Vec<f32>)> = get_overview_embeddings(&tickers);
+        debug!("Overview candidates: {}", overview_candidates.len());
+        let limit = param.limit.unwrap_or(10);
+        debug!("Query: {:?}", param.query);
+
+        let tickers: Vec<Ticker> = if let Some(query) = &param.query {
+
+            let vectors = self.embedding_client.embed_text(&query).await?.into_vec();
+
+            let candidates: Vec<(Ticker, Vec<f32>)> = overview_candidates
+                .iter()
+                .map(|(t, e)| (t.clone(), e.clone()))
+                .collect();
+
+            debug!("Query vectors: {} candidates: {}", vectors.len(), candidates.len());
+            search(&vectors, &candidates, 10)
+                .into_iter()
+                .map(|(s, _)| s)
+                .collect()
+        } else {
+            tickers.to_vec()
+        };
+
+        Ok(tickers)
+    }
+
+    
 }
+
+
+
