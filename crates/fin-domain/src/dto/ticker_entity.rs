@@ -67,6 +67,7 @@ pub struct TickerEntity {
     pub pr_52_wk_low: f64,
 
     pub performance: HashMap<String, HashMap<String, f64>>,
+    pub indicators: HashMap<String, f64>,
     pub avg_volume: i32,
     pub volume: i32,
 }
@@ -127,6 +128,7 @@ impl From<Ticker> for TickerEntity {
             pr_52_wk_high: value.pr_52_wk_high.to_f64().unwrap_or_default(),
             pr_52_wk_low: value.pr_52_wk_low.to_f64().unwrap_or_default(),
             performance: value.performance_search,
+            indicators: value.indicators_search,
             avg_volume: value.avg_volume,
             volume: value.volume,
         }

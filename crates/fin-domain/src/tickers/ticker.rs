@@ -119,6 +119,9 @@ pub struct Ticker {
     #[serde(skip_serializing_if = "HashMap::is_empty")] // 2. Keeps Mongo clean
     pub performance_search: HashMap<String, HashMap<String, f64>>,
 
+    #[serde(default)]
+    pub indicators_search: HashMap<String, f64>,
+
     pub overview_text: Option<String>,
     pub overview_embedding: Option<Vec<f32>>,
 

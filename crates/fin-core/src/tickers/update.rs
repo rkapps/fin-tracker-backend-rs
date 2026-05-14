@@ -630,19 +630,31 @@ pub(crate) async fn update_stock_indicators(
             volume_ratio_period,
         )?;
 
-        new_indicators = match tc.last_indicator_sync_at {
-            Some(last_sync) => indicators
-                .into_iter()
-                .filter(|h| h.date > last_sync)
-                .collect(),
-            None => {
-                // First sync - insert all
-                indicators
+        if let Some(last_indicator) = indicators.clone().last() {
+            ticker.indicators_search = HashMap::new();
+            debug!("Last indicator: {:?}", last_indicator.date);
+            for value in &last_indicator.values {
+                ticker
+                    .indicators_search
+                    .insert(value.0.clone(), value.1.to_f64().unwrap_or_default());
             }
-        };
+
+            new_indicators = match tc.last_indicator_sync_at {
+                Some(last_sync) => indicators
+                    .into_iter()
+                    .filter(|h| h.date > last_sync)
+                    .collect(),
+                None => {
+                    // First sync - insert all
+                    indicators
+                }
+            };
+        }
+
         debug!(
-            "Ticker {} Indicators updates: {}",
+            "Ticker {} Indicators updates: {:?} new indicators: {}",
             ticker.symbol,
+            ticker.indicators_search,
             new_indicators.len()
         );
     }
