@@ -5,7 +5,7 @@ use anyhow::Result;
 use fin_domain::tickers::{
     FeatureSnapshot, IndicatorSnapshot, ModelAlgorithm, TickerAlpha, TickerIndicator,
 };
-use tracing::{debug, warn};
+use tracing::{trace, warn};
 
 use crate::ml::{
     common::models::RandomForestModelCache, lr::linfa::run_lr_predictions, mlp::train::predict_mlp,
@@ -63,7 +63,7 @@ pub async fn run_predictions(
             ModelAlgorithm::LinearRegression => {
                 let predicted_return = run_lr_predictions(&sa, &normalized);
                 lf_returns.insert(sa.n.to_string(), predicted_return);
-                debug!(
+                trace!(
                     "      Period {} algorithm: {:?} predicted: {:.2}%",
                     sa.id, sa.model_algorithm, predicted_return
                 );
@@ -78,7 +78,7 @@ pub async fn run_predictions(
                 match run_rf_predictions(&sa, model, normalized) {
                     Ok(c) => {
                         rf_returns.insert(sa.n.to_string(), c);
-                        debug!(
+                        trace!(
                             "      Period {} algorithm: {:?} predicted: {:.2}%",
                             sa.id, sa.model_algorithm, c
                         );
@@ -92,7 +92,7 @@ pub async fn run_predictions(
                 Ok(c) => {
                     mlp_returns.insert(sa.n.to_string(), c);
 
-                    debug!(
+                    trace!(
                         "      Period:{} alogrithn: {:?} predicted {:.2}",
                         sa.id, sa.model_algorithm, c
                     );

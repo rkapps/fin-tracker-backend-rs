@@ -30,7 +30,7 @@ impl HttpClient {
         url: String,
         headers: Option<reqwest::header::HeaderMap>,
     ) -> Result<T> {
-        debug!("Url: {}", url);
+        trace!("Url: {}", url);
         let mut request = self.client.get(url);
 
         if let Some(h) = headers {
@@ -55,7 +55,7 @@ impl HttpClient {
         headers: Option<reqwest::header::HeaderMap>,
         body: serde_json::Value,
     ) -> Result<T> {
-        debug!("Url: {}", url);
+        trace!("Url: {}", url);
         let mut request = self.client.post(url);
 
         if let Some(h) = headers {
@@ -80,7 +80,7 @@ impl HttpClient {
         headers: Option<reqwest::header::HeaderMap>,
         body: serde_json::Value,
     ) -> reqwest::Result<reqwest::Response> {
-        debug!("Url: {}", url);
+        trace!("Url: {}", url);
         let mut request = self.client.post(url);
 
         if let Some(h) = headers {

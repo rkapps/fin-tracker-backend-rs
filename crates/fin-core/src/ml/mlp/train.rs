@@ -106,7 +106,7 @@ pub fn train_models_for_mlp(
     let up_preds = pred_vals.iter().filter(|&&v| v > 0.0).count();
     let down_preds = pred_vals.iter().filter(|&&v| v < 0.0).count();
 
-    debug!(
+    trace!(
         "         Pred UP: {}  Pred DOWN: {}  Actual UP: {}  Actual DOWN: {}",
         up_preds,
         down_preds,
@@ -158,7 +158,7 @@ fn balance_labels(data: &[(f64, Vec<f64>)]) -> Vec<(f64, Vec<f64>)> {
     let mean_up_abs = up.iter().map(|(l, _)| l.abs()).sum::<f64>() / up.len() as f64;
     let mean_down_abs = down.iter().map(|(l, _)| l.abs()).sum::<f64>() / down.len() as f64;
 
-    debug!(
+    trace!(
         "         Mean UP magnitude: {:.2}%  Mean DOWN magnitude: {:.2}%",
         mean_up_abs, mean_down_abs
     );
@@ -167,7 +167,7 @@ fn balance_labels(data: &[(f64, Vec<f64>)]) -> Vec<(f64, Vec<f64>)> {
     // so MSE treats both directions equally
     let scale = mean_down_abs / mean_up_abs.max(1e-8);
 
-    debug!("         UP magnitude scale factor: {:.4}", scale);
+    trace!("         UP magnitude scale factor: {:.4}", scale);
 
     let mut balanced = Vec::new();
     balanced.extend(up.into_iter().map(|(l, feats)| (l * scale, feats)));
@@ -383,7 +383,7 @@ pub fn predict_mlp(alpha: &TickerAlpha, normalized: Vec<f64>) -> Result<f64> {
         );
         return Ok(0.0); // treat as neutral
     }
-    debug!(
+    trace!(
         "     MLP {}:{} — predicted: {:.2}%",
         alpha.key, alpha.n, predicted_pct
     );
