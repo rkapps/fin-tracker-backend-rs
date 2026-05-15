@@ -172,7 +172,7 @@ impl TickersService {
     ) -> Result<Vec<Ticker>> {
         let overview_candidates: Vec<(Ticker, Vec<f32>)> = get_overview_embeddings(&tickers);
         debug!("Overview candidates: {}", overview_candidates.len());
-        let limit = param.limit.unwrap_or(10);
+        
         debug!("Query: {:?}", param.query);
 
         let tickers: Vec<Ticker> = if let Some(query) = &param.query {
@@ -185,9 +185,16 @@ impl TickersService {
                 .collect();
 
             debug!("Query vectors: {} candidates: {}", vectors.len(), candidates.len());
-            search(&vectors, &candidates, 10)
+            search(&vectors, &candidates, 1000)
                 .into_iter()
-                .map(|(s, _)| s)
+                .filter_map(|(t, s)| {
+                    // debug!("ticker: {}-{}", t.symbol, s);
+                    if s > 0.25 {
+                        Some(t)
+                    } else {
+                        None
+                    }
+                })
                 .collect()
         } else {
             tickers.to_vec()
