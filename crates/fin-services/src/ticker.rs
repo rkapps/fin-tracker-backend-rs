@@ -10,8 +10,8 @@ use fin_domain::{
 };
 use fin_storage::service::StorageService;
 use rust_decimal::{Decimal, prelude::ToPrimitive};
-use storage_core::vector::search;
 use std::{collections::HashMap, fmt::Debug, sync::Arc};
+use storage_core::vector::search;
 use tracing::debug;
 
 #[derive(Debug, Clone)]
@@ -154,7 +154,8 @@ impl TickersService {
                 .await
                 .map_err(|e| anyhow::anyhow!(format!("Get Ticker error: {}", e)))?;
 
-            self.search_tickers_by_overview_embedding(&param, &tickers).await?
+            self.search_tickers_by_overview_embedding(param.query, &tickers)
+                .await?
         };
 
         debug!("Tickers: {}", tickers.len());
@@ -167,15 +168,14 @@ impl TickersService {
 
     pub async fn search_tickers_by_overview_embedding(
         &self,
-        param: &TickerSearchParam,
+        query: Option<String>,
         tickers: &[Ticker],
     ) -> Result<Vec<Ticker>> {
-        let overview_candidates: Vec<(Ticker, Vec<f32>)> = get_overview_embeddings(&tickers);
-        debug!("Overview candidates: {}", overview_candidates.len());
-        
-        debug!("Query: {:?}", param.query);
+        let tickers = if let Some(query) = query && !tickers.is_empty(){
+            let overview_candidates: Vec<(Ticker, Vec<f32>)> = get_overview_embeddings(&tickers);
+            debug!("Overview candidates: {}", overview_candidates.len());
 
-        let tickers: Vec<Ticker> = if let Some(query) = &param.query {
+            debug!("Query: {:?}", query);
 
             let vectors = self.embedding_client.embed_text(&query).await?.into_vec();
 
@@ -184,27 +184,21 @@ impl TickersService {
                 .map(|(t, e)| (t.clone(), e.clone()))
                 .collect();
 
-            debug!("Query vectors: {} candidates: {}", vectors.len(), candidates.len());
+            debug!(
+                "Query vectors: {} candidates: {}",
+                vectors.len(),
+                candidates.len()
+            );
             search(&vectors, &candidates, 1000)
                 .into_iter()
                 .filter_map(|(t, s)| {
                     // debug!("ticker: {}-{}", t.symbol, s);
-                    if s > 0.25 {
-                        Some(t)
-                    } else {
-                        None
-                    }
+                    if s > 0.25 { Some(t) } else { None }
                 })
                 .collect()
         } else {
-            tickers.to_vec()
+            Vec::new()
         };
-
         Ok(tickers)
     }
-
-    
 }
-
-
-
