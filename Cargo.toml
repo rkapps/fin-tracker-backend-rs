@@ -46,18 +46,17 @@ tracing-subscriber = { version = "0.3", features = ["env-filter", "json"] }
 
 
 # Point to the relative path on your machine
-#storage-core = { path = "../libs/storage-core-rs" }
-#agentic-core = { path = "../libs/agentic-core-rs" }
-#agentic-boot = { path = "../libs/agentic-boot" }
-#storage-core = { git = "https://github.com/rkapps/storage-core-rs" }
-#agentic-core = { git = "https://github.com/rkapps/agentic-core-rs" }
-#agentic-boot = { git = "https://github.com/rkapps/agentic-boot" }
+#rustic-agent = { path = "../rustic-ai-backend-rs/crates/rustic-agent" }
+#rustic-boot = { path = "../rustic-ai-backend-rs/crates/rustic-boot" }
+#rustic-core = { path = "../rustic-ai-backend-rs/crates/rustic-core" }
+#rustic-ml = { path = "../rustic-ai-backend-rs/crates/rustic-ml" }
+#rustic-storage = { path = "../rustic-ai-backend-rs/crates/rustic-storage" }
 
-rustic-agent = { path = "../rustic-ai-backend-rs/crates/rustic-agent" }
-rustic-boot = { path = "../rustic-ai-backend-rs/crates/rustic-boot" }
-rustic-core = { path = "../rustic-ai-backend-rs/crates/rustic-core" }
-rustic-storage = { path = "../rustic-ai-backend-rs/crates/rustic-storage" }
-rustic-ml = { path = "../rustic-ai-backend-rs/crates/rustic-ml" }
+rustic-agent = { git = "https://github.com/rkapps/rustic-ai-backend-rs", package = "rustic-agent"}
+rustic-boot = { git = "https://github.com/rkapps/rustic-ai-backend-rs", package = "rustic-boot"}
+rustic-core = { git = "https://github.com/rkapps/rustic-ai-backend-rs", package = "rustic-core"}
+rustic-ml = { git = "https://github.com/rkapps/rustic-ai-backend-rs", package = "rustic-ml"}
+rustic-storage = { git = "https://github.com/rkapps/rustic-ai-backend-rs", package = "rustic-storage"}
 
 # Local app crates
 fin-analyse = { path = "crates/fin-analyse" }
