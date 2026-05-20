@@ -5,8 +5,8 @@ use anyhow::Result;
 use chrono::DateTime;
 use chrono::Utc;
 use fin_providers::tiingo::model::TiingoTickerNews;
+use rustic_storage::core::repository::RepoModel;
 use serde::{Deserialize, Serialize};
-use storage_core::core::RepoModel;
 
 #[derive(Serialize, Deserialize, Clone, Debug)]
 pub struct TickerNews {

@@ -3,8 +3,8 @@ use std::collections::HashMap;
 use async_trait::async_trait;
 use chrono::{DateTime, Utc};
 use fin_domain::tickers::{IndicatorSnapshot, IndicatorWindow, TickerIndicator};
-use storage_core::core::{
-    Repository as _,
+use rustic_storage::core::{
+    repository::Repository,
     search::{SearchCriteria, SearchOp, SearchValue},
 };
 use tracing::debug;
@@ -18,8 +18,8 @@ use anyhow::Result;
 #[async_trait]
 impl TickerIndicatorStorageService for MongoStorageService {
     async fn delete_ticker_indicators_before(&self, date: DateTime<Utc>) -> Result<()> {
-        let mut criteria = SearchCriteria::new();
-        criteria.add_condition("date", SearchOp::Lt, SearchValue::DateTime(date));
+        let criteria = SearchCriteria::new().lt("date", date);
+        // criteria.add_condition("date", SearchOp::Lt, SearchValue::DateTime(date));
 
         match self.manager.ticker_indicators().await {
             Ok(repo) => {
@@ -33,12 +33,12 @@ impl TickerIndicatorStorageService for MongoStorageService {
     }
 
     async fn delete_ticker_indicators(&self, symbol: &str) -> Result<()> {
-        let mut criteria = SearchCriteria::new();
-        criteria.add_condition(
-            "symbol",
-            SearchOp::Eq,
-            SearchValue::String(symbol.to_uppercase().to_string()),
-        );
+        let criteria = SearchCriteria::new().eq("symbol", symbol.to_uppercase());
+        // criteria.add_condition(
+        //     "symbol",
+        //     SearchOp::Eq,
+        //     SearchValue::String(symbol.to_uppercase().to_string()),
+        // );
         let Ok(repo) = self.manager.ticker_indicators().await else {
             return Err(anyhow::anyhow!(format!(
                 "Error finding TickerIndicator for '{}'",
@@ -53,13 +53,15 @@ impl TickerIndicatorStorageService for MongoStorageService {
     }
 
     async fn get_ticker_indicators(&self, symbol: &str) -> Result<Vec<TickerIndicator>> {
-        let mut criteria = SearchCriteria::new();
-        criteria.add_condition(
-            "symbol",
-            SearchOp::Eq,
-            SearchValue::String(symbol.to_uppercase().to_string()),
-        );
-        criteria.add_sort("date", true);
+        let criteria = SearchCriteria::new()
+            .eq("symbol", symbol.to_uppercase())
+            .sort_asc("date");
+        // criteria.add_condition(
+        //     "symbol",
+        //     SearchOp::Eq,
+        //     SearchValue::String(symbol.to_uppercase().to_string()),
+        // );
+        // criteria.add_sort("date", true);
         self.get_ticker_indicators_by_criteria(&criteria).await
     }
 
@@ -68,14 +70,17 @@ impl TickerIndicatorStorageService for MongoStorageService {
         symbol: &str,
         from_date: DateTime<Utc>,
     ) -> Result<Vec<TickerIndicator>> {
-        let mut criteria = SearchCriteria::new();
-        criteria.add_condition(
-            "symbol",
-            SearchOp::Eq,
-            SearchValue::String(symbol.to_uppercase().to_string()),
-        );
-        criteria.add_condition("date", SearchOp::Gte, SearchValue::DateTime(from_date));
-        criteria.add_sort("date", true);
+        let criteria = SearchCriteria::new()
+            .eq("symbol", symbol.to_uppercase())
+            .gte("date", from_date)
+            .sort_asc("date");
+        // criteria.add_condition(
+        //     "symbol",
+        //     SearchOp::Eq,
+        //     SearchValue::String(symbol.to_uppercase().to_string()),
+        // );
+        // criteria.add_condition("date", SearchOp::Gte, SearchValue::DateTime(from_date));
+        // criteria.add_sort("date", true);
         self.get_ticker_indicators_by_criteria(&criteria).await
     }
 
@@ -90,14 +95,14 @@ impl TickerIndicatorStorageService for MongoStorageService {
         symbol: &str,
         n: usize,
     ) -> Result<Vec<TickerIndicator>> {
-        let mut criteria = SearchCriteria::new();
-        criteria.add_condition(
-            "symbol",
-            SearchOp::Eq,
-            SearchValue::String(symbol.to_uppercase().to_string()),
-        );
-        criteria.add_sort("date", false);
-        criteria.add_limit(n);
+        let criteria = SearchCriteria::new().eq("symbol", symbol).sort_desc("date").limit(n);
+        // criteria.add_condition(
+        //     "symbol",
+        //     SearchOp::Eq,
+        //     SearchValue::String(symbol.to_uppercase().to_string()),
+        // );
+        // criteria.add_sort("date", false);
+        // criteria.add_limit(n);
         self.get_ticker_indicators_by_criteria(&criteria).await
     }
 
@@ -110,11 +115,10 @@ impl TickerIndicatorStorageService for MongoStorageService {
         let symbols: Vec<String> = tickers.iter().map(|t| t.symbol.clone()).collect();
 
         debug!("Tickers for sector: {}-{:?}", sector, symbols);
-        let mut criteria = SearchCriteria::new();
-        criteria.add_condition("symbol", SearchOp::In, SearchValue::Array(symbols));
-        criteria.add_condition("date", SearchOp::Gte, SearchValue::DateTime(from_date));
-
-        criteria.add_sort("date", true);
+        let criteria = SearchCriteria::new().in_values("symbol", symbols).gte("date", from_date).sort_asc("date");
+        // criteria.add_condition("symbol", SearchOp::In, SearchValue::Array(symbols));
+        // criteria.add_condition("date", SearchOp::Gte, SearchValue::DateTime(from_date));
+        // criteria.add_sort("date", true);
         let indicators = self.get_ticker_indicators_by_criteria(&criteria).await?;
 
         // Group by symbol — sorted order preserved from query

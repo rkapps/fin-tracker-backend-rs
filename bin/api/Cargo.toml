@@ -21,9 +21,10 @@ tracing.workspace = true
 tracing-subscriber.workspace = true
 
 
-storage-core.workspace = true
-agentic-core.workspace = true
-agentic-boot.workspace = true
+rustic-core.workspace = true
+rustic-boot.workspace = true
+rustic-agent.workspace = true
+rustic-storage.workspace = true
 
 fin-analyse.workspace = true
 fin-core.workspace = true

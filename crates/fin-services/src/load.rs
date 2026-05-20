@@ -1,9 +1,9 @@
-use agentic_core::client::embeddings::EmbeddingClient;
 use anyhow::Result;
 use fin_core::tickers::update::{update_all_tickers, update_ticker_overview_embedding};
 use fin_domain::tickers::{Ticker, TickerControl, TickerSeed};
 use fin_providers::ProviderService;
 use fin_storage::service::StorageService;
+use rustic_ml::EmbeddingClient;
 use std::{collections::HashMap, sync::Arc};
 use tracing::info;
 

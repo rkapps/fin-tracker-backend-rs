@@ -1,6 +1,6 @@
 use chrono::{DateTime, Utc};
+use rustic_storage::core::repository::RepoModel;
 use serde::Serialize;
-use storage_core::core::RepoModel;
 
 use crate::tickers::{TICKER_CONTROL_COLLECTION_NAME, seed::TickerSeed};
 

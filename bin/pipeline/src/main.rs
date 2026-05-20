@@ -1,7 +1,7 @@
-use agentic_boot::logger::set_logger;
 use anyhow::Result;
 use bin_shared::services::{get_ml_service, get_pipeline_service};
 use clap::{Parser, Subcommand};
+use rustic_core::set_logger;
 use tracing::{error, info};
 
 #[derive(Parser)]

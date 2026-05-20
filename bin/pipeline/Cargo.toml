@@ -10,8 +10,10 @@ tokio.workspace = true
 tracing.workspace = true
 tracing-subscriber.workspace = true
 
-storage-core.workspace = true
-agentic-boot.workspace = true
+#storage-core.workspace = true
+rustic-boot.workspace = true
+rustic-storage.workspace = true
+rustic-core.workspace=true
 
 fin-storage.workspace=true
 fin-services.workspace = true

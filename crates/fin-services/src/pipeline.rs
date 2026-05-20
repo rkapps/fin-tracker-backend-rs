@@ -1,4 +1,3 @@
-use agentic_core::client::embeddings::EmbeddingClient;
 use anyhow::Result;
 use fin_core::tickers::update::{
     update_all_tickers, update_all_tickers_news, update_cryptos_realtime,
@@ -7,6 +6,7 @@ use fin_core::tickers::update::{
 use fin_domain::tickers::{AssetType, Ticker, TickerAlpha};
 use fin_providers::ProviderService;
 use fin_storage::service::StorageService;
+use rustic_ml::EmbeddingClient;
 use std::{collections::HashMap, sync::Arc};
 use tokio::{sync::Semaphore, task::JoinHandle};
 use tracing::{debug, error, info};

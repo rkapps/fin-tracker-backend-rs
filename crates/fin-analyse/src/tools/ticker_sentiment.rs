@@ -1,27 +1,27 @@
 use std::{collections::HashMap, sync::Arc};
 
-use agentic_core::client::{embeddings::Embedding, tools::Tool};
 use anyhow::Result;
 use async_trait::async_trait;
 use fin_domain::dto::ticker_param::TickerParam;
 use fin_domain::tickers::TickerEmbedding;
 use fin_storage::service::StorageService;
+use rustic_agent::Tool;
+use rustic_ml::{Embedding, EmbeddingClient, search};
 use serde_json::{Value, json};
-use storage_core::vector::search;
 use tracing::debug;
 
 #[derive(Debug)]
 pub struct TickerSentimentTool {
-    query_embedding: Embedding,
+    embedding_client: Arc<dyn EmbeddingClient>,
     storage_service: Arc<dyn StorageService>,
 }
 impl TickerSentimentTool {
     pub fn new(
-        query_embedding: Embedding,
+        embedding_client: Arc<dyn EmbeddingClient>,
         storage_service: Arc<dyn StorageService>,
     ) -> TickerSentimentTool {
         Self {
-            query_embedding,
+            embedding_client,
             storage_service,
         }
     }
@@ -47,31 +47,38 @@ impl Tool for TickerSentimentTool {
                 "symbol": {
                     "type": "string",
                     "description": "Ticker symbol"
-                }
+                },
+                "query": {
+                "type": "string",
+                "description": "The user's query or context used to find relevant sentiment. e.g. 'AI chip demand', 'earnings outlook', 'competitive positioning'"
+            }
             },
-            "required": ["symbol"]
+            "required": ["symbol", "query"]
         })
     }
 
-    async fn execute(&self, value: serde_json::Value) -> Result<Value> {
-        let ticker_param: TickerParam = match serde_json::from_value(value.clone()) {
-            Ok(c) => c,
-            Err(e) => {
-                return Err(anyhow::anyhow!(
-                    "Error dezerializing arguments: {:#?} - {:?}",
-                    value,
-                    e
-                ));
-            }
-        };
+    async fn execute(&self, params: serde_json::Value) -> Result<Value> {
+        let symbol = params["symbol"]
+            .as_str()
+            .ok_or_else(|| anyhow::anyhow!("symbol required"))?;
+
+        let query = params["query"]
+            .as_str()
+            .ok_or_else(|| anyhow::anyhow!("query required"))?;
+
+        // embed the query at call time
+        let query_embedding = self
+            .embedding_client
+            .embed_text(&format!("query: {}", query))
+            .await?;
 
         //Get ticker
         // let ticker = self.storage_service.get_ticker(&ticker_param.symbol).await?;
-        debug!("Ticker sentiment params {:#?}", ticker_param.symbol);
+        debug!("Ticker sentiment params {:#?}", symbol);
 
         let embeddings = self
             .storage_service
-            .get_ticker_embeddings(&ticker_param.symbol)
+            .get_ticker_embeddings(&symbol)
             .await?;
         // debug!("Embeddings: {}", embeddings.len());
         let idsm: HashMap<String, TickerEmbedding> = embeddings
@@ -86,7 +93,7 @@ impl Tool for TickerSentimentTool {
             .collect();
 
         // top 5 similarit results from vector_search
-        let vectors = self.query_embedding.clone().into_vec();
+        let vectors = query_embedding.clone().into_vec();
         let results = search::<String>(&vectors, &candidates, 5);
 
         // iterator through result and return vector of (TickerEmbedding, f32)
@@ -132,7 +139,7 @@ impl Tool for TickerSentimentTool {
         debug!("results: {:?}", sentiments);
 
         Ok(json!({
-            "symbol": ticker_param.symbol,
+            "symbol": symbol,
             "sentiment_count": final_results.len(),
             "sentiments": sentiments
         }))

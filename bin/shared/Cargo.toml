@@ -15,7 +15,8 @@ tempfile.workspace = true
 tracing.workspace = true
 tracing-subscriber.workspace = true
 
-agentic-core.workspace = true
+rustic-agent.workspace = true
+rustic-ml.workspace=true
 fin-providers.workspace = true
 fin-services.workspace = true
 fin-storage.workspace=true

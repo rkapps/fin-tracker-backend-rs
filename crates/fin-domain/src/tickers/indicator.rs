@@ -5,8 +5,8 @@ use crate::tickers::indicator_serde;
 use crate::tickers::serialize_as_bson_datetime;
 use chrono::{DateTime, Utc};
 use rust_decimal::Decimal;
+use rustic_storage::core::repository::RepoModel;
 use serde::{Deserialize, Serialize};
-use storage_core::core::RepoModel;
 
 use crate::tickers::TICKER_INDICATOR_COLLECTION_NAME;
 

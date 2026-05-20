@@ -1,4 +1,3 @@
-use agentic_core::client::embeddings::EmbeddingClient;
 use anyhow::Result;
 use chrono::{Months, Utc};
 use chrono_tz::US::Eastern;
@@ -15,6 +14,7 @@ use fin_providers::ProviderService;
 use fin_storage::service::StorageService;
 use rust_decimal::prelude::ToPrimitive;
 use rust_decimal_macros::dec;
+use rustic_ml::embeddings::client::EmbeddingClient;
 use std::{collections::HashMap, sync::Arc, time::Duration};
 use tokio::{
     sync::{RwLock, Semaphore},

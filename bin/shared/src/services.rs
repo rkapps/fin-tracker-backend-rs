@@ -1,8 +1,5 @@
 use std::{env, sync::Arc};
 
-use agentic_core::{
-    client::embeddings::EmbeddingClient, providers::openai::embeddings::OpenAIEmbeddingClient,
-};
 use anyhow::Result;
 use fin_providers::ProviderService;
 use fin_services::{
@@ -12,6 +9,7 @@ use fin_storage::{
     mongo::{MongoStorageManager, MongoStorageService},
     service::StorageService,
 };
+use rustic_ml::{EmbeddingClient, embeddings::openai::OpenAIEmbeddingClient};
 
 pub fn get_embedding_client() -> Result<Arc<dyn EmbeddingClient>> {
     let openai_api_key: String =

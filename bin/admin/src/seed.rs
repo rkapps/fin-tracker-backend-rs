@@ -1,7 +1,7 @@
-use agentic_boot::startup::config::download_gcs_to_file;
 use anyhow::{Context, Result};
 use calamine::{Reader, Xlsx, open_workbook};
 use fin_domain::tickers::TickerSeed;
+use rustic_boot::config::load::download_gcs_to_file;
 use std::path::PathBuf;
 
 pub fn load_ticker_seeds_from_file(file: PathBuf) -> Result<Vec<TickerSeed>> {
@@ -36,35 +36,4 @@ pub fn load_ticker_seeds_from_file(file: PathBuf) -> Result<Vec<TickerSeed>> {
 
 pub async fn load_ticker_seeds_from_gcs(gcs_path: &str) -> anyhow::Result<PathBuf> {
     download_gcs_to_file(gcs_path).await
-
-    // // parse gs://bucket-name/path/to/file.xlsx
-    // let path = gcs_path
-    //     .strip_prefix("gs://")
-    //     .ok_or_else(|| anyhow::anyhow!("Invalid GCS path"))?;
-    // let (bucket, object) = path
-    //     .split_once('/')
-    //     .ok_or_else(|| anyhow::anyhow!("Invalid GCS path"))?;
-
-    // // create client using ADC (works automatically on Cloud Run)
-    // let config = ClientConfig::default().with_auth().await?;
-    // let client = Client::new(config);
-
-    // // download object bytes
-    // let data = client
-    //     .download_object(
-    //         &GetObjectRequest {
-    //             bucket: bucket.to_string(),
-    //             object: object.to_string(),
-    //             ..Default::default()
-    //         },
-    //         &Range::default(),
-    //     )
-    //     .await?;
-
-    // // write to temp file
-    // let mut tmp = NamedTempFile::new()?;
-    // tmp.write_all(&data)?;
-    // let path = tmp.into_temp_path().keep()?;
-
-    // Ok(path)
 }

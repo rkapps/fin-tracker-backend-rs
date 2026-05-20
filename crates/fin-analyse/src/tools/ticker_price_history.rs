@@ -1,6 +1,6 @@
 use std::sync::Arc;
 
-use agentic_core::client::tools::Tool;
+use rustic_agent::Tool;
 use anyhow::Result;
 use async_trait::async_trait;
 use fin_domain::utils::string_utils::string_to_utc_datetime;

@@ -17,9 +17,9 @@ use fin_providers::{
 };
 use rust_decimal::{Decimal, prelude::ToPrimitive};
 use rust_decimal_macros::dec;
+use rustic_storage::core::repository::RepoModel;
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
-use storage_core::core::RepoModel;
 use tracing::debug;
 
 #[derive(Serialize, Deserialize, Default, Clone, Debug)]

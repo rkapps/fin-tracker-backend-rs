@@ -1,9 +1,9 @@
 use std::sync::Arc;
 
-use agentic_core::client::tools::Tool;
 use anyhow::Result;
 use async_trait::async_trait;
 use fin_storage::service::StorageService;
+use rustic_agent::Tool;
 use serde::Deserialize;
 use serde_json::{Value, json};
 use tracing::{debug, error};

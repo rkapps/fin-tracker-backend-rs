@@ -1,10 +1,7 @@
 use async_trait::async_trait;
 use chrono::{DateTime, Utc};
 use fin_domain::tickers::TickerNews;
-use storage_core::core::{
-    Repository as _,
-    search::{SearchCriteria, SearchOp, SearchValue},
-};
+use rustic_storage::core::{repository::Repository, search::{SearchCriteria, SearchOp, SearchValue}};
 use tracing::debug;
 
 use crate::{mongo::MongoStorageService, service::TickerNewsStorageService};
@@ -13,8 +10,8 @@ use anyhow::Result;
 #[async_trait]
 impl TickerNewsStorageService for MongoStorageService {
     async fn delete_ticker_news_before(&self, date: DateTime<Utc>) -> Result<()> {
-        let mut criteria = SearchCriteria::new();
-        criteria.add_condition("date", SearchOp::Lt, SearchValue::DateTime(date));
+        let criteria = SearchCriteria::new().lt("date", date);
+        // criteria.add_condition("date", SearchOp::Lt, SearchValue::DateTime(date));
 
         match self.manager.ticker_news().await {
             Ok(repo) => {
@@ -28,14 +25,14 @@ impl TickerNewsStorageService for MongoStorageService {
     }
 
     async fn get_ticker_news(&self, symbol: &str) -> Result<Vec<TickerNews>> {
-        let mut criteria = SearchCriteria::new();
-        criteria.add_condition(
-            "symbol",
-            SearchOp::Eq,
-            SearchValue::String(symbol.to_uppercase().to_string()),
-        );
-        criteria.add_limit(50);
-        criteria.add_sort("date", false);
+        let criteria = SearchCriteria::new().eq("symbol", symbol.to_uppercase()).limit(50).sort_desc("date");
+        // criteria.add_condition(
+        //     "symbol",
+        //     SearchOp::Eq,
+        //     SearchValue::String(symbol.to_uppercase().to_string()),
+        // );
+        // criteria.add_limit(50);
+        // criteria.add_sort("date", false);
         // debug!("Criteria: {:?}", criteria);
         match self.manager.ticker_news().await {
             Ok(repo) => {

@@ -1,4 +1,3 @@
-use agentic_core::client::embeddings::EmbeddingClient;
 use anyhow::Result;
 use fin_domain::{
     dto::{
@@ -10,8 +9,8 @@ use fin_domain::{
 };
 use fin_storage::service::StorageService;
 use rust_decimal::{Decimal, prelude::ToPrimitive};
+use rustic_ml::{EmbeddingClient, search};
 use std::{collections::HashMap, fmt::Debug, sync::Arc};
-use storage_core::vector::search;
 use tracing::debug;
 
 #[derive(Debug, Clone)]
@@ -153,7 +152,7 @@ impl TickersService {
                 .search_tickers(filter)
                 .await
                 .map_err(|e| anyhow::anyhow!(format!("Get Ticker error: {}", e)))?;
-
+            debug!("Tickers from storage: {}", tickers.len());
             self.search_tickers_by_overview_embedding(param.query, &tickers)
                 .await?
         };
@@ -174,30 +173,27 @@ impl TickersService {
         let tickers = if let Some(query) = query && !tickers.is_empty(){
             let overview_candidates: Vec<(Ticker, Vec<f32>)> = get_overview_embeddings(&tickers);
             debug!("Overview candidates: {}", overview_candidates.len());
-
             debug!("Query: {:?}", query);
 
+            let candidates: Vec<(Ticker, Vec<f32>)> = get_overview_embeddings(&tickers);
             let vectors = self.embedding_client.embed_text(&query).await?.into_vec();
-
-            let candidates: Vec<(Ticker, Vec<f32>)> = overview_candidates
-                .iter()
-                .map(|(t, e)| (t.clone(), e.clone()))
-                .collect();
 
             debug!(
                 "Query vectors: {} candidates: {}",
-                vectors.len(),
+                candidates.len(),
                 candidates.len()
             );
-            search(&vectors, &candidates, 1000)
+            let ntickers = search(&vectors, &candidates, 1000)
                 .into_iter()
                 .filter_map(|(t, s)| {
                     // debug!("ticker: {}-{}", t.symbol, s);
-                    if s > 0.25 { Some(t) } else { None }
+                    if s > 0.25 { Some(t.clone()) } else { None }
                 })
-                .collect()
+                .collect();
+            ntickers
+
         } else {
-            Vec::new()
+            tickers.to_vec()
         };
         Ok(tickers)
     }

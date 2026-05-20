@@ -1,12 +1,12 @@
 use std::{collections::HashMap, sync::Arc};
 
-use agentic_core::client::{embeddings::Embedding, tools::Tool};
+use rustic_agent::client::tools::Tool;
 use anyhow::Result;
 use async_trait::async_trait;
 use fin_storage::service::StorageService;
+use rustic_ml::{embeddings::client::Embedding, search::similarity::search};
 use serde::Deserialize;
 use serde_json::{Value, json};
-use storage_core::vector::search;
 use tracing::info;
 
 #[derive(Debug)]
@@ -83,7 +83,7 @@ impl Tool for TickerSimilarityTool {
 
         // Score both
         let vectors = self.query_embedding.clone().into_vec();
-        let overview_scores: HashMap<String, f32> = search::search(
+        let overview_scores: HashMap<String, f32> = search(
             &vectors,
             &overview_candidates
                 .iter()
@@ -94,7 +94,7 @@ impl Tool for TickerSimilarityTool {
         .into_iter()
         .collect();
 
-        let industry_scores: HashMap<String, f32> = search::search(
+        let industry_scores: HashMap<String, f32> = search(
             &vectors,
             &industry_candidates
                 .iter()

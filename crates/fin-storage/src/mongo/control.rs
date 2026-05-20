@@ -1,6 +1,6 @@
 use async_trait::async_trait;
 use fin_domain::tickers::TickerControl;
-use storage_core::core::Repository as _;
+use rustic_storage::core::repository::Repository;
 
 use crate::{mongo::MongoStorageService, service::TickerControlStorageService};
 use anyhow::Result;

@@ -1,8 +1,5 @@
-use agentic_boot::services::AgentService;
-use agentic_core::client::{
-    llm::CompletionStreamResponse, message::Message, response::CompletionResponse,
-};
 use anyhow::Result;
+use rustic_agent::{AgentService, CompletionResponse, CompletionStreamResponse, Message};
 use std::sync::Arc;
 use tracing::info;
 

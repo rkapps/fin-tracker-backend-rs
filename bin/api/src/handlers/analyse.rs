@@ -1,6 +1,5 @@
 use std::{convert::Infallible, sync::Arc};
 
-use agentic_core::client::response::CompletionResponseContent;
 use axum::{
     Json,
     extract::State,
@@ -9,6 +8,7 @@ use axum::{
 use fin_services::analyse::AnalyseService;
 use futures::StreamExt;
 use reqwest::StatusCode;
+use rustic_agent::CompletionResponseContent;
 use serde::{Deserialize, Serialize};
 use tokio::sync::Mutex;
 use tracing::{debug, info};

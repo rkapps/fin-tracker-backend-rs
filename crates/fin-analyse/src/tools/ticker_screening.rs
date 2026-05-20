@@ -1,4 +1,4 @@
-use agentic_core::client::{embeddings::EmbeddingClient, tools::Tool};
+use rustic_agent::Tool;
 use anyhow::Result;
 use async_trait::async_trait;
 use fin_domain::{
@@ -6,9 +6,9 @@ use fin_domain::{
     utils::data_utils::get_overview_embeddings,
 };
 use fin_storage::service::StorageService;
+use rustic_ml::{EmbeddingClient, search};
 use serde_json::{Value, json};
 use std::sync::Arc;
-use storage_core::vector::search;
 use tracing::{debug, info};
 
 #[derive(Debug)]
@@ -168,7 +168,7 @@ impl Tool for TickerScreeningTool {
                 .map(|(t, e)| (t.symbol.clone(), e.clone()))
                 .collect();
 
-            search::search(&vectors, &candidates, limit)
+            search(&vectors, &candidates, limit)
                 .into_iter()
                 .map(|(s, _)| s)
                 .collect()

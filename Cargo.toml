@@ -49,10 +49,15 @@ tracing-subscriber = { version = "0.3", features = ["env-filter", "json"] }
 #storage-core = { path = "../libs/storage-core-rs" }
 #agentic-core = { path = "../libs/agentic-core-rs" }
 #agentic-boot = { path = "../libs/agentic-boot" }
+#storage-core = { git = "https://github.com/rkapps/storage-core-rs" }
+#agentic-core = { git = "https://github.com/rkapps/agentic-core-rs" }
+#agentic-boot = { git = "https://github.com/rkapps/agentic-boot" }
 
-storage-core = { git = "https://github.com/rkapps/storage-core-rs" }
-agentic-core = { git = "https://github.com/rkapps/agentic-core-rs" }
-agentic-boot = { git = "https://github.com/rkapps/agentic-boot" }
+rustic-agent = { path = "../rustic-ai-backend-rs/crates/rustic-agent" }
+rustic-boot = { path = "../rustic-ai-backend-rs/crates/rustic-boot" }
+rustic-core = { path = "../rustic-ai-backend-rs/crates/rustic-core" }
+rustic-storage = { path = "../rustic-ai-backend-rs/crates/rustic-storage" }
+rustic-ml = { path = "../rustic-ai-backend-rs/crates/rustic-ml" }
 
 # Local app crates
 fin-analyse = { path = "crates/fin-analyse" }

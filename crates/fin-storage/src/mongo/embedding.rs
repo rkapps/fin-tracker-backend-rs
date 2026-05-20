@@ -1,10 +1,7 @@
 use async_trait::async_trait;
 use chrono::{DateTime, Utc};
 use fin_domain::tickers::TickerEmbedding;
-use storage_core::core::{
-    Repository as _,
-    search::{SearchCriteria, SearchOp, SearchValue},
-};
+use rustic_storage::core::{repository::Repository, search::{SearchCriteria, SearchOp, SearchValue}};
 use tracing::debug;
 
 use crate::{mongo::MongoStorageService, service::TickerEmbeddingStorageService};
@@ -13,8 +10,8 @@ use anyhow::Result;
 #[async_trait]
 impl TickerEmbeddingStorageService for MongoStorageService {
     async fn delete_ticker_embeddings_before(&self, date: DateTime<Utc>) -> Result<()> {
-        let mut criteria = SearchCriteria::new();
-        criteria.add_condition("date", SearchOp::Lt, SearchValue::DateTime(date));
+        let mut criteria = SearchCriteria::new().lt("date", date);
+        // criteria.add_condition("date", SearchOp::Lt, SearchValue::DateTime(date));
 
         match self.manager.ticker_embeddings().await {
             Ok(repo) => {
@@ -28,12 +25,12 @@ impl TickerEmbeddingStorageService for MongoStorageService {
     }
 
     async fn get_ticker_embeddings(&self, symbol: &str) -> Result<Vec<TickerEmbedding>> {
-        let mut criteria = SearchCriteria::new();
-        criteria.add_condition(
-            "symbol",
-            SearchOp::Eq,
-            SearchValue::String(symbol.to_uppercase().to_string()),
-        );
+        let criteria = SearchCriteria::new().eq("symbol", symbol.to_uppercase());
+        // criteria.add_condition(
+        //     "symbol",
+        //     SearchOp::Eq,
+        //     SearchValue::String(symbol.to_uppercase().to_string()),
+        // );
         // debug!("Criteria: {:?}", criteria);
         match self.manager.ticker_embeddings().await {
             Ok(repo) => {

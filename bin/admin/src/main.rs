@@ -1,6 +1,5 @@
 use std::path::PathBuf;
 
-use agentic_boot::logger::set_logger;
 use anyhow::Result;
 use bin_shared::services::{
     get_load_service, get_ml_service, get_pipeline_service, get_storage_service,
@@ -9,6 +8,7 @@ use chrono::Utc;
 use clap::{Parser, Subcommand};
 use fin_core::tickers::update::update_ticker_overview_embedding;
 use fin_tracker_admin::seed::{load_ticker_seeds_from_file, load_ticker_seeds_from_gcs};
+use rustic_core::set_logger;
 use tracing::{error, info};
 
 #[derive(Parser)]

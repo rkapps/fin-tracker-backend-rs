@@ -1,6 +1,6 @@
-use agentic_boot::startup::boot::BootState;
 use axum::extract::FromRef;
 use fin_services::{analyse::AnalyseService, ticker::TickersService};
+use rustic_boot::BootState;
 use std::sync::Arc;
 
 #[derive(Clone)]

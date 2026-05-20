@@ -26,9 +26,13 @@ ta.workspace=true
 tokio.workspace = true
 tracing.workspace = true
 
-agentic-core.workspace = true
-agentic-boot.workspace = true
-storage-core.workspace = true
+#agentic-core.workspace = true
+#agentic-boot.workspace = true
+rustic-agent.workspace=true
+rustic-core.workspace=true
+rustic-storage.workspace = true
+rustic-ml.workspace = true
+
 fin-domain.workspace = true
 fin-storage.workspace = true
 fin-providers.workspace = true

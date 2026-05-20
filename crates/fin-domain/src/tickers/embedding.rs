@@ -1,8 +1,9 @@
 use crate::tickers::deserialize_flexible_datetime;
 use crate::tickers::serialize_as_bson_datetime;
 use chrono::{DateTime, Utc};
+use rustic_storage::core::repository::RepoModel;
+use rustic_storage::core::repository::VectorEmbedding;
 use serde::{Deserialize, Serialize};
-use storage_core::core::{RepoModel, VectorEmbedding};
 
 use crate::tickers::TICKER_EMBEDDING_COLLECTION_NAME;
 

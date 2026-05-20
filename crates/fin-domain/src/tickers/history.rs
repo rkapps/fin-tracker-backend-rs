@@ -5,8 +5,8 @@ use anyhow::Result;
 use chrono::{DateTime, Utc};
 use fin_providers::tiingo::model::TiingoTickerHistory;
 use rust_decimal::Decimal;
+use rustic_storage::core::repository::RepoModel;
 use serde::{Deserialize, Serialize};
-use storage_core::core::RepoModel;
 
 use crate::tickers::TICKER_HISTORY_COLLECTION_NAME;
 

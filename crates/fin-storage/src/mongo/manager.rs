@@ -8,7 +8,8 @@ use fin_domain::tickers::{
     TICKER_SENTIMENT_COLLECTION_NAME, Ticker, TickerAlpha, TickerControl, TickerEmbedding,
     TickerHistory, TickerIndicator, TickerSentiment,
 };
-use storage_core::mongo::{database::MongoDatabase, repository::MongoRepository};
+use rustic_storage::mongo::database::MongoDatabase;
+use rustic_storage::mongo::repository::MongoRepository;
 use tokio::sync::Mutex;
 
 #[derive(Debug)]

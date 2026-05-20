@@ -1,12 +1,8 @@
-use async_trait::async_trait;
-use fin_domain::tickers::TickerAlpha;
-use storage_core::core::{
-    Repository as _,
-    search::{SearchCriteria, SearchOp, SearchValue},
-};
-
 use crate::{mongo::MongoStorageService, service::TickerAlphaStorageService};
 use anyhow::Result;
+use async_trait::async_trait;
+use fin_domain::tickers::TickerAlpha;
+use rustic_storage::core::{repository::Repository, search::SearchCriteria};
 
 #[async_trait]
 impl TickerAlphaStorageService for MongoStorageService {
@@ -15,9 +11,9 @@ impl TickerAlphaStorageService for MongoStorageService {
             return Err(anyhow::anyhow!("Error saving TickerAlpha",));
         };
         let mut repo = repo.lock().await;
-        let mut criteria = SearchCriteria::new();
-        criteria.add_condition("key", SearchOp::Eq, SearchValue::String(key.to_string()));
-        criteria.add_sort("date", false);
+        let criteria = SearchCriteria::new().eq("key", key).sort_desc("date");
+        // criteria.add_condition("key", SearchOp::Eq, SearchValue::String(key.to_string()));
+        // criteria.add_sort("date", false);
 
         repo.find(Some(criteria)).await
     }
