@@ -3,7 +3,7 @@ use std::sync::Arc;
 use anyhow::Result;
 use async_trait::async_trait;
 use fin_storage::service::StorageService;
-use rustic_agent::client::tools::Tool;
+use rustic_core::Tool;
 use serde_json::{Value, json};
 use tracing::{debug, info};
 

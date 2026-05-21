@@ -5,7 +5,7 @@ use fin_domain::{
     utils::data_utils::get_overview_embeddings,
 };
 use fin_storage::service::StorageService;
-use rustic_agent::Tool;
+use rustic_core::Tool;
 use rustic_ml::{EmbeddingClient, search};
 use serde_json::{Value, json};
 use std::sync::Arc;

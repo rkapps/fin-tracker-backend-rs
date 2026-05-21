@@ -18,6 +18,6 @@ fin-domain.workspace = true
 fin-storage.workspace = true
 
 #agentic-core.workspace = true
-rustic-agent.workspace=true
+rustic-core.workspace=true
 rustic-storage.workspace = true
 rustic-ml.workspace=true

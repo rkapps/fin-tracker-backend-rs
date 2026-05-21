@@ -22,12 +22,11 @@ use fin_tracker_api::{
     },
     state::AppState,
 };
-use rustic_agent::Tool;
 use rustic_boot::{
     boot,
     routes::{conversation::conversation_routes, providers::provider_routes},
 };
-use rustic_core::set_logger;
+use rustic_core::{Tool, set_logger};
 use tracing::debug;
 
 #[tokio::main]
@@ -68,15 +67,15 @@ async fn main() -> Result<()> {
             storage_service.clone(),
             embedding_client.clone(),
         )),
-        Arc::new(TickerTaxonomyTool::new(storage_service.clone())),
-        Arc::new(TickerSentimentTool::new(
-            embedding_client.clone(),
-            storage_service.clone(),
-        )),
-        Arc::new(TickerSnapshotTool::new(storage_service.clone())),
-        Arc::new(TickerPriceHistoryTool::new(storage_service.clone())),
-        Arc::new(TickerIndicatorTool::new(storage_service.clone())),
-        Arc::new(TickerPeersTool::new(storage_service.clone())),
+        // Arc::new(TickerTaxonomyTool::new(storage_service.clone())),
+        // Arc::new(TickerSentimentTool::new(
+        //     embedding_client.clone(),
+        //     storage_service.clone(),
+        // )),
+        // Arc::new(TickerSnapshotTool::new(storage_service.clone())),
+        // Arc::new(TickerPriceHistoryTool::new(storage_service.clone())),
+        // Arc::new(TickerIndicatorTool::new(storage_service.clone())),
+        // Arc::new(TickerPeersTool::new(storage_service.clone())),
     ];
 
     let fintracker_routes = Router::new()
