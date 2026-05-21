@@ -1,6 +1,6 @@
 use anyhow::Result;
 use reqwest::{Client, header::HeaderMap};
-use tracing::{debug, error, trace};
+use tracing::{error, trace};
 
 #[derive(Debug, Clone)]
 pub struct HttpClient {

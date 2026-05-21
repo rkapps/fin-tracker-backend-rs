@@ -3,10 +3,7 @@ use std::collections::HashMap;
 use async_trait::async_trait;
 use chrono::{DateTime, Utc};
 use fin_domain::tickers::{IndicatorSnapshot, IndicatorWindow, TickerIndicator};
-use rustic_storage::core::{
-    repository::Repository,
-    search::{SearchCriteria, SearchOp, SearchValue},
-};
+use rustic_storage::core::{repository::Repository, search::SearchCriteria};
 use tracing::debug;
 
 use crate::{
@@ -95,7 +92,10 @@ impl TickerIndicatorStorageService for MongoStorageService {
         symbol: &str,
         n: usize,
     ) -> Result<Vec<TickerIndicator>> {
-        let criteria = SearchCriteria::new().eq("symbol", symbol).sort_desc("date").limit(n);
+        let criteria = SearchCriteria::new()
+            .eq("symbol", symbol)
+            .sort_desc("date")
+            .limit(n);
         // criteria.add_condition(
         //     "symbol",
         //     SearchOp::Eq,
@@ -115,7 +115,10 @@ impl TickerIndicatorStorageService for MongoStorageService {
         let symbols: Vec<String> = tickers.iter().map(|t| t.symbol.clone()).collect();
 
         debug!("Tickers for sector: {}-{:?}", sector, symbols);
-        let criteria = SearchCriteria::new().in_values("symbol", symbols).gte("date", from_date).sort_asc("date");
+        let criteria = SearchCriteria::new()
+            .in_values("symbol", symbols)
+            .gte("date", from_date)
+            .sort_asc("date");
         // criteria.add_condition("symbol", SearchOp::In, SearchValue::Array(symbols));
         // criteria.add_condition("date", SearchOp::Gte, SearchValue::DateTime(from_date));
         // criteria.add_sort("date", true);

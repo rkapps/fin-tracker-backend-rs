@@ -1,10 +1,10 @@
 use std::sync::Arc;
 
-use rustic_agent::client::tools::Tool;
 use anyhow::Result;
 use async_trait::async_trait;
 use fin_domain::dto::ticker_param::TickerParam;
 use fin_storage::service::StorageService;
+use rustic_agent::client::tools::Tool;
 use serde_json::{Value, json};
 use tracing::{debug, info};
 

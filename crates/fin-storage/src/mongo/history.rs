@@ -3,10 +3,7 @@ use anyhow::Result;
 use async_trait::async_trait;
 use chrono::{DateTime, Utc};
 use fin_domain::tickers::TickerHistory;
-use rustic_storage::core::{
-    repository::Repository,
-    search::SearchCriteria,
-};
+use rustic_storage::core::{repository::Repository, search::SearchCriteria};
 
 #[async_trait]
 impl TickerHistoryStorageService for MongoStorageService {

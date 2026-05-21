@@ -170,12 +170,14 @@ impl TickersService {
         query: Option<String>,
         tickers: &[Ticker],
     ) -> Result<Vec<Ticker>> {
-        let tickers = if let Some(query) = query && !tickers.is_empty(){
-            let overview_candidates: Vec<(Ticker, Vec<f32>)> = get_overview_embeddings(&tickers);
+        let tickers = if let Some(query) = query
+            && !tickers.is_empty()
+        {
+            let overview_candidates: Vec<(Ticker, Vec<f32>)> = get_overview_embeddings(tickers);
             debug!("Overview candidates: {}", overview_candidates.len());
             debug!("Query: {:?}", query);
 
-            let candidates: Vec<(Ticker, Vec<f32>)> = get_overview_embeddings(&tickers);
+            let candidates: Vec<(Ticker, Vec<f32>)> = get_overview_embeddings(tickers);
             let vectors = self.embedding_client.embed_text(&query).await?.into_vec();
 
             debug!(
@@ -183,15 +185,13 @@ impl TickersService {
                 candidates.len(),
                 candidates.len()
             );
-            let ntickers = search(&vectors, &candidates, 1000)
+            search(&vectors, &candidates, 1000)
                 .into_iter()
                 .filter_map(|(t, s)| {
                     // debug!("ticker: {}-{}", t.symbol, s);
                     if s > 0.25 { Some(t.clone()) } else { None }
                 })
-                .collect();
-            ntickers
-
+                .collect()
         } else {
             tickers.to_vec()
         };

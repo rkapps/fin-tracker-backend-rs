@@ -2,13 +2,12 @@ use std::{collections::HashMap, sync::Arc};
 
 use anyhow::Result;
 use async_trait::async_trait;
-use fin_domain::dto::ticker_param::TickerParam;
 use fin_domain::tickers::TickerEmbedding;
 use fin_storage::service::StorageService;
 use rustic_agent::Tool;
-use rustic_ml::{Embedding, EmbeddingClient, search};
+use rustic_ml::{EmbeddingClient, search};
 use serde_json::{Value, json};
-use tracing::debug;
+use tracing::{debug, info};
 
 #[derive(Debug)]
 pub struct TickerSentimentTool {
@@ -74,12 +73,9 @@ impl Tool for TickerSentimentTool {
 
         //Get ticker
         // let ticker = self.storage_service.get_ticker(&ticker_param.symbol).await?;
-        debug!("Ticker sentiment params {:#?}", symbol);
+        info!("Ticker sentiment query {:#?} symbol {}", query, symbol);
 
-        let embeddings = self
-            .storage_service
-            .get_ticker_embeddings(&symbol)
-            .await?;
+        let embeddings = self.storage_service.get_ticker_embeddings(symbol).await?;
         // debug!("Embeddings: {}", embeddings.len());
         let idsm: HashMap<String, TickerEmbedding> = embeddings
             .iter()

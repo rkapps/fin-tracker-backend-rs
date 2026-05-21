@@ -9,7 +9,7 @@ use fin_storage::{
     mongo::{MongoStorageManager, MongoStorageService},
     service::StorageService,
 };
-use rustic_ml::{EmbeddingClient, embeddings::openai::OpenAIEmbeddingClient};
+use rustic_ml::{embeddings::openai::OpenAIEmbeddingClient, EmbeddingClient};
 
 pub fn get_embedding_client() -> Result<Arc<dyn EmbeddingClient>> {
     let openai_api_key: String =
@@ -32,7 +32,10 @@ pub fn get_embedding_client() -> Result<Arc<dyn EmbeddingClient>> {
 pub async fn get_tickers_service() -> Result<TickersService> {
     let storage_service: Arc<dyn StorageService> = get_storage_service().await?;
     let embedding_client = get_embedding_client()?;
-    Ok(TickersService::new(Arc::clone(&storage_service), embedding_client))
+    Ok(TickersService::new(
+        Arc::clone(&storage_service),
+        embedding_client,
+    ))
 }
 
 //Returns the Ml service

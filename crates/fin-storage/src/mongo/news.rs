@@ -1,7 +1,7 @@
 use async_trait::async_trait;
 use chrono::{DateTime, Utc};
 use fin_domain::tickers::TickerNews;
-use rustic_storage::core::{repository::Repository, search::{SearchCriteria, SearchOp, SearchValue}};
+use rustic_storage::core::{repository::Repository, search::SearchCriteria};
 use tracing::debug;
 
 use crate::{mongo::MongoStorageService, service::TickerNewsStorageService};
@@ -25,7 +25,10 @@ impl TickerNewsStorageService for MongoStorageService {
     }
 
     async fn get_ticker_news(&self, symbol: &str) -> Result<Vec<TickerNews>> {
-        let criteria = SearchCriteria::new().eq("symbol", symbol.to_uppercase()).limit(50).sort_desc("date");
+        let criteria = SearchCriteria::new()
+            .eq("symbol", symbol.to_uppercase())
+            .limit(50)
+            .sort_desc("date");
         // criteria.add_condition(
         //     "symbol",
         //     SearchOp::Eq,

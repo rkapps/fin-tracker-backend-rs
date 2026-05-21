@@ -3,7 +3,7 @@ use chrono::{DateTime, Utc};
 use fin_domain::tickers::TickerSentiment;
 use rust_decimal::Decimal;
 use rust_decimal_macros::dec;
-use rustic_storage::core::{repository::Repository, search::{SearchCriteria, SearchOp, SearchValue}};
+use rustic_storage::core::{repository::Repository, search::SearchCriteria};
 
 use crate::{mongo::MongoStorageService, service::TickerSentimentStorageService};
 use anyhow::Result;
@@ -35,7 +35,9 @@ impl TickerSentimentStorageService for MongoStorageService {
         symbol: &str,
         score: &Decimal,
     ) -> Result<Vec<TickerSentiment>> {
-        let mut criteria = SearchCriteria::new().eq("symbol", symbol.to_uppercase()).gte("relevance_score", *score);
+        let criteria = SearchCriteria::new()
+            .eq("symbol", symbol.to_uppercase())
+            .gte("relevance_score", *score);
         // criteria.add_condition(
         //     "symbol",
         //     SearchOp::Eq,

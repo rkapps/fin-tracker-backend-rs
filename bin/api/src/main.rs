@@ -8,7 +8,8 @@ use axum::{
 
 use bin_shared::services::{get_embedding_client, get_storage_service, get_tickers_service};
 use fin_analyse::tools::{
-    TickerIndicatorTool, TickerPeersTool, TickerPriceHistoryTool, TickerScreeningTool, TickerSentimentTool, TickerSnapshotTool, TickerTaxonomyTool
+    TickerIndicatorTool, TickerPeersTool, TickerPriceHistoryTool, TickerScreeningTool,
+    TickerSentimentTool, TickerSnapshotTool, TickerTaxonomyTool,
 };
 use fin_services::analyse::AnalyseService;
 use fin_tracker_api::{
@@ -22,7 +23,10 @@ use fin_tracker_api::{
     state::AppState,
 };
 use rustic_agent::Tool;
-use rustic_boot::{boot, routes::{conversation::conversation_routes, providers::provider_routes}};
+use rustic_boot::{
+    boot,
+    routes::{conversation::conversation_routes, providers::provider_routes},
+};
 use rustic_core::set_logger;
 use tracing::debug;
 
@@ -30,7 +34,8 @@ use tracing::debug;
 
 async fn main() -> Result<()> {
     let filter = std::env::var("RUST_LOG").unwrap_or_else(|_| {
-        "agentic_boot=debug,fin_services=debug,fin_providers=info,fin_core=info,agentic_core=info,fin_tracker_pipeline=info,fin_tracker_admin=info,fin_tracker_api=info".to_string()
+        "rustic_boot=info,rustic-agent=info,fin_services=info,fin_analyse=info,fin_core=info"
+            .to_string()
     });
     set_logger(filter);
 

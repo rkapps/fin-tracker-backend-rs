@@ -8,10 +8,7 @@ use fin_domain::{
     utils::data_utils::{assets_cap_label_range, assets_cap_range},
 };
 use rust_decimal::Decimal;
-use rustic_storage::core::{
-    repository::Repository,
-    search::{SearchCriteria, SearchOp, SearchValue},
-};
+use rustic_storage::core::{repository::Repository, search::SearchCriteria};
 use tracing::debug;
 
 #[async_trait]

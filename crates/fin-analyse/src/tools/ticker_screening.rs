@@ -1,4 +1,3 @@
-use rustic_agent::Tool;
 use anyhow::Result;
 use async_trait::async_trait;
 use fin_domain::{
@@ -6,6 +5,7 @@ use fin_domain::{
     utils::data_utils::get_overview_embeddings,
 };
 use fin_storage::service::StorageService;
+use rustic_agent::Tool;
 use rustic_ml::{EmbeddingClient, search};
 use serde_json::{Value, json};
 use std::sync::Arc;
@@ -153,6 +153,7 @@ impl Tool for TickerScreeningTool {
         let filter: TickerFilter = serde_json::from_value(value.clone())
             .map_err(|e| anyhow::anyhow!("Failed to deserialize params: {:?} — {:?}", value, e))?;
 
+        info!("Ticker screening filter: {:?}", filter);
         let tickers = self.storage_service.search_tickers(filter.clone()).await?;
         debug!("Screened stocks from initial search: {}", tickers.len());
 

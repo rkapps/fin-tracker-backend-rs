@@ -1,9 +1,9 @@
 use std::{collections::HashMap, sync::Arc};
 
-use rustic_agent::client::tools::Tool;
 use anyhow::Result;
 use async_trait::async_trait;
 use fin_storage::service::StorageService;
+use rustic_agent::client::tools::Tool;
 use rustic_ml::{embeddings::client::Embedding, search::similarity::search};
 use serde::Deserialize;
 use serde_json::{Value, json};
