@@ -2,7 +2,6 @@ use async_trait::async_trait;
 use chrono::{DateTime, Utc};
 use fin_domain::tickers::TickerEmbedding;
 use rustic_storage::core::{repository::Repository, search::SearchCriteria};
-use tracing::debug;
 
 use crate::{mongo::MongoStorageService, service::TickerEmbeddingStorageService};
 use anyhow::Result;
@@ -22,13 +21,11 @@ impl TickerEmbeddingStorageService for MongoStorageService {
         }
     }
 
-    async fn get_ticker_embeddings(&self, symbol: &str) -> Result<Vec<TickerEmbedding>> {
-        let criteria = SearchCriteria::new().eq("symbol", symbol.to_uppercase());
-        // debug!("Criteria: {:?}", criteria);
+    async fn get_ticker_embeddings(&self, symbols: Vec<String>) -> Result<Vec<TickerEmbedding>> {
+        let criteria = SearchCriteria::new().in_values("symbol", symbols);
         match self.manager.ticker_embeddings().await {
             Ok(repo) => {
                 let mut repo = repo.lock().await;
-                debug!("Criteria: {:?}", criteria);
                 repo.find(Some(criteria)).await
             }
             Err(e) => {

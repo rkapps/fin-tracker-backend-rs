@@ -29,14 +29,6 @@ impl TickerNewsStorageService for MongoStorageService {
             .eq("symbol", symbol.to_uppercase())
             .limit(50)
             .sort_desc("date");
-        // criteria.add_condition(
-        //     "symbol",
-        //     SearchOp::Eq,
-        //     SearchValue::String(symbol.to_uppercase().to_string()),
-        // );
-        // criteria.add_limit(50);
-        // criteria.add_sort("date", false);
-        // debug!("Criteria: {:?}", criteria);
         match self.manager.ticker_news().await {
             Ok(repo) => {
                 let mut repo = repo.lock().await;

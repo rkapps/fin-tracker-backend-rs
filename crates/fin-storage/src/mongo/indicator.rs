@@ -2,9 +2,13 @@ use std::collections::HashMap;
 
 use async_trait::async_trait;
 use chrono::{DateTime, Utc};
-use fin_domain::tickers::{IndicatorSnapshot, IndicatorWindow, TickerIndicator};
+use fin_domain::{
+    dto::ticker_indicator_entity::TickerIndicatorEntity,
+    tickers::{IndicatorSnapshot, IndicatorWindow, TickerIndicator},
+};
 use rustic_storage::core::{repository::Repository, search::SearchCriteria};
-use tracing::debug;
+use serde_json::json;
+use tracing::{debug, warn};
 
 use crate::{
     mongo::MongoStorageService,
@@ -16,7 +20,6 @@ use anyhow::Result;
 impl TickerIndicatorStorageService for MongoStorageService {
     async fn delete_ticker_indicators_before(&self, date: DateTime<Utc>) -> Result<()> {
         let criteria = SearchCriteria::new().lt("date", date);
-        // criteria.add_condition("date", SearchOp::Lt, SearchValue::DateTime(date));
 
         match self.manager.ticker_indicators().await {
             Ok(repo) => {
@@ -31,11 +34,6 @@ impl TickerIndicatorStorageService for MongoStorageService {
 
     async fn delete_ticker_indicators(&self, symbol: &str) -> Result<()> {
         let criteria = SearchCriteria::new().eq("symbol", symbol.to_uppercase());
-        // criteria.add_condition(
-        //     "symbol",
-        //     SearchOp::Eq,
-        //     SearchValue::String(symbol.to_uppercase().to_string()),
-        // );
         let Ok(repo) = self.manager.ticker_indicators().await else {
             return Err(anyhow::anyhow!(format!(
                 "Error finding TickerIndicator for '{}'",
@@ -49,16 +47,90 @@ impl TickerIndicatorStorageService for MongoStorageService {
         Ok(())
     }
 
+    async fn get_ticker_indicators_by_symbols(
+        &self,
+        symbols: Vec<String>,
+        n: Option<usize>,
+    ) -> Result<Vec<TickerIndicatorEntity>> {
+        debug!("symbols: {:?}", symbols);
+
+        let n = n.unwrap_or(0);
+
+        match self.manager.ticker_indicators().await {
+            Ok(repo) => {
+                let mut repo = repo.lock().await;
+
+                let pipeline = vec![
+                    json!({ "$match": { "symbol": { "$in": &symbols } } }),
+                    json!({ "$sort": { "symbol": 1, "date": -1 } }),
+                    json!({ "$group": {
+                        "_id": "$symbol",
+                        "docs": { "$push": "$$ROOT" }
+                    }}),
+                    match n {
+                        0 => json!({ "$project": {
+                            "symbol": "$_id",
+                            "records": "$docs",
+                            "_id": 0
+                        }}),
+                        _ => json!({ "$project": {
+                            "symbol": "$_id",
+                            "records": { "$slice": ["$docs", n as i64] },
+                            "_id": 0
+                        }}),
+                    },                    
+                    json!({ "$unwind": "$records" }),
+                    json!({ "$replaceRoot": { "newRoot": "$records" } }),                    
+                    json!({ "$addFields": {
+                        "rsi_14": { "$toDouble": "$values.rsi_14" },
+                        "sma_50": { "$toDouble": "$values.sma_50" },
+                        "sma_200": { "$toDouble": "$values.sma_200" },
+                        "macd": { "$toDouble": "$values.macd" },
+                        "macd_signal": { "$toDouble": "$values.macd_signal" },
+                        "bb_upper": { "$toDouble": "$values.bb_upper" },
+                        "bb_lower": { "$toDouble": "$values.bb_lower" },
+                    }}),
+                    json!({ "$project": {
+                        "id" : 1,
+                        "symbol": 1,
+                        "date": 1,
+                        "rsi_14": 1,
+                        "sma_50": 1,
+                        "sma_200": 1,
+                        "macd": 1,
+                        "macd_signal": 1,
+                        "bb_upper": 1,
+                        "bb_lower": 1,
+                        "_id": 0
+                    }}),
+                ];
+                let results = repo.aggregate(pipeline).await?;
+                debug!("results: {:?}", results);
+
+                let indicators: Vec<TickerIndicatorEntity> = results
+                    .iter()
+                    .filter_map(|v| match serde_json::from_value(v.clone()) {
+                        Ok(i) => Some(i),
+                        Err(e) => {
+                            warn!(
+                                "Failed to deserialize TickerIndicator: {} value: {:#?}",
+                                e, v
+                            );
+                            None
+                        }
+                    })
+                    .collect();
+                debug!("results: {:?}", indicators);
+                Ok(indicators)
+            }
+            Err(e) => Err(anyhow::anyhow!("Error getting TickerIndicator: {}", e)),
+        }
+    }
+
     async fn get_ticker_indicators(&self, symbol: &str) -> Result<Vec<TickerIndicator>> {
         let criteria = SearchCriteria::new()
             .eq("symbol", symbol.to_uppercase())
             .sort_asc("date");
-        // criteria.add_condition(
-        //     "symbol",
-        //     SearchOp::Eq,
-        //     SearchValue::String(symbol.to_uppercase().to_string()),
-        // );
-        // criteria.add_sort("date", true);
         self.get_ticker_indicators_by_criteria(&criteria).await
     }
 
@@ -71,13 +143,6 @@ impl TickerIndicatorStorageService for MongoStorageService {
             .eq("symbol", symbol.to_uppercase())
             .gte("date", from_date)
             .sort_asc("date");
-        // criteria.add_condition(
-        //     "symbol",
-        //     SearchOp::Eq,
-        //     SearchValue::String(symbol.to_uppercase().to_string()),
-        // );
-        // criteria.add_condition("date", SearchOp::Gte, SearchValue::DateTime(from_date));
-        // criteria.add_sort("date", true);
         self.get_ticker_indicators_by_criteria(&criteria).await
     }
 
@@ -96,13 +161,6 @@ impl TickerIndicatorStorageService for MongoStorageService {
             .eq("symbol", symbol)
             .sort_desc("date")
             .limit(n);
-        // criteria.add_condition(
-        //     "symbol",
-        //     SearchOp::Eq,
-        //     SearchValue::String(symbol.to_uppercase().to_string()),
-        // );
-        // criteria.add_sort("date", false);
-        // criteria.add_limit(n);
         self.get_ticker_indicators_by_criteria(&criteria).await
     }
 
@@ -119,9 +177,6 @@ impl TickerIndicatorStorageService for MongoStorageService {
             .in_values("symbol", symbols)
             .gte("date", from_date)
             .sort_asc("date");
-        // criteria.add_condition("symbol", SearchOp::In, SearchValue::Array(symbols));
-        // criteria.add_condition("date", SearchOp::Gte, SearchValue::DateTime(from_date));
-        // criteria.add_sort("date", true);
         let indicators = self.get_ticker_indicators_by_criteria(&criteria).await?;
 
         // Group by symbol — sorted order preserved from query

@@ -3,9 +3,15 @@ use std::{collections::HashMap, fmt::Debug};
 use anyhow::Result;
 use async_trait::async_trait;
 use chrono::{DateTime, Utc};
-use fin_domain::tickers::{
-    IndicatorWindow, Ticker, TickerAlpha, TickerControl, TickerEmbedding, TickerFilter,
-    TickerHistory, TickerIndicator, TickerNews, TickerSentiment,
+use fin_domain::{
+    dto::{
+        ticker_group::TickerGroup, ticker_indicator_entity::TickerIndicatorEntity,
+        ticker_peer::TickerPeer,
+    },
+    tickers::{
+        IndicatorWindow, Ticker, TickerAlpha, TickerControl, TickerEmbedding, TickerFilter,
+        TickerHistory, TickerIndicator, TickerNews, TickerSentiment,
+    },
 };
 use rust_decimal::Decimal;
 // use std::collections::HashMap;
@@ -37,7 +43,12 @@ pub trait TickerControlStorageService: Send + Sync + Debug {
 #[async_trait]
 pub trait TickerStorageService: Send + Sync + Debug {
     async fn get_ticker_by_symbol(&self, symbol: &str) -> Result<Ticker>;
-    async fn get_ticker_groups(&self) -> Result<HashMap<String, Vec<String>>>;
+    async fn get_ticker_groups(&self) -> Result<Vec<TickerGroup>>;
+    async fn get_ticker_peers_by_symbols(
+        &self,
+        symbols: Vec<String>,
+        limit: usize,
+    ) -> Result<Vec<TickerPeer>>;
     async fn get_ticker_peers_by_industry(&self, symbol: &str) -> Result<Vec<Ticker>>;
     async fn get_ticker_peers_by_sector(&self, symbol: &str) -> Result<Vec<Ticker>>;
     async fn get_tickers(&self) -> Result<Vec<Ticker>>;
@@ -81,8 +92,13 @@ pub trait TickerHistoryStorageService: Send + Sync + Debug {
 pub trait TickerIndicatorStorageService: Send + Sync + Debug {
     async fn delete_ticker_indicators(&self, symbol: &str) -> Result<()>;
     async fn delete_ticker_indicators_before(&self, date: DateTime<Utc>) -> Result<()>;
-
     async fn get_ticker_indicators(&self, symbol: &str) -> Result<Vec<TickerIndicator>>;
+
+    async fn get_ticker_indicators_by_symbols(
+        &self,
+        symbols: Vec<String>,
+        n: Option<usize>,
+    ) -> Result<Vec<TickerIndicatorEntity>>;
     async fn get_ticker_indicators_latest(&self, symbol: &str) -> Result<TickerIndicator>;
 
     async fn get_ticker_indicators_by_symbol(
@@ -114,9 +130,11 @@ pub trait TickerIndicatorStorageService: Send + Sync + Debug {
 pub trait TickerSentimentStorageService: Send + Sync + Debug {
     async fn delete_ticker_sentiments_before(&self, date: DateTime<Utc>) -> Result<()>;
     async fn get_ticker_sentiments(&self, symbol: &str) -> Result<Vec<TickerSentiment>>;
+    async fn get_ticker_sentiments_by_ids(&self, ids: Vec<String>) -> Result<Vec<TickerSentiment>>;
+
     async fn get_ticker_sentiments_with_score(
         &self,
-        symbol: &str,
+        symbols: Vec<String>,
         score: &Decimal,
     ) -> Result<Vec<TickerSentiment>>;
 
@@ -130,7 +148,7 @@ pub trait TickerSentimentStorageService: Send + Sync + Debug {
 #[async_trait]
 pub trait TickerEmbeddingStorageService: Send + Sync + Debug {
     async fn delete_ticker_embeddings_before(&self, date: DateTime<Utc>) -> Result<()>;
-    async fn get_ticker_embeddings(&self, symbol: &str) -> Result<Vec<TickerEmbedding>>;
+    async fn get_ticker_embeddings(&self, symbols: Vec<String>) -> Result<Vec<TickerEmbedding>>;
     async fn save_ticker_embeddings(
         &self,
         symbol: &str,

@@ -25,30 +25,33 @@ impl TickerSentimentStorageService for MongoStorageService {
         }
     }
 
+    async fn get_ticker_sentiments_by_ids(&self, ids: Vec<String>) -> Result<Vec<TickerSentiment>> {
+        let criteria = SearchCriteria::new().in_values("id", ids);
+        match self.manager.ticker_sentiments().await {
+            Ok(repo) => {
+                let mut repo = repo.lock().await;
+                repo.find(Some(criteria)).await
+            }
+            Err(e) => {
+                return Err(anyhow::anyhow!("Error getting TickerSentiment: {}", e));
+            }
+        }
+    }
+
     async fn get_ticker_sentiments(&self, symbol: &str) -> Result<Vec<TickerSentiment>> {
         let score = dec!(0);
-        self.get_ticker_sentiments_with_score(symbol, &score).await
+        self.get_ticker_sentiments_with_score(vec![symbol.to_string()], &score)
+            .await
     }
 
     async fn get_ticker_sentiments_with_score(
         &self,
-        symbol: &str,
+        symbols: Vec<String>,
         score: &Decimal,
     ) -> Result<Vec<TickerSentiment>> {
         let criteria = SearchCriteria::new()
-            .eq("symbol", symbol.to_uppercase())
+            .in_values("symbol", symbols)
             .gte("relevance_score", *score);
-        // criteria.add_condition(
-        //     "symbol",
-        //     SearchOp::Eq,
-        //     SearchValue::String(symbol.to_uppercase().to_string()),
-        // );
-        // criteria.add_condition(
-        //     "relevance_score",
-        //     SearchOp::Gte,
-        //     SearchValue::Decimal(*score),
-        // );
-
         match self.manager.ticker_sentiments().await {
             Ok(repo) => {
                 let mut repo = repo.lock().await;

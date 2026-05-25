@@ -12,9 +12,6 @@ impl TickerAlphaStorageService for MongoStorageService {
         };
         let mut repo = repo.lock().await;
         let criteria = SearchCriteria::new().eq("key", key).sort_desc("date");
-        // criteria.add_condition("key", SearchOp::Eq, SearchValue::String(key.to_string()));
-        // criteria.add_sort("date", false);
-
         repo.find(Some(criteria)).await
     }
 
