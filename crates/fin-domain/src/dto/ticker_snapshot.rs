@@ -15,8 +15,8 @@ pub struct TickerSnapshot {
     pub fundamentals: TickerSnapshotFundamentals,
     pub performance: HashMap<String, HashMap<String, f64>>,
 
-    pub signals: Vec<String>,
-}
+    pub technical_signals: Vec<String>,
+    pub mlp_signals: Vec<String>,}
 
 #[derive(Debug, Serialize, Deserialize)]
 pub struct TickerSnapshotPrice {
@@ -48,6 +48,12 @@ pub struct TickerSnapshotFundamentals {
 impl From<Ticker> for TickerSnapshot {
     fn from(ticker: Ticker) -> Self {
         let ticker_clone = ticker.clone();
+
+        let (mlp_signals, technical_signals): (Vec<String>, Vec<String>) = ticker
+        .signals
+        .into_iter()
+        .partition(|s| s.starts_with("MLP") || s.starts_with("ML "));
+
         TickerSnapshot {
             symbol: ticker.symbol,
             name: ticker.name,
@@ -66,7 +72,8 @@ impl From<Ticker> for TickerSnapshot {
             },
             fundamentals: TickerSnapshotFundamentals::from(ticker_clone),
             performance: ticker.performance_search,
-            signals: ticker.signals,
+            technical_signals,
+            mlp_signals,
         }
     }
 }
