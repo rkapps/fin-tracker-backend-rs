@@ -153,6 +153,8 @@ impl Tool for TickerScreeningTool {
         let filter: TickerFilter = serde_json::from_value(value.clone())
             .map_err(|e| anyhow::anyhow!("Failed to deserialize params: {:?} — {:?}", value, e))?;
 
+        let start = std::time::Instant::now();
+
         info!("Ticker screening filter: {:?}", filter);
         let tickers = self.storage_service.search_tickers(filter.clone()).await?;
         debug!("Screened stocks from initial search: {}", tickers.len());
@@ -176,9 +178,8 @@ impl Tool for TickerScreeningTool {
         } else {
             tickers.into_iter().take(limit).map(|t| t.symbol).collect()
         };
-        info!("Screened Symbols: {:?}", symbols);
-
-        // info!("Screening Tools param: {:#?} Stocks: {:?}", filter, symbols);
-        Ok(json!({ "sreened_tickers": symbols }))
+        let elapsed = start.elapsed();
+        info!("Symbols: {:?}  {:.1}s", symbols.len(), elapsed.as_secs_f32());
+        Ok(json!({ "symbols": symbols }))
     }
 }

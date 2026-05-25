@@ -58,6 +58,8 @@ impl Tool for TickerIndicatorTool {
             symbols: Vec<String>,
         }
 
+        let start = std::time::Instant::now();
+
         let params: Params = serde_json::from_value(value.clone())
             .map_err(|e| anyhow::anyhow!("Failed to deserialize params: {:?} — {:?}", value, e))?;
 
@@ -66,43 +68,10 @@ impl Tool for TickerIndicatorTool {
             .storage_service
             .get_ticker_indicators_by_symbols(params.symbols, Some(1))
             .await?;
-        debug!("Indicators: {:#?}", indicators.len());
+        let elapsed = start.elapsed();
+        info!("Indicators: {:?}  {:.1}s", indicators.len(), elapsed.as_secs_f32());
 
-        Ok(json!(indicators))
-        // #[derive(Debug, Deserialize)]
-        // struct Params {
-        //     symbol: String,
-        //     _indicators: Option<Vec<String>>,
-        // }
-        // let params: Params = serde_json::from_value(value.clone())
-        //     .map_err(|e| anyhow::anyhow!("Failed to deserialize params: {:?} — {:?}", value, e))?;
-        // debug!("Ticker indicator params {:#?}", params);
+        Ok(json!({ "indicators": indicators }))
 
-        // let ticker = match self
-        //     .storage_service
-        //     .get_ticker_by_symbol(&params.symbol)
-        //     .await
-        // {
-        //     Ok(t) => t,
-        //     Err(e) => {
-        //         error!("Ticker error: {:?}", e);
-        //         return Ok(json!({
-        //             "symbol": params.symbol,
-        //             "error": "Ticker not found in database"
-        //         }));
-        //     }
-        // };
-
-        // debug!("Ticker technical indicators params {:#?}", params);
-        // // self.storage_service.
-        // let latest_indicator = self
-        //     .storage_service
-        //     .get_ticker_indicators_latest(&ticker.symbol)
-        //     .await?;
-        // debug!("Indicators: {:#?}", latest_indicator);
-        // Ok(json!({
-        //     "symbol": params.symbol,
-        //     "indicators": latest_indicator
-        // }))
     }
 }

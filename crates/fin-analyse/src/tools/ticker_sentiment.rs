@@ -70,6 +70,9 @@ impl Tool for TickerSentimentTool {
         fn default_limit() -> usize {
             10
         }
+
+        let start = std::time::Instant::now();
+
         let params: Params = serde_json::from_value(value.clone())
             .map_err(|e| anyhow::anyhow!("Failed to deserialize params: {:?} — {:?}", value, e))?;
 
@@ -87,22 +90,26 @@ impl Tool for TickerSentimentTool {
         )
         .await?;
 
-        let json = serde_json::to_value(
-            sentiments
-                .iter()
-                .map(|s| {
-                    json!({
-                        "symbol": s.symbol,
-                        "date": s.date.format("%Y-%m-%d").to_string(),
-                        "title": s.title,
-                        "score": (s.score * 100.0).round() / 100.0,
-                        "label": s.label,
-                        "source": s.source,
-                    })
-                })
-                .collect::<Vec<_>>(),
-        )?;
+        // let json = serde_json::to_value(
+        //     sentiments
+        //         .iter()
+        //         .map(|s| {
+        //             json!({
+        //                 "symbol": s.symbol,
+        //                 "date": s.date.format("%Y-%m-%d").to_string(),
+        //                 "title": s.title,
+        //                 "score": (s.score * 100.0).round() / 100.0,
+        //                 "label": s.label,
+        //                 "source": s.source,
+        //             })
+        //         })
+        //         .collect::<Vec<_>>(),
+        // )?;
 
-        Ok(json)
+        let elapsed = start.elapsed();
+        info!("Sentiments: {:?}  {:.1}s", sentiments.len(), elapsed.as_secs_f32());
+
+        Ok(json!({ "sentiments": sentiments }))
+
     }
 }

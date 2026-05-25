@@ -39,6 +39,9 @@ impl Tool for TickerTaxonomyTool {
     }
 
     async fn execute(&self, _value: serde_json::Value) -> Result<Value> {
+
+        let start = std::time::Instant::now();
+
         info!("Ticker taxonomy");
         let ticker_groups = self.storage_service.get_ticker_groups().await?;
         let mut groups: HashMap<String, Vec<String>> = HashMap::new();
@@ -46,6 +49,9 @@ impl Tool for TickerTaxonomyTool {
             groups.entry(group.sector).or_default().push(group.industry);
         }
         debug!("Ticker groups: {:?}", groups);
-        Ok(json!(groups))
+        let elapsed = start.elapsed();
+        info!("Groups: {:?}  {:.1}s", groups.len(), elapsed.as_secs_f32());
+        Ok(json!({"groups": groups }))
+
     }
 }
