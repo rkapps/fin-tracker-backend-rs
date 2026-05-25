@@ -55,7 +55,7 @@ impl Tool for TickerSnapshotTool {
         let params: Params = serde_json::from_value(value.clone())
             .map_err(|e| anyhow::anyhow!("Failed to deserialize params: {:?} — {:?}", value, e))?;
 
-        info!("Ticker Snapshot params {:#?}", params.symbols);
+        info!("Ticker Snapshot params {:?}", params.symbols);
         let tickers = match self
             .storage_service
             .get_tickers_by_symbols(params.symbols.clone())
