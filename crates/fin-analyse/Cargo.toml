@@ -16,6 +16,7 @@ tracing.workspace = true
 
 fin-domain.workspace = true
 fin-storage.workspace = true
+fin-core.workspace=true
 
 #agentic-core.workspace = true
 rustic-core.workspace=true

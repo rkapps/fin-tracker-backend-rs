@@ -1,4 +1,4 @@
-use std::sync::Arc;
+use std::{collections::HashMap, sync::Arc};
 
 use anyhow::Result;
 use async_trait::async_trait;
@@ -40,7 +40,11 @@ impl Tool for TickerTaxonomyTool {
 
     async fn execute(&self, _value: serde_json::Value) -> Result<Value> {
         info!("Ticker taxonomy");
-        let groups = self.storage_service.get_ticker_groups().await?;
+        let ticker_groups = self.storage_service.get_ticker_groups().await?;
+        let mut groups: HashMap<String, Vec<String>> = HashMap::new();
+        for group in ticker_groups {
+            groups.entry(group.sector).or_default().push(group.industry);
+        }
         debug!("Ticker groups: {:?}", groups);
         Ok(json!(groups))
     }

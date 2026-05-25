@@ -7,10 +7,11 @@ pub struct TickerSearchParam {
     pub function: Option<String>,
 
     // search
-    pub asset_type: Option<String>,       // "stock", "etf"
-    pub query: Option<String>,            // semantic: "cloud security", "payments infrastructure"
-    pub signals: Option<Vec<String>>,     // ["RSI Oversold", "MACD Bullish Crossover"]
-    pub industry: Option<String>,         // regex match
+    pub asset_type: Option<String>, // "stock", "etf"
+    pub query: Option<String>,      // semantic: "cloud security", "payments infrastructure"
+    pub score: Option<f32>,
+    pub signals: Option<Vec<String>>, // ["RSI Oversold", "MACD Bullish Crossover"]
+    pub industry: Option<String>,     // regex match
     pub assets_cap_range: Option<String>, // "mega", "large", "mid", "small"
     pub r#yield: Option<f32>,
 

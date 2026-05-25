@@ -30,7 +30,7 @@ impl AnalyseService {
             .build_agent_for_id("finance-agent", llm, model)
             .await?;
 
-        let response = agent.complete_with_tools(&messages).await?;
+        let response = agent.complete(&messages).await?;
         Ok(response)
     }
 
@@ -56,7 +56,7 @@ impl AnalyseService {
             .agent_service
             .build_agent_for_id("finance-agent", llm, model)
             .await?;
-        let stream = agent.complete_with_tools_streaming(&messages).await?;
+        let stream = agent.complete_with_streaming(&messages).await?;
         Ok(Box::pin(stream))
     }
 }

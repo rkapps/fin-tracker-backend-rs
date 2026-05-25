@@ -1,5 +1,7 @@
 use anyhow::Result;
-use fin_core::tickers::update::{update_all_tickers, update_ticker_overview_embedding};
+use fin_core::tickers::update::{
+    update_all_ticker_overview_embeddings, update_all_tickers, update_ticker_overview_embedding,
+};
 use fin_domain::tickers::{Ticker, TickerControl, TickerSeed};
 use fin_providers::ProviderService;
 use fin_storage::service::StorageService;
@@ -57,15 +59,13 @@ impl LoadService {
         )
         .await?;
 
-        // run ticker overview embeddings
-        for mut ticker in updated_tickers {
-            update_ticker_overview_embedding(
-                self.storage_service.clone(),
-                self.embedding_client.clone(),
-                &mut ticker,
-            )
-            .await?;
-        }
+        // update ticker overview embeddings
+        update_all_ticker_overview_embeddings(
+            self.storage_service.clone(),
+            self.embedding_client.clone(),
+            all_tickers,
+        )
+        .await?;
 
         Ok(())
     }

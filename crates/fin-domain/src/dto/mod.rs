@@ -1,6 +1,11 @@
 // pub mod screen_param;
 pub mod ticker_chart_entity;
 pub mod ticker_entity;
+pub mod ticker_group;
+pub mod ticker_indicator_entity;
 pub mod ticker_news_entity;
 pub mod ticker_param;
+pub mod ticker_peer;
 pub mod ticker_search_param;
+pub mod ticker_sentiment_entity;
+pub mod ticker_snapshot;

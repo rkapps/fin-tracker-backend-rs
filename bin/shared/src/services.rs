@@ -9,12 +9,19 @@ use fin_storage::{
     mongo::{MongoStorageManager, MongoStorageService},
     service::StorageService,
 };
-use rustic_ml::{embeddings::openai::OpenAIEmbeddingClient, EmbeddingClient};
+use rustic_ml::{
+    embeddings::{candle::CandleEmbeddingClient, openai::OpenAIEmbeddingClient},
+    EmbeddingClient,
+};
 
-pub fn get_embedding_client() -> Result<Arc<dyn EmbeddingClient>> {
+pub async fn get_embedding_client() -> Result<Arc<dyn EmbeddingClient>> {
     let openai_api_key: String =
         env::var("OPENAI_API_KEY").expect("OPENAI_API_KEY environment variable not set");
     Ok(Arc::new(OpenAIEmbeddingClient::new(&openai_api_key)?))
+    // let path = env::var("HF_HOME").expect("HF_HOME environmental variable not set");
+    // let path = format!("{}/minilm", path);
+    // let client = CandleEmbeddingClient::new(&path).await?;
+    // Ok(Arc::new(client))
 }
 
 // pub async fn get_analyse_service(agent_service: AgentService) -> Result<AnalyseService> {
@@ -31,7 +38,7 @@ pub fn get_embedding_client() -> Result<Arc<dyn EmbeddingClient>> {
 // Returns the ticker service
 pub async fn get_tickers_service() -> Result<TickersService> {
     let storage_service: Arc<dyn StorageService> = get_storage_service().await?;
-    let embedding_client = get_embedding_client()?;
+    let embedding_client = get_embedding_client().await?;
     Ok(TickersService::new(
         Arc::clone(&storage_service),
         embedding_client,
@@ -48,7 +55,7 @@ pub async fn get_ml_service() -> Result<MlService> {
 pub async fn get_load_service() -> Result<LoadService> {
     let storage_service: Arc<dyn StorageService> = get_storage_service().await?;
     let provider_service = get_provider_service()?;
-    let embedding_client = get_embedding_client()?;
+    let embedding_client = get_embedding_client().await?;
 
     Ok(LoadService::new(
         storage_service,
@@ -61,7 +68,7 @@ pub async fn get_load_service() -> Result<LoadService> {
 pub async fn get_pipeline_service() -> Result<PipeLineService> {
     let storage_service: Arc<dyn StorageService> = get_storage_service().await?;
     let provider_service = get_provider_service()?;
-    let embedding_client = get_embedding_client()?;
+    let embedding_client = get_embedding_client().await?;
 
     Ok(PipeLineService::new(
         storage_service,

@@ -449,13 +449,18 @@ pub(crate) async fn update_ticker_sentiments(
         .get_ticker_sentiment(&ticker.symbol, &date_from)
         .await?;
     let feeds_len = feeds.len();
-    let sentiments = TickerSentiment::new_from_alpha_batch(&ticker.symbol, feeds);
+    let all_sentiments = TickerSentiment::new_from_alpha_batch(&ticker.symbol, feeds);
     debug!(
         "Ticker {} Feeds: {} Sentiments: {}",
         ticker.symbol,
         feeds_len,
-        sentiments.len()
+        all_sentiments.len()
     );
+
+    let sentiments: Vec<_> = all_sentiments
+        .into_iter()
+        .filter(|s| s.relevance_score.abs() > 0.60)
+        .collect();
 
     if !sentiments.is_empty() {
         new_sentiments = match tc.last_sentiment_sync_at {
@@ -482,7 +487,7 @@ pub(crate) async fn update_ticker_sentiment_embeddings(
     let cmp_score = dec!(0.8);
 
     let all_sentiments = storage_service
-        .get_ticker_sentiments_with_score(&ticker.symbol, &cmp_score)
+        .get_ticker_sentiments_with_score(vec![ticker.symbol.clone()], &cmp_score)
         .await?;
 
     if all_sentiments.is_empty() {
@@ -491,7 +496,7 @@ pub(crate) async fn update_ticker_sentiment_embeddings(
 
     let sentiments: Vec<_> = all_sentiments
         .into_iter()
-        .filter(|s| s.score.abs() > 0.4 && s.date > (Utc::now() - chrono::Duration::days(30)))
+        .filter(|s| s.date > (Utc::now() - chrono::Duration::days(30)))
         .take(50)
         .collect();
 
@@ -561,8 +566,78 @@ pub(crate) async fn update_ticker_sentiment_embeddings(
     Ok(new_embeddings)
 }
 
-pub async fn update_ticker_overview_embedding(
+pub async fn update_all_ticker_overview_embeddings(
     storage_service: Arc<dyn StorageService>,
+    embedding_client: Arc<dyn EmbeddingClient>,
+    all_tickers: Vec<Ticker>,
+) -> Result<()> {
+    let total = all_tickers.len();
+    let semaphore = Arc::new(Semaphore::new(3));
+    let delay = Duration::from_millis(1000);
+
+    info!("Processing {} tickers with 3 concurrent workers", total);
+
+    let tasks: Vec<_> = all_tickers
+        .into_iter()
+        .enumerate()
+        .filter_map(|(i, ticker)| {
+            let sem = semaphore.clone();
+            let storage_service = storage_service.clone();
+            let embedding_client = embedding_client.clone();
+
+            Some(tokio::spawn(async move {
+                let _permit = sem.acquire().await.unwrap();
+                let mut ticker = ticker;
+
+                if i % 20 == 0 {
+                    info!("Updating Ticker: {} {}/{}", ticker.symbol, i + 1, total);
+                }
+
+                let result = update_ticker_overview_embedding(embedding_client, &mut ticker).await;
+
+                result.map(|_| ticker)
+            }))
+        })
+        .collect();
+
+    // collect results
+    let results = futures::future::join_all(tasks).await;
+
+    let mut success = 0;
+    let mut failed = 0;
+    let mut updated_tickers = Vec::new();
+
+    for result in results {
+        match result {
+            Ok(Ok(ticker)) => {
+                success += 1;
+                updated_tickers.push(ticker);
+            }
+            Ok(Err(e)) => {
+                error!("{}", e);
+                failed += 1;
+            }
+            Err(e) => {
+                error!("Task panicked: {}", e);
+                failed += 1;
+            }
+        }
+    }
+
+    debug!("Saving {} tickers", updated_tickers.len());
+
+    // bulk write at the end
+    if !updated_tickers.is_empty() {
+        storage_service
+            .save_tickers(updated_tickers.clone())
+            .await?;
+    }
+
+    info!("Completed: {} successful, {} failed", success, failed);
+    Ok(())
+}
+
+pub async fn update_ticker_overview_embedding(
     embedding_client: Arc<dyn EmbeddingClient>,
     ticker: &mut Ticker,
 ) -> Result<()> {
@@ -593,8 +668,6 @@ pub async fn update_ticker_overview_embedding(
         }
         Err(e) => error!("Embedding failed for {}: {}", ticker.symbol, e),
     }
-
-    storage_service.save_ticker(ticker.clone()).await?;
 
     Ok(())
 }

@@ -1,8 +1,10 @@
 use anyhow::Result;
+use fin_core::tickers::{search::search_tickers, sentiments::search_ticker_sentiments};
 use fin_domain::{
     dto::{
         ticker_chart_entity::TickerChartEntity, ticker_entity::TickerEntity,
-        ticker_news_entity::TickerNewsEntity, ticker_search_param::TickerSearchParam,
+        ticker_group::TickerGroup, ticker_news_entity::TickerNewsEntity, ticker_peer::TickerPeer,
+        ticker_search_param::TickerSearchParam, ticker_sentiment_entity::TickerSentimentEntity,
     },
     tickers::{Ticker, TickerFilter, TickerIndicator},
     utils::data_utils::get_overview_embeddings,
@@ -30,13 +32,22 @@ impl TickersService {
         }
     }
 
-    pub async fn get_ticker_groups(&self) -> Result<HashMap<String, Vec<String>>> {
-        let groups = self
-            .storage_service
+    pub async fn get_ticker_peers_for_symbols(
+        &self,
+        symbols: Vec<String>,
+        limit: usize,
+    ) -> Result<Vec<TickerPeer>> {
+        self.storage_service
+            .get_ticker_peers_by_symbols(symbols, limit)
+            .await
+            .map_err(|e| anyhow::anyhow!(format!("Get Ticker Groups error: {}", e)))
+    }
+
+    pub async fn get_ticker_groups(&self) -> Result<Vec<TickerGroup>> {
+        self.storage_service
             .get_ticker_groups()
             .await
-            .map_err(|e| anyhow::anyhow!(format!("Get Ticker Groups error: {}", e)))?;
-        Ok(groups)
+            .map_err(|e| anyhow::anyhow!(format!("Get Ticker Groups error: {}", e)))
     }
 
     pub async fn get_ticker_charts(&self, symbol: &str) -> Result<Vec<TickerChartEntity>> {
@@ -115,86 +126,33 @@ impl TickersService {
     }
 
     pub async fn search_tickers(&self, param: TickerSearchParam) -> Result<Vec<TickerEntity>> {
-        // let mut tickers = Vec::new();
-        debug!("Search Param: {:#?}", param);
-        let tickers: Vec<Ticker> = if let Some(symbols) = param.symbols {
-            let list: Vec<String> = symbols.split(',').map(|s| s.to_string()).collect();
-            debug!("List: {:?}", list);
-            self.storage_service.get_tickers_by_symbols(list).await?
-        } else if let Some(function) = param.function {
-            match function.as_str() {
-                "top_gainers" => {
-                    self.storage_service
-                        .get_tickers_by_top_gainers(param.asset_type)
-                        .await?
-                }
-                "top_gainers_ytd" => {
-                    self.storage_service
-                        .get_tickers_by_top_gainers_ytd(param.asset_type)
-                        .await?
-                }
-                "top_losers" => {
-                    self.storage_service
-                        .get_tickers_by_top_losers(param.asset_type)
-                        .await?
-                }
-                "top_losers_ytd" => {
-                    self.storage_service
-                        .get_tickers_by_top_losers_ytd(param.asset_type)
-                        .await?
-                }
-                _ => Vec::new(),
-            }
-        } else {
-            let filter = TickerFilter::from(param.clone());
-            let tickers = self
-                .storage_service
-                .search_tickers(filter)
-                .await
-                .map_err(|e| anyhow::anyhow!(format!("Get Ticker error: {}", e)))?;
-            debug!("Tickers from storage: {}", tickers.len());
-            self.search_tickers_by_overview_embedding(param.query, &tickers)
-                .await?
-        };
-
-        debug!("Tickers: {}", tickers.len());
-        let tentities = tickers
-            .iter()
-            .map(|t| TickerEntity::from(t.clone()))
-            .collect();
-        Ok(tentities)
+        search_tickers(
+            self.storage_service.clone(),
+            self.embedding_client.clone(),
+            param,
+        )
+        .await
     }
 
-    pub async fn search_tickers_by_overview_embedding(
+    pub async fn search_ticker_sentiments(
         &self,
-        query: Option<String>,
-        tickers: &[Ticker],
-    ) -> Result<Vec<Ticker>> {
-        let tickers = if let Some(query) = query
-            && !tickers.is_empty()
+        param: TickerSearchParam,
+    ) -> Result<Vec<TickerSentimentEntity>> {
+        if let Some(symbols) = param.symbols
+            && let Some(query) = param.query
         {
-            let overview_candidates: Vec<(Ticker, Vec<f32>)> = get_overview_embeddings(tickers);
-            debug!("Overview candidates: {}", overview_candidates.len());
-            debug!("Query: {:?}", query);
-
-            let candidates: Vec<(Ticker, Vec<f32>)> = get_overview_embeddings(tickers);
-            let vectors = self.embedding_client.embed_text(&query).await?.into_vec();
-
-            debug!(
-                "Query vectors: {} candidates: {}",
-                candidates.len(),
-                candidates.len()
-            );
-            search(&vectors, &candidates, 1000)
-                .into_iter()
-                .filter_map(|(t, s)| {
-                    // debug!("ticker: {}-{}", t.symbol, s);
-                    if s > 0.25 { Some(t.clone()) } else { None }
-                })
-                .collect()
+            let list: Vec<String> = symbols.split(',').map(|s| s.to_string()).collect();
+            let limit = param.limit.unwrap_or(20);
+            search_ticker_sentiments(
+                self.storage_service.clone(),
+                self.embedding_client.clone(),
+                list,
+                query,
+                limit,
+            )
+            .await
         } else {
-            tickers.to_vec()
-        };
-        Ok(tickers)
+            Ok(Vec::new())
+        }
     }
 }

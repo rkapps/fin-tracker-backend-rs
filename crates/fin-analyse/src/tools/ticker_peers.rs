@@ -39,9 +39,10 @@ impl Tool for TickerPeersTool {
         json!({
             "type": "object",
             "properties": {
-                "symbol": {
-                    "type": "string",
-                    "description": "The stock ticker symbol"
+                "symbols": {
+                    "type": "array",
+                    "items": { "type": "string" },
+                    "description": "List of stock ticker symbols to find peers for"
                 },
                 "limit": {
                     "type": "integer",
@@ -49,14 +50,14 @@ impl Tool for TickerPeersTool {
                     "default": 10
                 }
             },
-            "required": ["symbol", "limit"]
+            "required": ["symbols"]
         })
     }
 
     async fn execute(&self, value: serde_json::Value) -> Result<Value> {
         #[derive(Debug, Deserialize)]
         struct Params {
-            symbol: String,
+            symbols: Vec<String>,
             #[serde(default = "default_limit")]
             limit: usize,
         }
@@ -68,83 +69,92 @@ impl Tool for TickerPeersTool {
         let params: Params = serde_json::from_value(value.clone())
             .map_err(|e| anyhow::anyhow!("Failed to deserialize params: {:?} — {:?}", value, e))?;
 
-        info!("Ticker Peers params {:#?}", params);
-        let ticker = match self
+        let peers = self
             .storage_service
-            .get_ticker_by_symbol(&params.symbol)
-            .await
-        {
-            Ok(t) => t,
-            Err(_) => {
-                return Ok(json!({
-                    "symbol": params.symbol,
-                    "error": "Ticker not found in database"
-                }));
-            }
-        };
-
-        let mut industry_peers: Vec<String> = Vec::new();
-        let tickers = self
-            .storage_service
-            .get_ticker_peers_by_industry(&params.symbol)
+            .get_ticker_peers_by_symbols(params.symbols, params.limit)
             .await?;
-        debug!("Industry tickers all: {}", tickers.len());
+        Ok(serde_json::to_value(peers)?)
 
-        let mut count = 0;
-        for ticker in tickers {
-            if count > params.limit {
-                break;
-            }
-            if ticker.symbol == params.symbol {
-                continue;
-            }
-            count += 1;
-            industry_peers.push(ticker.symbol);
-        }
+        // let params: Params = serde_json::from_value(value.clone())
+        //     .map_err(|e| anyhow::anyhow!("Failed to deserialize params: {:?} — {:?}", value, e))?;
 
-        let mut sector_peers: Vec<String> = Vec::new();
+        // info!("Ticker Peers params {:#?}", params);
+        // let ticker = match self
+        //     .storage_service
+        //     .get_ticker_by_symbol(&params.symbol)
+        //     .await
+        // {
+        //     Ok(t) => t,
+        //     Err(_) => {
+        //         return Ok(json!({
+        //             "symbol": params.symbol,
+        //             "error": "Ticker not found in database"
+        //         }));
+        //     }
+        // };
 
-        if industry_peers.len() < params.limit {
-            let sector_tickers = self
-                .storage_service
-                .get_ticker_peers_by_sector(&params.symbol)
-                .await?;
-            debug!("Sector peers total: {}", sector_tickers.len());
+        // let mut industry_peers: Vec<String> = Vec::new();
+        // let tickers = self
+        //     .storage_service
+        //     .get_ticker_peers_by_industry(&params.symbol)
+        //     .await?;
+        // debug!("Industry tickers all: {}", tickers.len());
 
-            // Get ticker embedding
-            let ticker_embedding = ticker.overview_embedding.clone().unwrap_or_default();
+        // let mut count = 0;
+        // for ticker in tickers {
+        //     if count > params.limit {
+        //         break;
+        //     }
+        //     if ticker.symbol == params.symbol {
+        //         continue;
+        //     }
+        //     count += 1;
+        //     industry_peers.push(ticker.symbol);
+        // }
 
-            // Build candidates from sector tickers
-            let candidates: Vec<(String, Vec<f32>)> = sector_tickers
-                .iter()
-                .filter(|t| t.symbol != params.symbol)
-                .filter_map(|t| {
-                    t.overview_embedding
-                        .clone()
-                        .map(|emb| (t.symbol.clone(), emb))
-                })
-                .collect();
+        // let mut sector_peers: Vec<String> = Vec::new();
 
-            //add a larger limit
-            let ranked = search(&ticker_embedding, &candidates, 20);
-            for (symbol, score) in &ranked {
-                debug!("Sector peer score: {}-{}", symbol, score);
-            }
-            sector_peers = ranked
-                .iter()
-                .filter(|(_, score)| *score > 0.45) // threshold — tune this
-                .take(params.limit)
-                .map(|(symbol, _)| symbol.clone())
-                .collect();
-            // sector_peers = ranked.iter().map(|(symbol, _)| symbol.clone()).collect();
-        }
+        // if industry_peers.len() < params.limit {
+        //     let sector_tickers = self
+        //         .storage_service
+        //         .get_ticker_peers_by_sector(&params.symbol)
+        //         .await?;
+        //     debug!("Sector peers total: {}", sector_tickers.len());
 
-        info!("Industry peers {:#?}", industry_peers);
-        info!("sector peers {:#?}", sector_peers);
-        Ok(json!({
-            "symbol": params.symbol,
-            "industry_peers": industry_peers,
-            "sector_peers": sector_peers
-        }))
+        //     // Get ticker embedding
+        //     let ticker_embedding = ticker.overview_embedding.clone().unwrap_or_default();
+
+        //     // Build candidates from sector tickers
+        //     let candidates: Vec<(String, Vec<f32>)> = sector_tickers
+        //         .iter()
+        //         .filter(|t| t.symbol != params.symbol)
+        //         .filter_map(|t| {
+        //             t.overview_embedding
+        //                 .clone()
+        //                 .map(|emb| (t.symbol.clone(), emb))
+        //         })
+        //         .collect();
+
+        //     //add a larger limit
+        //     let ranked = search(&ticker_embedding, &candidates, 20);
+        //     for (symbol, score) in &ranked {
+        //         debug!("Sector peer score: {}-{}", symbol, score);
+        //     }
+        //     sector_peers = ranked
+        //         .iter()
+        //         .filter(|(_, score)| *score > 0.45) // threshold — tune this
+        //         .take(params.limit)
+        //         .map(|(symbol, _)| symbol.clone())
+        //         .collect();
+        //     // sector_peers = ranked.iter().map(|(symbol, _)| symbol.clone()).collect();
+        // }
+
+        // info!("Industry peers {:#?}", industry_peers);
+        // info!("sector peers {:#?}", sector_peers);
+        // Ok(json!({
+        //     "symbol": params.symbol,
+        //     "industry_peers": industry_peers,
+        //     "sector_peers": sector_peers
+        // }))
     }
 }

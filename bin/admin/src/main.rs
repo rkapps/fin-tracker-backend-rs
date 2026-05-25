@@ -6,7 +6,9 @@ use bin_shared::services::{
 };
 use chrono::Utc;
 use clap::{Parser, Subcommand};
-use fin_core::tickers::update::update_ticker_overview_embedding;
+use fin_core::tickers::update::{
+    update_all_ticker_overview_embeddings, update_ticker_overview_embedding,
+};
 use fin_tracker_admin::seed::{load_ticker_seeds_from_file, load_ticker_seeds_from_gcs};
 use rustic_core::set_logger;
 use tracing::{error, info};
@@ -203,15 +205,12 @@ async fn main() -> Result<()> {
                     .await?
             };
 
-            // run ticker overview embeddings
-            for mut ticker in all_tickers {
-                update_ticker_overview_embedding(
-                    pipeline_service.storage_service.clone(),
-                    pipeline_service.embedding_client.clone(),
-                    &mut ticker,
-                )
-                .await?;
-            }
+            update_all_ticker_overview_embeddings(
+                pipeline_service.storage_service.clone(),
+                pipeline_service.embedding_client.clone(),
+                all_tickers,
+            )
+            .await?
         }
     }
 

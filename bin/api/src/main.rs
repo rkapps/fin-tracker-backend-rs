@@ -16,8 +16,11 @@ use fin_tracker_api::{
     handlers::{
         analyse::analyse_tickers_streaming_handler,
         tickers::{
-            get_ticker_charts_handler, get_ticker_groups_handler, get_ticker_news_handler,
-            search_tickers_handler,
+            get_ticker_charts_handler, get_ticker_embeddings_by_symbols_handler,
+            get_ticker_groups_handler, get_ticker_indicators_by_symbols_handler,
+            get_ticker_news_handler, get_ticker_peers_by_symbols_handler,
+            get_ticker_sentiments_by_symbols_handler, get_ticker_snapshots_by_symbols_handler,
+            search_tickers_handler, search_tickers_sentiments_handler,
         },
     },
     state::AppState,
@@ -58,7 +61,7 @@ async fn main() -> Result<()> {
         "https://rustic-ai-rkapps.web.app",
     ];
 
-    let embedding_client = get_embedding_client()?;
+    let embedding_client = get_embedding_client().await?;
     let storage_service = get_storage_service().await?;
     let ticker_service = get_tickers_service().await?;
 
@@ -67,22 +70,43 @@ async fn main() -> Result<()> {
             storage_service.clone(),
             embedding_client.clone(),
         )),
-        // Arc::new(TickerTaxonomyTool::new(storage_service.clone())),
-        // Arc::new(TickerSentimentTool::new(
-        //     embedding_client.clone(),
-        //     storage_service.clone(),
-        // )),
-        // Arc::new(TickerSnapshotTool::new(storage_service.clone())),
-        // Arc::new(TickerPriceHistoryTool::new(storage_service.clone())),
-        // Arc::new(TickerIndicatorTool::new(storage_service.clone())),
-        // Arc::new(TickerPeersTool::new(storage_service.clone())),
+        Arc::new(TickerTaxonomyTool::new(storage_service.clone())),
+        Arc::new(TickerSentimentTool::new(
+            embedding_client.clone(),
+            storage_service.clone(),
+        )),
+        Arc::new(TickerSnapshotTool::new(storage_service.clone())),
+        Arc::new(TickerPriceHistoryTool::new(storage_service.clone())),
+        Arc::new(TickerIndicatorTool::new(storage_service.clone())),
+        Arc::new(TickerPeersTool::new(storage_service.clone())),
     ];
 
     let fintracker_routes = Router::new()
         .route("/tickers/groups", get(get_ticker_groups_handler))
+        .route("/tickers/peers", get(get_ticker_peers_by_symbols_handler))
+        .route(
+            "/tickers/snapshots",
+            get(get_ticker_snapshots_by_symbols_handler),
+        )
+        .route(
+            "/tickers/indicators",
+            get(get_ticker_indicators_by_symbols_handler),
+        )
+        .route(
+            "/tickers/sentiments",
+            get(get_ticker_sentiments_by_symbols_handler),
+        )
+        .route(
+            "/tickers/embeddings",
+            get(get_ticker_embeddings_by_symbols_handler),
+        )
         .route("/tickers/{symbol}/charts", get(get_ticker_charts_handler))
         .route("/tickers/{symbol}/news", get(get_ticker_news_handler))
         .route("/tickers/search", post(search_tickers_handler))
+        .route(
+            "/tickers/sentiments/search",
+            post(search_tickers_sentiments_handler),
+        )
         // .route("/tickers/analyse", post(analyse_tickers_handler))
         .route(
             "/tickers/analyse_streaming",
