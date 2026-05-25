@@ -52,7 +52,7 @@ impl From<Ticker> for TickerSnapshot {
         let (mlp_signals, technical_signals): (Vec<String>, Vec<String>) = ticker
         .signals
         .into_iter()
-        .partition(|s| s.starts_with("MLP") || s.starts_with("ML "));
+        .partition(|s| s.starts_with("ML") );
 
         TickerSnapshot {
             symbol: ticker.symbol,
