@@ -1,17 +1,21 @@
-use std::{convert::Infallible, sync::Arc};
+use anyhow::Result;
+use rustic_boot::BootState;
+use std::{convert::Infallible, sync::Arc, vec};
 
 use axum::{
     Json,
     extract::State,
     response::{IntoResponse, Sse, sse::Event},
 };
-use fin_services::analyse::AnalyseService;
 use futures::StreamExt;
 use reqwest::StatusCode;
-use rustic_agent::CompletionResponseContent;
+use rustic_agent::{
+    CompletionResponse, CompletionResponseContent, CompletionStreamResponse,
+    agents::domain::{AgentInput, LlmConfig},
+};
 use serde::{Deserialize, Serialize};
 use tokio::sync::Mutex;
-use tracing::{debug, info};
+use tracing::{debug, error, info};
 
 #[derive(Deserialize, Debug)]
 pub struct TickerAnalyseParam {
@@ -28,14 +32,12 @@ pub struct TickerAnalyseResponse {
 }
 
 pub async fn analyse_tickers_handler(
-    State(analyse_service): State<Arc<AnalyseService>>,
+    State(boot): State<Arc<BootState>>,
     Json(param): Json<TickerAnalyseParam>,
 ) -> Result<Json<TickerAnalyseResponse>, (StatusCode, String)> {
     debug!("analyse params: {:?}", param);
-    let response_id = param.prev_response_id;
 
-    let response = analyse_service
-        .analyse_tickers(&param.llm, &param.model, &param.prompt, response_id)
+    let response = analyse_tickers(boot, &param.llm, &param.model, &param.prompt)
         .await
         .map_err(|e| {
             (
@@ -64,22 +66,22 @@ pub async fn analyse_tickers_handler(
 }
 
 pub async fn analyse_tickers_streaming_handler(
-    State(analyse_service): State<Arc<AnalyseService>>,
+    State(boot): State<Arc<BootState>>,
     Json(param): Json<TickerAnalyseParam>,
 ) -> impl IntoResponse {
     debug!("started analyse_tickers_streaming_handler");
 
-    let response_id = param.prev_response_id;
 
-    let stream = match analyse_service
-        .analyse_tickers_streaming(&param.llm, &param.model, &param.prompt, response_id)
-        .await
-    {
-        Ok(stream) => stream,
-        Err(_) => {
-            return StatusCode::INTERNAL_SERVER_ERROR.into_response();
-        }
-    };
+    let stream =
+        match analyse_tickers_streaming(boot, &param.llm, &param.model, &param.prompt)
+            .await
+        {
+            Ok(stream) => stream,
+            Err(e) => {
+                error!("analyse_tickers_streaming error: {}", e.to_string());
+                return StatusCode::INTERNAL_SERVER_ERROR.into_response();
+            }
+        };
 
     let final_content = Arc::new(Mutex::new(String::new()));
     let final_thought = Arc::new(Mutex::new(String::new()));
@@ -125,4 +127,70 @@ pub async fn analyse_tickers_streaming_handler(
     });
 
     Sse::new(event_stream).into_response()
+}
+
+pub async fn analyse_tickers(
+    boot: Arc<BootState>,
+    llm: &str,
+    model: &str,
+    prompt: &str,
+) -> Result<CompletionResponse> {
+
+    info!(
+        "analyse ticker prompt: llm: {} model: {} prompt {:?}",
+        llm, model, prompt
+    );
+
+    let llm_config = LlmConfig {
+        llm: Some(llm.to_string()),
+        model: Some(model.to_string()),
+        ..Default::default()
+    };
+    let agent_input = AgentInput::new(
+        "finance-analyser".to_string(),
+        llm_config,
+        None,
+        false,
+    );
+
+    let runner = boot
+        .agent_service
+        .build_runnable(&agent_input)
+        .await?;
+    let cresponse = runner.execute(vec![], &prompt, false).await?;
+    // let response = agent.execute(&input).await?;
+    Ok(cresponse)
+}
+
+pub async fn analyse_tickers_streaming(
+    boot: Arc<BootState>,
+    llm: &str,
+    model: &str,
+    prompt: &str,
+) -> Result<CompletionStreamResponse> {
+    
+    info!(
+        "analyse ticker prompt: llm: {} model: {} prompt {:?}",
+        llm, model, prompt
+    );
+
+    let llm_config = LlmConfig {
+        llm: Some(llm.to_string()),
+        model: Some(model.to_string()),
+        ..Default::default()
+    };
+    let agent_input = AgentInput::new(
+        "finance-analyser".to_string(),
+        llm_config,
+        None,
+        false,
+    );
+
+    let runner = boot
+        .agent_service
+        .build_runnable(&agent_input)
+        .await?;
+
+    let stream = runner.execute_streaming(vec![], &prompt, false).await?;
+    Ok(Box::pin(stream))
 }

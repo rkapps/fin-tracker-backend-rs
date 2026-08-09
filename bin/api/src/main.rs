@@ -1,26 +1,16 @@
-use std::{env, sync::Arc};
-
 use anyhow::Result;
 use axum::{
     Router,
     routing::{get, post},
 };
+use std::{env, sync::Arc};
 
-use bin_shared::services::{get_embedding_client, get_storage_service, get_tickers_service};
-use fin_analyse::tools::{
-    TickerIndicatorTool, TickerPeersTool, TickerPriceHistoryTool, TickerScreeningTool,
-    TickerSentimentTool, TickerSnapshotTool, TickerTaxonomyTool,
-};
-use fin_services::analyse::AnalyseService;
 use fin_tracker_api::{
     handlers::{
         analyse::analyse_tickers_streaming_handler,
         tickers::{
-            get_ticker_charts_handler, get_ticker_embeddings_by_symbols_handler,
-            get_ticker_groups_handler, get_ticker_indicators_by_symbols_handler,
-            get_ticker_news_handler, get_ticker_peers_by_symbols_handler,
-            get_ticker_sentiments_by_symbols_handler, get_ticker_snapshots_by_symbols_handler,
-            search_tickers_handler, search_tickers_sentiments_handler,
+            get_ticker_charts_handler, get_ticker_groups_handler, get_ticker_news_handler,
+            search_tickers_handler,
         },
     },
     state::AppState,
@@ -29,27 +19,39 @@ use rustic_boot::{
     boot,
     routes::{conversation::conversation_routes, providers::provider_routes},
 };
-use rustic_core::{Tool, set_logger};
+use rustic_core::{logger::set_logger_with_telemetry, set_logger};
+use rustic_finance::service::FinanceService;
+use rustic_ml::embeddings::openai::OpenAIEmbeddingClient;
 use tracing::debug;
 
 #[tokio::main]
 
 async fn main() -> Result<()> {
     let filter = std::env::var("RUST_LOG").unwrap_or_else(|_| {
-        "rustic_boot=info,rustic-agent=info,fin_services=info,fin_analyse=info,fin_core=info"
+        "rustic_boot=info,rustic_agent=debug,fin_services=info,fin_analyse=info,fin_core=info"
             .to_string()
     });
-    set_logger(filter);
 
     let config_dir = env::var("FINTRACKER_CONFIG_PATH")
         .expect("FINTRACKER_CONFIG_PATH envrionment variable not set");
     let firebase_project_id = env::var("FINTRACKER_PROJECT_ID")
         .expect("FINTRACKER_PROJECT_ID envrionment variable not set");
-    // /media/raghu/data2/Workspace/Projects/libs/agentic-boot/data";
-    let mongo_db =
-        env::var("FINTRACKER_DB_NAME").expect("FINTRACKER_DB_NAME envrionment variable not set");
-    let mongo_uri = env::var("MONGO_URI").expect("MONGO_URI envrionment variable not set");
+
+    let endpoint = std::env::var("OTEL_ENDPOINT")?;
+        set_logger_with_telemetry(filter, "fin-tracker-api", &firebase_project_id, &endpoint).await?;
+    
+    let mongo_db = env::var("RUSTIC_FINANCE_DB_NAME")
+        .expect("RUSTIC_FINANCE_DB_NAME envrionment variable not set");
+    
+    let mongo_uri = env::var("RUSTIC_FINANCE_MONGO_URI").expect("MONGO_URI envrionment variable not set");
     debug!("Mongo uri: {:?} db: {:?}", mongo_uri, mongo_db);
+
+    let openai_api_key: String =
+        env::var("OPENAI_API_KEY").expect("OPENAI_API_KEY environment variable not set");
+    let embedding_client = Arc::new(OpenAIEmbeddingClient::new(&openai_api_key)?);
+
+    let finance_service =
+        FinanceService::new_reader(&mongo_uri, &mongo_db, embedding_client).await?;
 
     let port = std::env::var("PORT").unwrap_or_else(|_| "8080".to_string());
     let addr = format!("0.0.0.0:{}", port);
@@ -61,53 +63,11 @@ async fn main() -> Result<()> {
         "https://rustic-ai-rkapps.web.app",
     ];
 
-    let embedding_client = get_embedding_client().await?;
-    let storage_service = get_storage_service().await?;
-    let ticker_service = get_tickers_service().await?;
-
-    let tools: Vec<Arc<dyn Tool>> = vec![
-        Arc::new(TickerScreeningTool::new(
-            storage_service.clone(),
-            embedding_client.clone(),
-        )),
-        Arc::new(TickerTaxonomyTool::new(storage_service.clone())),
-        Arc::new(TickerSentimentTool::new(
-            embedding_client.clone(),
-            storage_service.clone(),
-        )),
-        Arc::new(TickerSnapshotTool::new(storage_service.clone())),
-        Arc::new(TickerPriceHistoryTool::new(storage_service.clone())),
-        Arc::new(TickerIndicatorTool::new(storage_service.clone())),
-        Arc::new(TickerPeersTool::new(storage_service.clone())),
-    ];
-
     let fintracker_routes = Router::new()
         .route("/tickers/groups", get(get_ticker_groups_handler))
-        .route("/tickers/peers", get(get_ticker_peers_by_symbols_handler))
-        .route(
-            "/tickers/snapshots",
-            get(get_ticker_snapshots_by_symbols_handler),
-        )
-        .route(
-            "/tickers/indicators",
-            get(get_ticker_indicators_by_symbols_handler),
-        )
-        .route(
-            "/tickers/sentiments",
-            get(get_ticker_sentiments_by_symbols_handler),
-        )
-        .route(
-            "/tickers/embeddings",
-            get(get_ticker_embeddings_by_symbols_handler),
-        )
         .route("/tickers/{symbol}/charts", get(get_ticker_charts_handler))
         .route("/tickers/{symbol}/news", get(get_ticker_news_handler))
         .route("/tickers/search", post(search_tickers_handler))
-        .route(
-            "/tickers/sentiments/search",
-            post(search_tickers_sentiments_handler),
-        )
-        // .route("/tickers/analyse", post(analyse_tickers_handler))
         .route(
             "/tickers/analyse_streaming",
             post(analyse_tickers_streaming_handler),
@@ -120,7 +80,7 @@ async fn main() -> Result<()> {
         .agents_config("agents.json".to_string())
         .mongo_database(mongo_uri, mongo_db)
         .cors_origins(origins.to_vec())
-        .tools(tools)
+        .tools(finance_service.tools())
         .serve(
             &addr,
             |boot| {
@@ -128,8 +88,7 @@ async fn main() -> Result<()> {
 
                 AppState {
                     boot_state: boot.clone(),
-                    ticker_service: Arc::new(ticker_service),
-                    analyse_service: Arc::new(AnalyseService::new(boot.agent_service.clone())),
+                    finance_service: Arc::new(finance_service),
                 }
             },
             |router, _| router.merge(provider_routes()).merge(fintracker_routes),

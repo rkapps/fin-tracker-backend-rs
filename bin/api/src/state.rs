@@ -1,13 +1,12 @@
 use axum::extract::FromRef;
-use fin_services::{analyse::AnalyseService, ticker::TickersService};
 use rustic_boot::BootState;
+use rustic_finance::service::FinanceService;
 use std::sync::Arc;
 
 #[derive(Clone)]
 pub struct AppState {
     pub boot_state: Arc<BootState>,
-    pub ticker_service: Arc<TickersService>,
-    pub analyse_service: Arc<AnalyseService>,
+    pub finance_service: Arc<FinanceService>,
 }
 impl FromRef<AppState> for Arc<BootState> {
     fn from_ref(state: &AppState) -> Arc<BootState> {
@@ -15,14 +14,8 @@ impl FromRef<AppState> for Arc<BootState> {
     }
 }
 
-impl FromRef<AppState> for Arc<TickersService> {
+impl FromRef<AppState> for Arc<FinanceService> {
     fn from_ref(state: &AppState) -> Self {
-        state.ticker_service.clone()
-    }
-}
-
-impl FromRef<AppState> for Arc<AnalyseService> {
-    fn from_ref(state: &AppState) -> Self {
-        state.analyse_service.clone()
+        state.finance_service.clone()
     }
 }

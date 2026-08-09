@@ -18,22 +18,7 @@ pub async fn get_embedding_client() -> Result<Arc<dyn EmbeddingClient>> {
     let openai_api_key: String =
         env::var("OPENAI_API_KEY").expect("OPENAI_API_KEY environment variable not set");
     Ok(Arc::new(OpenAIEmbeddingClient::new(&openai_api_key)?))
-    // let path = env::var("HF_HOME").expect("HF_HOME environmental variable not set");
-    // let path = format!("{}/minilm", path);
-    // let client = CandleEmbeddingClient::new(&path).await?;
-    // Ok(Arc::new(client))
 }
-
-// pub async fn get_analyse_service(agent_service: AgentService) -> Result<AnalyseService> {
-//     // let agent_service = get_agent_service()?;
-//     let storage_service: Arc<dyn StorageService> = get_storage_service().await?;
-//     let embedding_client = get_embedding_client()?;
-//     Ok(AnalyseService::new(
-//         storage_service,
-//         embedding_client,
-//         Arc::new(agent_service),
-//     ))
-// }
 
 // Returns the ticker service
 pub async fn get_tickers_service() -> Result<TickersService> {

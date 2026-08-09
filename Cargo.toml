@@ -1,6 +1,6 @@
 [workspace]
 resolver = "2"
-members = ["crates/*", "bin/*"]
+members = ["bin/api"]
 
 [workspace.dependencies]
 anyhow = "1.0.100"
@@ -52,18 +52,9 @@ tracing-subscriber = { version = "0.3", features = ["env-filter", "json"] }
 #rustic-ml = { path = "../rustic-ai-backend-rs/crates/rustic-ml" }
 #rustic-storage = { path = "../rustic-ai-backend-rs/crates/rustic-storage" }
 
-rustic-agent = { git = "https://github.com/rkapps/rustic-ai-backend-rs", package = "rustic-agent"}
-rustic-boot = { git = "https://github.com/rkapps/rustic-ai-backend-rs", package = "rustic-boot"}
-rustic-core = { git = "https://github.com/rkapps/rustic-ai-backend-rs", package = "rustic-core"}
-rustic-ml = { git = "https://github.com/rkapps/rustic-ai-backend-rs", package = "rustic-ml"}
-rustic-storage = { git = "https://github.com/rkapps/rustic-ai-backend-rs", package = "rustic-storage"}
-
-# Local app crates
-fin-analyse = { path = "crates/fin-analyse" }
-fin-core = { path = "crates/fin-core" }
-fin-domain = { path = "crates/fin-domain" }
-fin-services = { path = "crates/fin-services" }
-fin-storage = { path = "crates/fin-storage"}
-fin-providers = { path = "crates/fin-providers"}
-
-
+rustic-agent = { git = "https://github.com/rkapps/rustic-backend", package = "rustic-agent"}
+rustic-boot = { git = "https://github.com/rkapps/rustic-backend", package = "rustic-boot"}
+rustic-core = { git = "https://github.com/rkapps/rustic-backend", package = "rustic-core"}
+rustic-ml = { git = "https://github.com/rkapps/rustic-backend", package = "rustic-ml"}
+rustic-storage = { git = "https://github.com/rkapps/rustic-backend", package = "rustic-storage"}
+rustic-finance = { git = "https://github.com/rkapps/rustic-backend", package = "rustic-finance"}
